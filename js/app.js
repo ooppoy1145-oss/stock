@@ -276,10 +276,12 @@ let fleet = [];
 let activeMode = 'ALL'; // 'ALL' | 'RENT' | 'SALE'
 let currentView = 'grid'; // 'grid' | 'table' | 'kanban'
 let formPhotos = [];
-let currentDetailMoto = null;
+let isInitialCloudLoading = false;
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // Start Firebase sync immediately
+  initFirebaseSync();
   loadFleet();
   setupEventListeners();
   setupPhotoDropAndPaste();
@@ -287,38 +289,48 @@ document.addEventListener('DOMContentLoaded', () => {
   updateBranchOptions();
   updatePrintDate();
   renderAll();
-  initFirebaseSync();
 });
 
 function loadFleet() {
-  const stored = localStorage.getItem('honda_motorcycle_fleet');
-  if (stored) {
-    try {
-      fleet = JSON.parse(stored);
-      // Migrate existing fleet to ensure gps fields exist
-      let updated = false;
-      fleet.forEach(item => {
-        if (item.gpsImei === undefined) {
-          const matchDefault = DEFAULT_MOTO_FLEET.find(d => d.id === item.id);
-          item.gpsImei = matchDefault ? matchDefault.gpsImei : '';
-          item.gpsUrl = matchDefault ? matchDefault.gpsUrl : '';
-          updated = true;
-        }
-      });
-      if (updated) saveFleet();
-    } catch (e) {
-      console.error('Error parsing stored fleet, restoring default', e);
+  const isFirebaseInCode = window.FirebaseSync && FirebaseSync.isConfiguredInCode();
+
+  if (isFirebaseInCode) {
+    // When Firebase is configured in code, cloud is our Single Source of Truth!
+    // Try to load from the latest synced Firebase cache
+    const cached = FirebaseSync.getCachedFleet ? FirebaseSync.getCachedFleet() : null;
+
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      // Instant render from latest Firebase cache! Zero delay!
+      fleet = cached;
+      isInitialCloudLoading = false;
+    } else {
+      // First visit on this device: do NOT display stale mock data!
+      // Set empty fleet and show shimmer skeleton cards until Firestore snapshot arrives (~200ms)
+      fleet = [];
+      isInitialCloudLoading = true;
+    }
+  } else {
+    // Legacy offline mode (no Firebase keys configured in code)
+    const stored = localStorage.getItem('honda_motorcycle_fleet');
+    if (stored) {
+      try {
+        fleet = JSON.parse(stored);
+      } catch (e) {
+        fleet = [...DEFAULT_MOTO_FLEET];
+        saveFleet();
+      }
+    } else {
       fleet = [...DEFAULT_MOTO_FLEET];
       saveFleet();
     }
-  } else {
-    fleet = [...DEFAULT_MOTO_FLEET];
-    saveFleet();
   }
 }
 
 function saveFleet() {
   localStorage.setItem('honda_motorcycle_fleet', JSON.stringify(fleet));
+  if (window.FirebaseSync && FirebaseSync.setCachedFleet) {
+    FirebaseSync.setCachedFleet(fleet);
+  }
 }
 
 function updateBranchOptions() {
@@ -499,6 +511,11 @@ function switchView(viewName) {
 
 // ==================== RENDERING CORE ====================
 function renderAll() {
+  if (isInitialCloudLoading) {
+    renderSkeletonView();
+    return;
+  }
+
   const filtered = getFilteredFleet();
 
   // 1. Update Tab counts
@@ -588,6 +605,48 @@ function getFilteredFleet() {
   });
 
   return list;
+}
+
+function renderSkeletonView() {
+  // 1. KPI cards show shimmer
+  ['kpiTotalUnits', 'kpiAvailableUnits', 'kpiRentedUnits', 'kpiServiceUnits'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<span class="skeleton-shimmer" style="width: 38px; height: 26px; display: inline-block;"></span>';
+  });
+  const revEl = document.getElementById('kpiRentalRevenue');
+  if (revEl) revEl.innerHTML = '<span class="skeleton-shimmer" style="width: 75px; height: 26px; display: inline-block;"></span>';
+
+  // 2. Tab counts show '-'
+  ['countTabAll', 'countTabRent', 'countTabSale'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '-';
+  });
+
+  const countBadge = document.getElementById('filteredCountBadge');
+  if (countBadge) countBadge.textContent = 'กำลังโหลดข้อมูลจากคลาวด์...';
+
+  // 3. Grid container shows skeleton cards
+  const container = document.getElementById('carGridContainer');
+  const emptyState = document.getElementById('gridEmptyState');
+  if (emptyState) emptyState.style.display = 'none';
+
+  if (container) {
+    container.innerHTML = Array(3).fill(0).map(() => `
+      <div class="skeleton-card">
+        <div class="skeleton-shimmer" style="height: 190px; border-radius: var(--radius-md);"></div>
+        <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
+          <div class="skeleton-shimmer" style="width: 55%; height: 20px;"></div>
+          <div class="skeleton-shimmer" style="width: 28%; height: 20px;"></div>
+        </div>
+        <div class="skeleton-shimmer" style="width: 40%; height: 15px;"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+          <div class="skeleton-shimmer" style="height: 38px;"></div>
+          <div class="skeleton-shimmer" style="height: 38px;"></div>
+        </div>
+        <div class="skeleton-shimmer" style="height: 36px; margin-top: 0.4rem;"></div>
+      </div>
+    `).join('');
+  }
 }
 
 function updateKpiStats() {
@@ -1782,11 +1841,20 @@ function updateFirebaseStatusUI(state) {
 }
 
 function handleRemoteFleetUpdated(remoteFleet, meta) {
-  if (Array.isArray(remoteFleet) && remoteFleet.length > 0) {
+  const wasInitialLoading = isInitialCloudLoading;
+  isInitialCloudLoading = false;
+
+  if (Array.isArray(remoteFleet)) {
+    // Only re-render if fleet actually changed or if it was in skeleton loading state
+    const isDifferent = JSON.stringify(fleet) !== JSON.stringify(remoteFleet);
+
     fleet = remoteFleet;
     saveFleet();
     updateBranchOptions();
-    renderAll();
+
+    if (isDifferent || wasInitialLoading || meta?.isInitial) {
+      renderAll();
+    }
 
     // If detail modal is open for a motorcycle that got updated, refresh view
     if (currentDetailMoto) {
@@ -1800,14 +1868,6 @@ function handleRemoteFleetUpdated(remoteFleet, meta) {
       playSyncChime();
       showToast('🔄 ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถจากผู้ใช้อื่น', 'info');
     }
-  } else if (meta && meta.isInitial && (!remoteFleet || remoteFleet.length === 0) && fleet.length > 0) {
-    // Remote is empty on initial load, auto-push local data so cloud is ready
-    console.log('Firebase remote collection is empty. Auto-seeding initial fleet data...');
-    FirebaseSync.uploadAll(fleet).then(res => {
-      if (res && res.success) {
-        showToast('☁️ สำรองข้อมูลสต็อคในเครื่องขึ้น Firebase อัตโนมัติเรียบร้อยแล้ว', 'gold');
-      }
-    });
   }
 }
 

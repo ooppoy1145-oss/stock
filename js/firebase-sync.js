@@ -279,6 +279,9 @@ const FirebaseSync = (function() {
             remoteFleet.push(data);
           });
 
+          // Cache remote fleet immediately so subsequent page loads are instant (0ms delay)
+          setCachedFleet(remoteFleet);
+
           // Check if changes came from other clients
           const hasRemoteChanges = snapshot.docChanges().some(change => {
             return !snapshot.metadata.hasPendingWrites;
@@ -331,6 +334,7 @@ const FirebaseSync = (function() {
         }
 
         state.remoteFleetCount = remoteFleet.length;
+        setCachedFleet(remoteFleet);
         setStatus('connected');
 
         const isFirstLoad = !state.initialLoadDone;
@@ -688,6 +692,68 @@ const FirebaseSync = (function() {
     setStatus('unconfigured');
   }
 
+  const SYNC_CACHE_KEY = 'honda_firebase_synced_fleet';
+
+  function getCachedFleet() {
+    try {
+      const stored = localStorage.getItem(SYNC_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading synced cache:', e);
+    }
+    return null;
+  }
+
+  function setCachedFleet(fleetList) {
+    try {
+      if (Array.isArray(fleetList)) {
+        localStorage.setItem(SYNC_CACHE_KEY, JSON.stringify(fleetList));
+      }
+    } catch (e) {
+      console.warn('Error saving synced cache:', e);
+    }
+  }
+
+  function isConfiguredInCode() {
+    const codeConfig = window.FIREBASE_CONFIG || (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
+    return Boolean(codeConfig && 
+                   typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' && 
+                   typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '');
+  }
+
+  // Pre-initialize Firebase immediately as soon as this script is loaded!
+  (function preInitFirebase() {
+    try {
+      const config = getActiveConfig();
+      if (config && config.apiKey && config.projectId && typeof firebase !== 'undefined') {
+        if (!firebase.apps || firebase.apps.length === 0) {
+          state.app = firebase.initializeApp(config);
+        } else {
+          state.app = firebase.apps[0];
+        }
+
+        const settings = getActiveSettings();
+        state.dbType = settings.dbType || 'firestore';
+        state.collectionName = settings.collectionName || 'motorcycle_fleet';
+
+        if (state.dbType === 'firestore' && firebase.firestore) {
+          state.db = firebase.firestore();
+          state.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+        } else if (state.dbType === 'rtdb' && firebase.database) {
+          if (!config.databaseURL) {
+            config.databaseURL = `https://${config.projectId}-default-rtdb.firebaseio.com`;
+          }
+          state.rtdb = firebase.database();
+        }
+      }
+    } catch (err) {
+      console.warn('Pre-init error:', err);
+    }
+  })();
+
   // Public API
   return {
     init,
@@ -703,9 +769,13 @@ const FirebaseSync = (function() {
     getActiveConfig,
     getActiveSettings,
     parseConfigInput,
+    getCachedFleet,
+    setCachedFleet,
+    isConfiguredInCode,
     getState: () => ({ ...state })
   };
 })();
 
 // Attach to window
 window.FirebaseSync = FirebaseSync;
+
