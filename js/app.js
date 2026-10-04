@@ -577,6 +577,8 @@ function getFilteredFleet() {
     // Search query
     if (search) {
       const matchPlate = moto.licensePlate && moto.licensePlate.toLowerCase().includes(search);
+      const matchProvince = moto.province && moto.province.toLowerCase().includes(search);
+      const matchFuel = moto.fuel && moto.fuel.toLowerCase().includes(search);
       const matchModel = moto.model && moto.model.toLowerCase().includes(search);
       const matchVin = moto.vin && moto.vin.toLowerCase().includes(search);
       const matchCust = moto.customer && moto.customer.toLowerCase().includes(search);
@@ -585,7 +587,7 @@ function getFilteredFleet() {
       const matchGps = (moto.gpsImei && moto.gpsImei.toLowerCase().includes(search)) ||
         (moto.gpsUrl && moto.gpsUrl.toLowerCase().includes(search));
 
-      if (!matchPlate && !matchModel && !matchVin && !matchCust && !matchPhone && !matchColor && !matchGps) {
+      if (!matchPlate && !matchProvince && !matchFuel && !matchModel && !matchVin && !matchCust && !matchPhone && !matchColor && !matchGps) {
         return false;
       }
     }
@@ -729,6 +731,7 @@ function renderGridView(motos) {
           <div class="plate-badge">
             <span>🛵</span>
             <span>${moto.licensePlate}</span>
+            ${moto.province ? `<span style="font-weight: 500; font-size: 0.72rem; color: #cbd5e1; margin-left: 2px;">${moto.province}</span>` : ''}
           </div>
 
           <div class="photo-count-badge">
@@ -1000,6 +1003,7 @@ function openCarModal(motoId = null) {
     setVal('formYear', moto.year);
 
     setVal('formLicensePlate', moto.licensePlate);
+    setVal('formProvince', moto.province || '');
     setVal('formVin', moto.vin);
     setVal('formEngineNo', moto.engineNo || '');
     setVal('formExteriorColor', moto.exteriorColor);
@@ -1052,6 +1056,7 @@ function openCarModal(motoId = null) {
     setVal('formCc', '160 cc');
     setVal('formYear', new Date().getFullYear().toString());
     setVal('formLicensePlate', '');
+    setVal('formProvince', 'กรุงเทพมหานคร');
     setVal('formVin', '');
     setVal('formEngineNo', '');
     setVal('formExteriorColor', '');
@@ -1111,6 +1116,7 @@ function handleFormSubmit(e) {
   };
 
   const plate = getVal('formLicensePlate');
+  const province = getVal('formProvince', 'กรุงเทพมหานคร');
   const vin = getVal('formVin').toUpperCase();
 
   const motoData = {
@@ -1122,6 +1128,7 @@ function handleFormSubmit(e) {
     year: getVal('formYear', new Date().getFullYear().toString()),
     purpose: getVal('formPurpose', 'both'),
     licensePlate: plate,
+    province: province,
     vin: vin,
     engineNo: getVal('formEngineNo').toUpperCase(),
     exteriorColor: getVal('formExteriorColor'),
@@ -1338,7 +1345,7 @@ function openCarDetail(motoId) {
   const statusInfo = STATUS_CONFIG[moto.status] || STATUS_CONFIG.available;
   const coverPhoto = (moto.photos && moto.photos.length > 0) ? moto.photos[0] : 'assets/images/forza_350.jpg';
 
-  document.getElementById('detailModalTitle').textContent = `ข้อมูลรถ & สัญญา: ${moto.brand} ${moto.model} [${moto.licensePlate}]`;
+  document.getElementById('detailModalTitle').textContent = `ข้อมูลรถ & สัญญา: ${moto.brand} ${moto.model} [${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}]`;
 
   const html = `
     <!-- Top Vehicle Info Summary Bar (Clean header card, doesn't obscure photo) -->
@@ -1356,7 +1363,7 @@ function openCarDetail(motoId) {
           ${moto.brand} ${moto.model} <span class="detail-car-cc">${moto.cc}</span>
         </div>
         <div class="detail-car-subtitle">
-          ทะเบียน: <span class="detail-plate-tag">${moto.licensePlate}</span> &bull; 
+          ทะเบียน: <span class="detail-plate-tag">${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}</span> &bull; 
           สาขา/จุดจอด: <strong>${moto.branch}</strong>
         </div>
       </div>
@@ -1427,7 +1434,8 @@ function openCarDetail(motoId) {
           🔢 ข้อมูลรถและทะเบียน
         </h4>
         <table class="detail-specs-table">
-          <tr><td class="label-col">ป้ายทะเบียน</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.licensePlate}</strong> <button class="copy-btn" onclick="copyPlate('${moto.licensePlate}')">📋</button></td></tr>
+          <tr><td class="label-col">ป้ายทะเบียน</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.licensePlate}</strong> ${moto.province ? `<span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.35rem; color: var(--navy-800); border: 1px solid #cbd5e1;">${moto.province}</span>` : ''} <button class="copy-btn" onclick="copyPlate('${moto.licensePlate} ${moto.province || ''}')">📋</button></td></tr>
+          <tr><td class="label-col">จังหวัด (ตามป้าย)</td><td class="value-col">${moto.province || '-'}</td></tr>
           <tr><td class="label-col">เลขคอ / ตัวถัง</td><td class="value-col"><strong style="font-family: monospace;">${moto.vin}</strong></td></tr>
           <tr><td class="label-col">เลขเครื่องยนต์</td><td class="value-col">${moto.engineNo || '-'}</td></tr>
           <tr><td class="label-col">สีตัวรถ</td><td class="value-col">${moto.exteriorColor}</td></tr>
@@ -1602,7 +1610,7 @@ function copySummaryForLine(motoId) {
 
   const summary = `🛵 ข้อมูลรถมอเตอร์ไซค์ HONDA
 รุ่น: ${moto.brand} ${moto.model} (${moto.cc})
-ทะเบียน: ${moto.licensePlate}
+ทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}
 สี: ${moto.exteriorColor}
 เชื้อเพลิง: ${moto.fuel || 'เบนซิน 95'}
 ${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน` : ''}
@@ -1628,7 +1636,7 @@ function exportCsv() {
 
   const headers = [
     "Moto ID", "Brand", "Model", "Category", "CC", "Year", "Purpose",
-    "License Plate", "Frame No (VIN)", "Engine No", "Exterior Color", "Fuel",
+    "License Plate", "Province", "Frame No (VIN)", "Engine No", "Exterior Color", "Fuel",
     "Mileage (km)", "Branch", "Rent Daily (THB)", "Rent Monthly (THB)",
     "Deposit (THB)", "Price Sale (THB)", "Status",
     "Customer Name", "Customer Phone", "Rental Start", "Rental End", "Tax Expiry",
@@ -1644,6 +1652,7 @@ function exportCsv() {
     `"${m.year}"`,
     `"${m.purpose}"`,
     `"${m.licensePlate}"`,
+    `"${m.province || ''}"`,
     `"${m.vin}"`,
     `"${m.engineNo || ''}"`,
     `"${m.exteriorColor}"`,

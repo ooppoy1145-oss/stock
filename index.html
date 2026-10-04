@@ -491,7 +491,91 @@
             <div class="form-group">
               <label class="form-label">ป้ายทะเบียนรถ <span class="req">*</span></label>
               <input type="text" id="formLicensePlate" class="form-control"
-                placeholder="เช่น 1กข-8821 เชียงใหม่, ป้ายแดง" required>
+                placeholder="เช่น 1กข-8821, 2กภ 1213" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">จังหวัด (ตามป้ายทะเบียน) <span class="req">*</span></label>
+              <input type="text" id="formProvince" list="provinceList" class="form-control"
+                placeholder="เช่น กรุงเทพมหานคร, เชียงใหม่" required>
+              <datalist id="provinceList">
+                <option value="กรุงเทพมหานคร">
+                <option value="เชียงใหม่">
+                <option value="ภูเก็ต">
+                <option value="ชลบุรี">
+                <option value="ระยอง">
+                <option value="นนทบุรี">
+                <option value="ปทุมธานี">
+                <option value="สมุทรปราการ">
+                <option value="เชียงราย">
+                <option value="ขอนแก่น">
+                <option value="นครราชสีมา">
+                <option value="สงขลา">
+                <option value="สุราษฎร์ธานี">
+                <option value="กระบี่">
+                <option value="พังงา">
+                <option value="ประจวบคีรีขันธ์">
+                <option value="เพชรบุรี">
+                <option value="พระนครศรีอยุธยา">
+                <option value="นครปฐม">
+                <option value="สมุทรสาคร">
+                <option value="สมุทรสงคราม">
+                <option value="สระบุรี">
+                <option value="ลพบุรี">
+                <option value="นครสวรรค์">
+                <option value="พิษณุโลก">
+                <option value="ลำปาง">
+                <option value="ลำพูน">
+                <option value="แม่ฮ่องสอน">
+                <option value="น่าน">
+                <option value="แพร่">
+                <option value="พะเยา">
+                <option value="อุตรดิตถ์">
+                <option value="สุโขทัย">
+                <option value="ตาก">
+                <option value="กำแพงเพชร">
+                <option value="พิจิตร">
+                <option value="เพชรบูรณ์">
+                <option value="อุทัยธานี">
+                <option value="ชัยนาท">
+                <option value="สิงห์บุรี">
+                <option value="อ่างทอง">
+                <option value="สุพรรณบุรี">
+                <option value="กาญจนบุรี">
+                <option value="ราชบุรี">
+                <option value="ฉะเชิงเทรา">
+                <option value="ปราจีนบุรี">
+                <option value="นครนายก">
+                <option value="สระแก้ว">
+                <option value="จันทบุรี">
+                <option value="ตราด">
+                <option value="อุดรธานี">
+                <option value="อุบลราชธานี">
+                <option value="ร้อยเอ็ด">
+                <option value="บุรีรัมย์">
+                <option value="สุรินทร์">
+                <option value="ศรีสะเกษ">
+                <option value="สกลนคร">
+                <option value="นครพนม">
+                <option value="มุกดาหาร">
+                <option value="ยโสธร">
+                <option value="อำนาจเจริญ">
+                <option value="หนองคาย">
+                <option value="เลย">
+                <option value="หนองบัวลำภู">
+                <option value="มหาสารคาม">
+                <option value="กาฬสินธุ์">
+                <option value="ชัยภูมิ">
+                <option value="นครศรีธรรมราช">
+                <option value="ชุมพร">
+                <option value="ระนอง">
+                <option value="ตรัง">
+                <option value="พัทลุง">
+                <option value="สตูล">
+                <option value="ปัตตานี">
+                <option value="ยะลา">
+                <option value="นราธิวาส">
+              </datalist>
             </div>
 
             <div class="form-group">
@@ -499,15 +583,15 @@
               <input type="text" id="formVin" class="form-control" placeholder="เช่น MLHNF080..." required
                 style="font-family: monospace; text-transform: uppercase;">
             </div>
+          </div>
 
+          <div class="form-grid-3" style="margin-top: 0.85rem;">
             <div class="form-group">
               <label class="form-label">เลขเครื่องยนต์ (Engine No.)</label>
               <input type="text" id="formEngineNo" class="form-control" placeholder="เช่น NF08E-..."
                 style="font-family: monospace; text-transform: uppercase;">
             </div>
-          </div>
 
-          <div class="form-grid-3" style="margin-top: 0.85rem;">
             <div class="form-group">
               <label class="form-label">สีตัวรถ (Color) <span class="req">*</span></label>
               <input type="text" id="formExteriorColor" class="form-control" placeholder="เช่น ขาวมุก, เทาด้าน, ดำเงา"
@@ -527,14 +611,14 @@
                 <option value="ไฟฟ้า EV">
               </datalist>
             </div>
+          </div>
 
+          <div class="form-grid-2" style="margin-top: 0.85rem;">
             <div class="form-group">
               <label class="form-label">เลขไมล์ปัจจุบัน (km)</label>
               <input type="number" id="formMileage" class="form-control" value="1200" min="0">
             </div>
-          </div>
 
-          <div style="margin-top: 0.85rem;">
             <div class="form-group">
               <label class="form-label">สาขา / จุดจอด / ตำแหน่งที่รถอยู่ <span class="req">*</span></label>
               <input type="text" id="formBranch" list="branchDatalist" class="form-control"
