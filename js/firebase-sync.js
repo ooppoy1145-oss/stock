@@ -82,10 +82,18 @@ const FirebaseSync = (function() {
   }
 
   /**
-   * Retrieve active config (localStorage takes precedence, then window.FIREBASE_CONFIG)
+   * Retrieve active config (window.FIREBASE_CONFIG in code takes primary priority)
    */
   function getActiveConfig() {
-    // 1. Check localStorage
+    // 1. ตรวจสอบจากไฟล์โค้ดถาวร window.FIREBASE_CONFIG เป็นอันดับแรก
+    const codeConfig = window.FIREBASE_CONFIG || (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
+    if (codeConfig && 
+        typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' &&
+        typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '') {
+      return codeConfig;
+    }
+
+    // 2. หากในโค้ดยังเว้นว่างไว้ จึงตรวจสอบจาก localStorage ของเบราว์เซอร์
     const saved = localStorage.getItem('honda_firebase_config');
     if (saved) {
       try {
@@ -96,11 +104,6 @@ const FirebaseSync = (function() {
       } catch (e) {
         console.error('Error reading saved firebase config:', e);
       }
-    }
-
-    // 2. Check window.FIREBASE_CONFIG
-    if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.projectId) {
-      return window.FIREBASE_CONFIG;
     }
 
     return null;

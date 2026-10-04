@@ -1838,6 +1838,15 @@ function openFirebaseModal() {
 
   const textarea = document.getElementById('fbConfigTextarea');
   const colInput = document.getElementById('fbCollectionName');
+  const banner = document.getElementById('fbPermanentConfigBanner');
+
+  const isPermanent = window.FIREBASE_CONFIG && 
+                      typeof window.FIREBASE_CONFIG.apiKey === 'string' && 
+                      window.FIREBASE_CONFIG.apiKey.trim() !== '';
+
+  if (banner) {
+    banner.style.display = isPermanent ? 'block' : 'none';
+  }
 
   if (textarea) {
     if (config) {
