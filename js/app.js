@@ -283,9 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFleet();
   setupEventListeners();
   setupPhotoDropAndPaste();
+  setupFirebaseEvents();
   updateBranchOptions();
   updatePrintDate();
   renderAll();
+  initFirebaseSync();
 });
 
 function loadFleet() {
@@ -411,6 +413,15 @@ function setupEventListeners() {
   // Modals open/close
   document.getElementById('btnOpenAddModal').addEventListener('click', () => openCarModal(null));
   document.getElementById('btnOpenDataModal').addEventListener('click', () => openModal('dataModal'));
+  document.getElementById('btnOpenFirebaseModal').addEventListener('click', () => openFirebaseModal());
+
+  const quickFbBtn = document.getElementById('btnQuickOpenFirebaseSettings');
+  if (quickFbBtn) {
+    quickFbBtn.addEventListener('click', () => {
+      closeModal('dataModal');
+      openFirebaseModal();
+    });
+  }
 
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -463,6 +474,11 @@ function setupEventListeners() {
       renderAll();
       closeModal('dataModal');
       showToast('รีเซ็ตสต็อครถมอเตอร์ไซค์ Honda เรียบร้อยแล้ว', 'gold');
+
+      // Real-time Cloud Sync
+      if (window.FirebaseSync) {
+        FirebaseSync.uploadAll(fleet);
+      }
     }
   });
 }
@@ -1042,6 +1058,11 @@ function handleFormSubmit(e) {
   updateBranchOptions();
   closeModal('carFormModal');
   renderAll();
+
+  // Real-time Cloud Sync
+  if (window.FirebaseSync) {
+    FirebaseSync.upsertMoto(motoData);
+  }
 }
 
 // ==================== PHOTO MANAGEMENT ====================
@@ -1112,7 +1133,7 @@ function processImageFiles(files) {
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      compressImage(ev.target.result, 1200, 0.85, (compressedBase64) => {
+      compressImage(ev.target.result, 1000, 0.75, (compressedBase64) => {
         formPhotos.push(compressedBase64);
         renderFormPhotosPreview();
       });
@@ -1399,6 +1420,11 @@ function quickUpdateStatus(motoId, newStatus) {
 
   const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
   showToast(`อัปเดตสถานะ ${moto.model} [${moto.licensePlate}] เป็น "${statusLabel}" แล้ว`, 'success');
+
+  // Real-time Cloud Sync
+  if (window.FirebaseSync) {
+    FirebaseSync.updateMotoStatus(motoId, newStatus);
+  }
 }
 
 function deleteMoto(motoId) {
@@ -1411,6 +1437,11 @@ function deleteMoto(motoId) {
     renderAll();
     closeModal('carDetailModal');
     showToast(`ลบรถมอเตอร์ไซค์ออกจากระบบแล้ว`, 'warning');
+
+    // Real-time Cloud Sync
+    if (window.FirebaseSync) {
+      FirebaseSync.deleteMoto(motoId);
+    }
   }
 }
 
@@ -1526,6 +1557,11 @@ function importJson(e) {
         renderAll();
         closeModal('dataModal');
         showToast(`นำเข้าข้อมูลสำเร็จ ${fleet.length} คัน`, 'success');
+
+        // Real-time Cloud Sync
+        if (window.FirebaseSync) {
+          FirebaseSync.uploadAll(fleet);
+        }
       } else {
         alert('รูปแบบไฟล์ JSON ไม่ถูกต้อง');
       }
@@ -1655,4 +1691,372 @@ function copyInputVal(inputId) {
     showToast(`คัดลอก: ${el.value} แล้ว`, 'success');
   });
 }
+
+// ==================== FIREBASE REAL-TIME CLOUD SYNC CONTROLLER ====================
+function initFirebaseSync() {
+  if (!window.FirebaseSync) return;
+
+  // 1. Subscribe to status changes
+  FirebaseSync.onStatusChange(updateFirebaseStatusUI);
+
+  // 2. Initialize sync engine with fleet change callback
+  FirebaseSync.init(handleRemoteFleetUpdated);
+}
+
+function updateFirebaseStatusUI(state) {
+  const statusBtn = document.getElementById('btnOpenFirebaseModal');
+  const statusText = document.getElementById('firebaseStatusText');
+  const modalPill = document.getElementById('modalFbStatusPill');
+  const modalText = document.getElementById('modalFbStatusText');
+  const countEl = document.getElementById('modalFbFleetCount');
+  const syncTimeEl = document.getElementById('modalFbLastSyncTime');
+  const dataModalBadge = document.getElementById('dataModalFirebaseBadge');
+
+  if (!statusBtn) return;
+
+  // Reset classes
+  statusBtn.className = 'header-btn btn-firebase-status';
+  if (modalPill) modalPill.className = 'fb-status-pill';
+
+  const timeFormatted = state.lastSyncTime ? new Date(state.lastSyncTime).toLocaleTimeString('th-TH') : '-';
+  if (countEl) countEl.textContent = `${state.remoteFleetCount || 0} คัน`;
+  if (syncTimeEl) syncTimeEl.textContent = timeFormatted;
+
+  if (state.status === 'connected') {
+    statusBtn.classList.add('status-connected');
+    statusText.textContent = `☁️ Firebase: ซิงค์สด (${state.remoteFleetCount || 0} คัน)`;
+    if (modalPill) {
+      modalPill.classList.add('online');
+      modalText.textContent = `🟢 เชื่อมต่อเรียลไทม์แล้ว (${state.dbType === 'firestore' ? 'Cloud Firestore' : 'Realtime DB'})`;
+    }
+    if (dataModalBadge) {
+      dataModalBadge.textContent = '🟢 ซิงค์สดเรียลไทม์';
+      dataModalBadge.style.color = '#10b981';
+      dataModalBadge.style.borderColor = '#10b981';
+    }
+  } else if (state.status === 'connecting') {
+    statusBtn.classList.add('status-connecting');
+    statusText.textContent = '☁️ Firebase: กำลังเชื่อมต่อ...';
+    if (modalPill) {
+      modalPill.classList.add('connecting');
+      modalText.textContent = '🟡 กำลังเชื่อมต่อระบบคลาวด์...';
+    }
+    if (dataModalBadge) {
+      dataModalBadge.textContent = 'กำลังเชื่อมต่อ...';
+      dataModalBadge.style.color = '#f59e0b';
+      dataModalBadge.style.borderColor = '#f59e0b';
+    }
+  } else if (state.status === 'syncing') {
+    statusBtn.classList.add('status-syncing');
+    statusText.textContent = '☁️ Firebase: กำลังซิงค์...';
+    if (modalPill) {
+      modalPill.classList.add('connecting');
+      modalText.textContent = '🔄 กำลังส่งข้อมูลไปยังคลาวด์...';
+    }
+  } else if (state.status === 'error') {
+    statusBtn.classList.add('status-error');
+    statusText.textContent = '☁️ Firebase: เกิดข้อผิดพลาด';
+    if (modalPill) {
+      modalPill.classList.add('error');
+      modalText.textContent = state.errorMessage ? `🔴 ข้อผิดพลาด: ${state.errorMessage}` : '🔴 เกิดข้อผิดพลาดในการเชื่อมต่อ';
+    }
+    if (dataModalBadge) {
+      dataModalBadge.textContent = '🔴 เชื่อมต่อไม่สำเร็จ';
+      dataModalBadge.style.color = '#ef4444';
+      dataModalBadge.style.borderColor = '#ef4444';
+    }
+  } else {
+    // Unconfigured / offline
+    statusBtn.classList.add('status-offline');
+    statusText.textContent = '☁️ Firebase: คลิกเพื่อตั้งค่าซิงค์';
+    if (modalPill) {
+      modalPill.classList.add('offline');
+      modalText.textContent = '⚪ ยังไม่ได้ตั้งค่า Firebase (ใช้ข้อมูลในเครื่อง)';
+    }
+    if (dataModalBadge) {
+      dataModalBadge.textContent = 'ยังไม่ได้ตั้งค่า';
+      dataModalBadge.style.color = '#94a3b8';
+      dataModalBadge.style.borderColor = '#94a3b8';
+    }
+  }
+}
+
+function handleRemoteFleetUpdated(remoteFleet, meta) {
+  if (Array.isArray(remoteFleet) && remoteFleet.length > 0) {
+    fleet = remoteFleet;
+    saveFleet();
+    updateBranchOptions();
+    renderAll();
+
+    // If detail modal is open for a motorcycle that got updated, refresh view
+    if (currentDetailMoto) {
+      const updated = fleet.find(m => m.id === currentDetailMoto.id);
+      if (updated) {
+        openCarDetail(updated.id);
+      }
+    }
+
+    if (meta && meta.isRemote) {
+      playSyncChime();
+      showToast('🔄 ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถจากผู้ใช้อื่น', 'info');
+    }
+  } else if (meta && meta.isInitial && (!remoteFleet || remoteFleet.length === 0) && fleet.length > 0) {
+    // Remote is empty on initial load, auto-push local data so cloud is ready
+    console.log('Firebase remote collection is empty. Auto-seeding initial fleet data...');
+    FirebaseSync.uploadAll(fleet).then(res => {
+      if (res && res.success) {
+        showToast('☁️ สำรองข้อมูลสต็อคในเครื่องขึ้น Firebase อัตโนมัติเรียบร้อยแล้ว', 'gold');
+      }
+    });
+  }
+}
+
+function playSyncChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (e) {
+    // audio context blocked or unsupported
+  }
+}
+
+function openFirebaseModal() {
+  const config = FirebaseSync.getActiveConfig();
+  const settings = FirebaseSync.getActiveSettings();
+
+  const textarea = document.getElementById('fbConfigTextarea');
+  const colInput = document.getElementById('fbCollectionName');
+
+  if (textarea) {
+    if (config) {
+      textarea.value = JSON.stringify(config, null, 2);
+    } else {
+      textarea.value = '';
+    }
+  }
+
+  if (colInput) {
+    colInput.value = settings.collectionName || 'motorcycle_fleet';
+  }
+
+  // Update radio
+  const radios = document.getElementsByName('fbDbType');
+  radios.forEach(r => {
+    r.checked = (r.value === settings.dbType);
+  });
+  updateDbTypeLabels(settings.dbType);
+
+  openModal('firebaseModal');
+}
+
+function updateDbTypeLabels(selectedType) {
+  const labelFirestore = document.getElementById('labelDbFirestore');
+  const labelRtdb = document.getElementById('labelDbRtdb');
+  if (labelFirestore && labelRtdb) {
+    labelFirestore.classList.toggle('selected', selectedType === 'firestore');
+    labelRtdb.classList.toggle('selected', selectedType === 'rtdb');
+  }
+}
+
+function setupFirebaseEvents() {
+  // DB Type radio changes
+  document.querySelectorAll('input[name="fbDbType"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      updateDbTypeLabels(e.target.value);
+    });
+  });
+
+  // Save Config button
+  const saveBtn = document.getElementById('btnSaveFbConfig');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const rawText = document.getElementById('fbConfigTextarea').value;
+      const parsedConfig = FirebaseSync.parseConfigInput(rawText);
+
+      if (!parsedConfig) {
+        alert('รูปแบบ Firebase Config ไม่ถูกต้อง กรุณาคัดลอกโค้ดที่ได้จาก Firebase Console หรือใส่ JSON ให้ถูกต้อง');
+        return;
+      }
+
+      if (!parsedConfig.apiKey || !parsedConfig.projectId) {
+        alert('Firebase Config ต้องมี apiKey และ projectId เป็นอย่างน้อย');
+        return;
+      }
+
+      const selectedDbType = document.querySelector('input[name="fbDbType"]:checked')?.value || 'firestore';
+      const colName = document.getElementById('fbCollectionName').value.trim() || 'motorcycle_fleet';
+
+      const settings = {
+        dbType: selectedDbType,
+        collectionName: colName,
+        autoSync: true
+      };
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '⏳ กำลังบันทึกและเชื่อมต่อ...';
+
+      const ok = await FirebaseSync.saveConfigAndRestart(parsedConfig, settings);
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 บันทึกและเริ่มซิงค์สด';
+
+      if (ok) {
+        showToast('บันทึกและเริ่มการซิงค์ข้อมูล Firebase เรียบร้อยแล้ว!', 'success');
+      } else {
+        showToast('บันทึกแล้ว แต่การเชื่อมต่อเกิดข้อผิดพลาด โปรดตรวจสอบ Config หรือ Rules', 'warning');
+      }
+    });
+  }
+
+  // Test Connection button
+  const testBtn = document.getElementById('btnTestFbConnection');
+  if (testBtn) {
+    testBtn.addEventListener('click', async () => {
+      const rawText = document.getElementById('fbConfigTextarea').value;
+      const parsedConfig = rawText ? FirebaseSync.parseConfigInput(rawText) : FirebaseSync.getActiveConfig();
+
+      if (!parsedConfig) {
+        alert('กรุณากรอก Firebase Config ก่อนกดทดสอบ');
+        return;
+      }
+
+      const selectedDbType = document.querySelector('input[name="fbDbType"]:checked')?.value || 'firestore';
+      const colName = document.getElementById('fbCollectionName').value.trim() || 'motorcycle_fleet';
+
+      testBtn.disabled = true;
+      testBtn.textContent = '⏳ กำลังทดสอบ...';
+
+      const result = await FirebaseSync.testConnection(parsedConfig, {
+        dbType: selectedDbType,
+        collectionName: colName
+      });
+
+      testBtn.disabled = false;
+      testBtn.textContent = '⚡ ทดสอบการเชื่อมต่อ';
+
+      if (result.success) {
+        alert('✅ ' + result.message);
+        showToast('ทดสอบการเชื่อมต่อ Firebase สำเร็จสมบูรณ์', 'success');
+      } else {
+        alert('❌ การทดสอบล้มเหลว:\n' + result.message);
+        showToast('การทดสอบล้มเหลว: ' + result.message, 'warning');
+      }
+    });
+  }
+
+  // Upload Local to Cloud
+  const uploadBtn = document.getElementById('btnUploadLocalToFb');
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', async () => {
+      if (!confirm(`คุณต้องการส่งข้อมูลรถทั้งหมดในเครื่องนี้ (${fleet.length} คัน) ขึ้นสู่ Firebase เพื่อแชร์ให้ทุกคน ใช่หรือไม่?`)) {
+        return;
+      }
+
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '⏳ กำลังอัปโหลดข้อมูล...';
+
+      const res = await FirebaseSync.uploadAll(fleet);
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = '☁️ ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที';
+
+      if (res.success) {
+        showToast(`อัปโหลดสต็อครถขึ้น Firebase สำเร็จทั้งหมด ${res.count} คัน`, 'gold');
+      } else {
+        alert('อัปโหลดล้มเหลว: ' + res.error);
+        showToast('อัปโหลดล้มเหลว: ' + res.error, 'warning');
+      }
+    });
+  }
+
+  // Download Cloud to Local
+  const downloadBtn = document.getElementById('btnDownloadFbToLocal');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', async () => {
+      if (!confirm('คุณต้องการดึงข้อมูลล่าสุดจาก Firebase ลงมาแทนที่สต็อคในเครื่องนี้ใช่หรือไม่?')) {
+        return;
+      }
+
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = '⏳ กำลังดึงข้อมูล...';
+
+      const res = await FirebaseSync.downloadAll();
+      downloadBtn.disabled = false;
+      downloadBtn.textContent = '📥 ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้';
+
+      if (res.success) {
+        if (res.data && res.data.length > 0) {
+          fleet = res.data;
+          saveFleet();
+          updateBranchOptions();
+          renderAll();
+          showToast(`ดึงข้อมูลจาก Firebase สำเร็จ ${fleet.length} คัน`, 'success');
+        } else {
+          showToast('บน Firebase ยังไม่มีข้อมูลรถ', 'info');
+        }
+      } else {
+        alert('ดึงข้อมูลล้มเหลว: ' + res.error);
+        showToast('ดึงข้อมูลล้มเหลว: ' + res.error, 'warning');
+      }
+    });
+  }
+
+  // Clear Config button
+  const clearBtn = document.getElementById('btnClearFbConfig');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('คุณต้องการล้างการตั้งค่า Firebase ในเครื่องนี้ใช่หรือไม่? (ข้อมูลรถจะไม่ถูกลบ)')) {
+        FirebaseSync.clearConfig();
+        document.getElementById('fbConfigTextarea').value = '';
+        showToast('ล้างการตั้งค่า Firebase เรียบร้อยแล้ว', 'info');
+      }
+    });
+  }
+
+  // Paste from clipboard button
+  const pasteBtn = document.getElementById('btnPasteConfigFromClipboard');
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          document.getElementById('fbConfigTextarea').value = text;
+          showToast('วางข้อมูลจากคลิปบอร์ดแล้ว', 'info');
+        } else {
+          showToast('คลิปบอร์ดว่างเปล่า', 'warning');
+        }
+      } catch (err) {
+        alert('เบราว์เซอร์ไม่อนุญาตให้อ่านคลิปบอร์ดโดยตรง กรุณากดคลิกในช่องแล้วกด Ctrl + V เพื่อวาง');
+      }
+    });
+  }
+}
+
+// Global helper for copying Firestore security rules
+window.copyFirestoreRules = function() {
+  const rules = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`;
+  navigator.clipboard.writeText(rules).then(() => {
+    showToast('คัดลอก Cloud Firestore Rules เรียบร้อยแล้ว นำไปวางในแท็บ Rules ของ Firebase Console ได้เลย', 'gold');
+  }).catch(() => {
+    alert(rules);
+  });
+};
+
 

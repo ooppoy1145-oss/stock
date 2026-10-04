@@ -2,7 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3000;
+let PORT = process.env.PORT || 3000;
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -51,9 +52,23 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`  HONDA DEALERSHIP STOCK MANAGEMENT SYSTEM STARTED  `);
-  console.log(`  Local URL: http://localhost:${PORT}              `);
-  console.log(`====================================================`);
+function startServer(port) {
+  server.listen(port, () => {
+    console.log(`====================================================`);
+    console.log(`  HONDA DEALERSHIP STOCK MANAGEMENT SYSTEM STARTED  `);
+    console.log(`  Local URL: http://localhost:${port}              `);
+    console.log(`====================================================`);
+  });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${PORT} is in use, trying port ${PORT + 1}...`);
+    PORT++;
+    startServer(PORT);
+  } else {
+    console.error('Server error:', err);
+  }
 });
+
+startServer(PORT);

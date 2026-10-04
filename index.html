@@ -76,6 +76,12 @@
           </select>
         </div>
 
+        <!-- Firebase Live Sync Status Button -->
+        <button id="btnOpenFirebaseModal" class="header-btn btn-firebase-status status-offline" title="ตั้งค่าและสถานะ Firebase Realtime Cloud Sync">
+          <span class="firebase-pulse-dot"></span>
+          <span id="firebaseStatusText">☁️ Firebase: รอเชื่อมต่อ</span>
+        </button>
+
         <!-- Add Motorcycle Button -->
         <button id="btnOpenAddModal" class="header-btn btn-gold" title="คีย์ข้อมูลมอเตอร์ไซค์คันใหม่เข้าสต็อค">
           <span style="font-size: 1.1rem; font-weight: 800;">+</span> คีย์รับรถเข้าสต็อค
@@ -730,6 +736,22 @@
       </div>
 
       <div class="modal-body">
+        <!-- Firebase Cloud Sync Card inside Data Management -->
+        <div style="background: linear-gradient(135deg, rgba(0, 153, 229, 0.08), rgba(212, 175, 55, 0.08)); border: 1px solid var(--cyan-400); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h4 style="color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+              <span>☁️</span> ซิงค์ข้อมูลคลาวด์ Firebase แบบเรียลไทม์
+            </h4>
+            <span id="dataModalFirebaseBadge" class="gold-authorized-pill" style="font-size: 0.72rem;">ออฟไลน์</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            แชร์สต็อครถให้พนักงานทุกคนเข้าถึงและเห็นข้อมูลตรงกันทันที ไม่ว่าจะเปิดจากคอมพิวเตอร์ แท็บเล็ต หรือมือถือ
+          </p>
+          <button type="button" class="header-btn btn-cyan" id="btnQuickOpenFirebaseSettings">
+            ⚙️ เปิดหน้าต่างตั้งค่า Firebase Cloud Sync
+          </button>
+        </div>
+
         <div style="margin-bottom: 1.5rem;">
           <h4 style="margin-bottom: 0.5rem; color: var(--navy-900);">1. ส่งออกรายงาน (Export)</h4>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
@@ -779,6 +801,171 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: FIREBASE CLOUD REAL-TIME SYNC ==================== -->
+  <div id="firebaseModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span style="font-size: 1.3rem;">☁️</span>
+          <span class="modal-title">ตั้งค่าการซิงค์ข้อมูลคลาวด์เรียลไทม์ (Firebase Cloud Sync)</span>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="firebaseModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Live Status Card -->
+        <div class="fb-status-card">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">สถานะการเชื่อมต่อสด</div>
+            <div id="modalFbStatusPill" class="fb-status-pill offline">
+              <span class="firebase-pulse-dot"></span>
+              <span id="modalFbStatusText">ยังไม่ได้เชื่อมต่อ (ออฟไลน์)</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1.25rem;">
+            <div class="fb-sync-stat">
+              <span>รถบนคลาวด์:</span><br>
+              <strong id="modalFbFleetCount" style="font-size: 1.1rem; color: var(--cyan-600);">0 คัน</strong>
+            </div>
+            <div class="fb-sync-stat">
+              <span>ซิงค์ล่าสุดเมื่อ:</span><br>
+              <strong id="modalFbLastSyncTime">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Type Selection -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 700; color: var(--navy-900); font-size: 0.88rem; display: block; margin-bottom: 0.4rem;">
+            ประเภทฐานข้อมูล Firebase ที่ใช้งาน:
+          </label>
+          <div class="radio-group-row">
+            <label class="radio-card-label selected" id="labelDbFirestore">
+              <input type="radio" name="fbDbType" value="firestore" checked style="accent-color: var(--cyan-500);">
+              <div>
+                <strong style="display: block; font-size: 0.88rem; color: var(--navy-900);">Cloud Firestore (แนะนำ)</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">เสถียรที่สุด แยกสต็อครถเป็นรายคัน ซิงค์ข้ามเครื่องเร็ว</span>
+              </div>
+            </label>
+            <label class="radio-card-label" id="labelDbRtdb">
+              <input type="radio" name="fbDbType" value="rtdb" style="accent-color: var(--cyan-500);">
+              <div>
+                <strong style="display: block; font-size: 0.88rem; color: var(--navy-900);">Realtime Database</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">โครงสร้าง JSON Tree สำหรับ Realtime Sync ทันที</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Collection / Node Name -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 600; color: var(--navy-900); font-size: 0.83rem; display: block; margin-bottom: 0.35rem;">
+            ชื่อ Collection / Root Node ในฐานข้อมูล:
+          </label>
+          <input type="text" id="fbCollectionName" class="form-control" value="motorcycle_fleet" placeholder="motorcycle_fleet" style="font-family: monospace; font-size: 0.88rem;">
+        </div>
+
+        <!-- Firebase Config Input -->
+        <div style="margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label style="font-weight: 700; color: var(--navy-900); font-size: 0.88rem;">
+              Firebase Config (คัดลอกจาก Firebase Console):
+            </label>
+            <button type="button" class="copy-btn" id="btnPasteConfigFromClipboard" title="วางจากคลิปบอร์ด" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">
+              📋 วางข้อความ (Paste)
+            </button>
+          </div>
+          <textarea id="fbConfigTextarea" class="form-control" rows="6" placeholder='const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};' style="font-family: monospace; font-size: 0.8rem; line-height: 1.4;"></textarea>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.35rem;">
+            💡 สามารถวางโค้ดแบบ JavaScript ที่คัดลอกจาก Firebase Console หรือแบบ JSON ได้ทันที ระบบจะดึงค่าอัตโนมัติ
+          </span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+          <button type="button" class="header-btn btn-cyan" id="btnTestFbConnection">
+            ⚡ ทดสอบการเชื่อมต่อ
+          </button>
+          <button type="button" class="header-btn btn-gold" id="btnSaveFbConfig">
+            💾 บันทึกและเริ่มซิงค์สด
+          </button>
+          <button type="button" class="header-btn btn-glass" style="color: var(--navy-900); border-color: var(--border-light);" id="btnClearFbConfig">
+            🗑️ ล้างการตั้งค่า
+          </button>
+        </div>
+
+        <!-- Cloud Sync Operations -->
+        <div style="background: var(--cyan-50); border: 1px solid var(--cyan-100); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+          <h5 style="color: var(--navy-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔄</span> จัดการข้อมูลระหว่างเครื่องนี้กับคลาวด์
+          </h5>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            หากเพิ่งเชื่อมต่อ Firebase เป็นครั้งแรก ให้กด <strong>"ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที"</strong> เพื่อให้ข้อมูลรถทั้งหมดขึ้นสู่ระบบคลาวด์และกระจายไปยังทุกคน
+          </p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="header-btn btn-gold" id="btnUploadLocalToFb">
+              ☁️ ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที
+            </button>
+            <button type="button" class="header-btn btn-glass" style="color: var(--navy-900);" id="btnDownloadFbToLocal">
+              📥 ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้
+            </button>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Setup Guide Accordion -->
+        <details class="fb-guide-box">
+          <summary style="font-weight: 700; color: var(--navy-900); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📖</span> วิธีสร้างและตั้งค่า Firebase ฟรี (ทำครั้งเดียวใช้งานได้ตลอด)
+          </summary>
+          <div style="margin-top: 1rem;">
+            <div class="fb-guide-step">
+              <span class="fb-step-num">1</span>
+              <div>
+                <strong>สร้าง Project ใน Firebase:</strong><br>
+                เข้าเว็บไซต์ <a href="https://console.firebase.google.com" target="_blank" style="color: var(--cyan-500); text-decoration: underline;">console.firebase.google.com</a> แล้วเข้าสู่ระบบด้วยบัญชี Google -> กด <strong>"Create a project"</strong> (ตั้งชื่ออะไรก็ได้ เช่น honda-stock)
+              </div>
+            </div>
+            <div class="fb-guide-step">
+              <span class="fb-step-num">2</span>
+              <div>
+                <strong>เพิ่ม Web App &amp; รับ Config:</strong><br>
+                ในหน้า Project Overview กดที่ไอคอนเว็บ <strong>&lt;/&gt;</strong> -> ตั้งชื่อ App -> จะพบโค้ด <code>const firebaseConfig = { ... };</code> ให้คัดลอกมาวางในช่องด้านบนนี้
+              </div>
+            </div>
+            <div class="fb-guide-step">
+              <span class="fb-step-num">3</span>
+              <div>
+                <strong>เปิดใช้งาน Cloud Firestore &amp; Security Rules:</strong><br>
+                เมนูด้านซ้ายไปที่ <strong>Build &gt; Firestore Database</strong> -&gt; กด <strong>Create database</strong> -&gt; เลือก Location (เช่น asia-southeast1)<br>
+                จากนั้นไปที่แท็บ <strong>Rules</strong> และวางโค้ดด้านล่างนี้เพื่อให้ทุกคนในร้านอ่าน-เขียนสต็อคได้:
+                <div class="code-snippet-box">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}<button type="button" class="copy-code-btn" onclick="copyFirestoreRules()">📋 คัดลอก</button></div>
+                กดปุ่ม <strong>Publish</strong> เป็นอันเสร็จสิ้น!
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="header-btn btn-gold" data-close-modal="firebaseModal">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== TOAST CONTAINER ==================== -->
   <div id="toastContainer" class="toast-container"></div>
 
@@ -796,6 +983,14 @@
     </div>
   </div>
 
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+
+  <!-- Application & Sync Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-sync.js"></script>
   <script src="js/app.js"></script>
 </body>
 
