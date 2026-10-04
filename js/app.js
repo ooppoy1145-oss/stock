@@ -583,7 +583,7 @@ function getFilteredFleet() {
       const matchPhone = moto.customerPhone && moto.customerPhone.toLowerCase().includes(search);
       const matchColor = moto.exteriorColor && moto.exteriorColor.toLowerCase().includes(search);
       const matchGps = (moto.gpsImei && moto.gpsImei.toLowerCase().includes(search)) ||
-                       (moto.gpsUrl && moto.gpsUrl.toLowerCase().includes(search));
+        (moto.gpsUrl && moto.gpsUrl.toLowerCase().includes(search));
 
       if (!matchPlate && !matchModel && !matchVin && !matchCust && !matchPhone && !matchColor && !matchGps) {
         return false;
@@ -668,12 +668,12 @@ function updateKpiStats() {
 
 // Status Helper Definitions
 const STATUS_CONFIG = {
-  available:   { label: "ว่างพร้อมบริการ", class: "status-available", icon: "🟢" },
-  rented:      { label: "กำลังปล่อยเช่า", class: "status-rented",    icon: "🔵" },
-  reserved:    { label: "จองแล้ว",        class: "status-reserved",  icon: "🟡" },
-  check:       { label: "รอตรวจส่งคืน",    class: "status-check",     icon: "🟣" },
+  available: { label: "ว่าง", class: "status-available", icon: "🟢" },
+  rented: { label: "กำลังเช่า", class: "status-rented", icon: "🔵" },
+  reserved: { label: "กำลังผ่อน", class: "status-reserved", icon: "🟡" },
+  check: { label: "รอตรวจส่งคืน", class: "status-check", icon: "🟣" },
   maintenance: { label: "ซ่อมบำรุง/ถ่ายน้ำมัน", class: "status-maintenance", icon: "🔴" },
-  sold:        { label: "ขายแล้ว",        class: "status-sold",      icon: "⚪" }
+  sold: { label: "ขายแล้ว", class: "status-sold", icon: "⚪" }
 };
 
 function formatPrice(num) {
@@ -784,8 +784,8 @@ function renderGridView(motos) {
               <span class="spec-val">${moto.exteriorColor}</span>
             </div>
             <div class="spec-item">
-              <span class="spec-label">สาขา / จุดจอด</span>
-              <span class="spec-val">${moto.branch.split(' ')[0]}</span>
+              <span class="spec-label">เชื้อเพลิง</span>
+              <span class="spec-val">${moto.fuel || 'เบนซิน 95'}</span>
             </div>
           </div>
 
@@ -803,9 +803,9 @@ function renderGridView(motos) {
           <div class="card-footer">
             <!-- Quick Status Change -->
             <select class="card-quick-status" onchange="quickUpdateStatus('${moto.id}', this.value)" title="เปลี่ยนสถานะรถด่วน">
-              <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 พร้อมบริการ</option>
-              <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 ปล่อยเช่าอยู่</option>
-              <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 จองแล้ว</option>
+              <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง</option>
+              <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า</option>
+              <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน</option>
               <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน</option>
               <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน</option>
               <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว</option>
@@ -970,77 +970,118 @@ function capitalize(s) {
 // ==================== MODAL LOGIC (ADD / EDIT) ====================
 function openCarModal(motoId = null) {
   const form = document.getElementById('vehicleForm');
-  form.reset();
+  if (form) form.reset();
   formPhotos = [];
 
   const titleEl = document.getElementById('carModalTitle');
   const idEl = document.getElementById('carId');
 
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = (val !== undefined && val !== null) ? val : '';
+  };
+  const setChk = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = Boolean(val);
+  };
+
   if (motoId) {
     const moto = fleet.find(c => c.id === motoId);
     if (!moto) return;
 
-    titleEl.textContent = `แก้ไขข้อมูลรถมอเตอร์ไซค์: ${moto.brand} ${moto.model} (${moto.licensePlate})`;
-    idEl.value = moto.id;
+    if (titleEl) titleEl.textContent = `แก้ไขข้อมูลรถมอเตอร์ไซค์: ${moto.brand} ${moto.model} (${moto.licensePlate})`;
+    if (idEl) idEl.value = moto.id;
 
-    document.getElementById('formPurpose').value = moto.purpose || 'both';
-    document.getElementById('formBrand').value = moto.brand;
-    document.getElementById('formModel').value = moto.model;
-    document.getElementById('formCategory').value = moto.category;
-    document.getElementById('formCc').value = moto.cc;
-    document.getElementById('formYear').value = moto.year;
+    setVal('formPurpose', moto.purpose || 'both');
+    setVal('formBrand', moto.brand);
+    setVal('formModel', moto.model);
+    setVal('formCategory', moto.category);
+    setVal('formCc', moto.cc || '160 cc');
+    setVal('formYear', moto.year);
 
-    document.getElementById('formLicensePlate').value = moto.licensePlate;
-    document.getElementById('formVin').value = moto.vin;
-    document.getElementById('formEngineNo').value = moto.engineNo || '';
-    document.getElementById('formExteriorColor').value = moto.exteriorColor;
-    document.getElementById('formMileage').value = moto.mileage || 0;
-    document.getElementById('formBranch').value = moto.branch;
+    setVal('formLicensePlate', moto.licensePlate);
+    setVal('formVin', moto.vin);
+    setVal('formEngineNo', moto.engineNo || '');
+    setVal('formExteriorColor', moto.exteriorColor);
+    setVal('formFuel', moto.fuel || 'เบนซิน 95');
+    setVal('formMileage', moto.mileage || 0);
+    setVal('formBranch', moto.branch);
 
-    document.getElementById('formRentDaily').value = moto.rentDaily || '';
-    document.getElementById('formRentMonthly').value = moto.rentMonthly || '';
-    document.getElementById('formDeposit').value = moto.deposit || '';
-    document.getElementById('formPrice').value = moto.price || '';
-    document.getElementById('formStatus').value = moto.status;
+    setVal('formRentDaily', moto.rentDaily || '');
+    setVal('formRentMonthly', moto.rentMonthly || '');
+    setVal('formDeposit', moto.deposit || '');
+    setVal('formPrice', moto.price || '');
+    setVal('formStatus', moto.status);
 
-    document.getElementById('formCustomer').value = moto.customer || '';
-    document.getElementById('formCustomerPhone').value = moto.customerPhone || '';
-    document.getElementById('formCustomerPassport').value = moto.customerPassport || '';
-    document.getElementById('formRentalStart').value = moto.rentalStart || '';
-    document.getElementById('formRentalEnd').value = moto.rentalEnd || '';
-    document.getElementById('formTaxExpiry').value = moto.taxExpiry || '';
-    document.getElementById('formGpsImei').value = moto.gpsImei || '';
-    document.getElementById('formGpsUrl').value = moto.gpsUrl || '';
+    setVal('formCustomer', moto.customer || '');
+    setVal('formCustomerPhone', moto.customerPhone || '');
+    setVal('formCustomerPassport', moto.customerPassport || '');
+    setVal('formRentalStart', moto.rentalStart || '');
+    setVal('formRentalEnd', moto.rentalEnd || '');
+    setVal('formTaxExpiry', moto.taxExpiry || '');
+    setVal('formGpsImei', moto.gpsImei || '');
+    setVal('formGpsUrl', moto.gpsUrl || '');
 
     // Accessories
     if (moto.accessories) {
-      document.getElementById('accHelmet').checked = !!moto.accessories.helmet;
-      document.getElementById('accPhoneMount').checked = !!moto.accessories.phoneMount;
-      document.getElementById('accSmartKey').checked = !!moto.accessories.smartKey;
-      document.getElementById('accTopBox').checked = !!moto.accessories.topBox;
+      setChk('accHelmet', moto.accessories.helmet);
+      setChk('accPhoneMount', moto.accessories.phoneMount);
+      setChk('accSmartKey', moto.accessories.smartKey);
+      setChk('accTopBox', moto.accessories.topBox);
     }
 
     // Inspection
     if (moto.inspection) {
-      document.getElementById('chkOil').checked = !!moto.inspection.oil;
-      document.getElementById('chkBrakes').checked = !!moto.inspection.brakes;
-      document.getElementById('chkTyres').checked = !!moto.inspection.tyres;
-      document.getElementById('chkClean').checked = !!moto.inspection.clean;
+      setChk('chkOil', moto.inspection.oil);
+      setChk('chkBrakes', moto.inspection.brakes);
+      setChk('chkTyres', moto.inspection.tyres);
+      setChk('chkClean', moto.inspection.clean);
     }
 
-    document.getElementById('formRemarks').value = moto.remarks || '';
+    setVal('formRemarks', moto.remarks || '');
     formPhotos = moto.photos ? [...moto.photos] : [];
   } else {
     // New Entry
-    titleEl.textContent = 'คีย์รับรถมอเตอร์ไซค์เข้าสต็อคใหม่ (New Motorcycle Entry)';
-    idEl.value = '';
+    if (titleEl) titleEl.textContent = 'คีย์รับรถมอเตอร์ไซค์เข้าสต็อคใหม่ (New Motorcycle Entry)';
+    if (idEl) idEl.value = '';
 
-    document.getElementById('formPurpose').value = 'both';
-    document.getElementById('formYear').value = new Date().getFullYear().toString();
-    document.getElementById('formMileage').value = 500;
-    document.getElementById('formStatus').value = 'available';
-    document.getElementById('formGpsImei').value = '';
-    document.getElementById('formGpsUrl').value = 'https://www.gpsdd.com';
+    setVal('formPurpose', 'both');
+    setVal('formBrand', 'Honda');
+    setVal('formModel', '');
+    setVal('formCategory', 'พรีเมียม ออโตเมติก (Maxi-Scooter)');
+    setVal('formCc', '160 cc');
+    setVal('formYear', new Date().getFullYear().toString());
+    setVal('formLicensePlate', '');
+    setVal('formVin', '');
+    setVal('formEngineNo', '');
+    setVal('formExteriorColor', '');
+    setVal('formFuel', 'เบนซิน 95');
+    setVal('formMileage', 500);
+    setVal('formBranch', 'สาขาหลัก (โชว์รูมพระราม 9)');
+    setVal('formRentDaily', '');
+    setVal('formRentMonthly', '');
+    setVal('formDeposit', '');
+    setVal('formPrice', '');
+    setVal('formStatus', 'available');
+    setVal('formCustomer', '');
+    setVal('formCustomerPhone', '');
+    setVal('formCustomerPassport', '');
+    setVal('formRentalStart', '');
+    setVal('formRentalEnd', '');
+    setVal('formTaxExpiry', '');
+    setVal('formGpsImei', '');
+    setVal('formGpsUrl', 'https://www.gpsdd.com');
+    setVal('formRemarks', '');
+
+    setChk('accHelmet', false);
+    setChk('accPhoneMount', false);
+    setChk('accSmartKey', false);
+    setChk('accTopBox', false);
+
+    setChk('chkOil', true);
+    setChk('chkBrakes', true);
+    setChk('chkTyres', true);
+    setChk('chkClean', true);
 
     // Default Photo (start empty so user uploads their own pictures)
     formPhotos = [];
@@ -1053,51 +1094,65 @@ function openCarModal(motoId = null) {
 function handleFormSubmit(e) {
   e.preventDefault();
 
-  const id = document.getElementById('carId').value;
+  const id = document.getElementById('carId')?.value || '';
   const isEditing = Boolean(id);
 
-  const plate = document.getElementById('formLicensePlate').value.trim();
-  const vin = document.getElementById('formVin').value.trim().toUpperCase();
+  const getVal = (id, fallback = '') => {
+    const el = document.getElementById(id);
+    return el ? (el.value ? el.value.trim() : fallback) : fallback;
+  };
+  const getNum = (id, fallback = 0) => {
+    const el = document.getElementById(id);
+    return el ? (Number(el.value) || fallback) : fallback;
+  };
+  const getChk = (id) => {
+    const el = document.getElementById(id);
+    return el ? Boolean(el.checked) : false;
+  };
+
+  const plate = getVal('formLicensePlate');
+  const vin = getVal('formVin').toUpperCase();
 
   const motoData = {
     id: isEditing ? id : 'MOTO-' + Date.now().toString().slice(-6),
-    brand: document.getElementById('formBrand').value.trim() || 'Honda',
-    model: document.getElementById('formModel').value.trim(),
-    category: document.getElementById('formCategory').value,
-    cc: document.getElementById('formCc').value,
-    year: document.getElementById('formYear').value,
-    purpose: document.getElementById('formPurpose').value,
+    brand: getVal('formBrand', 'Honda'),
+    model: getVal('formModel'),
+    category: getVal('formCategory', 'พรีเมียม ออโตเมติก (Maxi-Scooter)'),
+    cc: getVal('formCc', '160 cc'),
+    year: getVal('formYear', new Date().getFullYear().toString()),
+    purpose: getVal('formPurpose', 'both'),
     licensePlate: plate,
     vin: vin,
-    engineNo: document.getElementById('formEngineNo').value.trim().toUpperCase(),
-    exteriorColor: document.getElementById('formExteriorColor').value.trim(),
-    mileage: Number(document.getElementById('formMileage').value) || 0,
-    branch: document.getElementById('formBranch').value,
-    rentDaily: Number(document.getElementById('formRentDaily').value) || 0,
-    rentMonthly: Number(document.getElementById('formRentMonthly').value) || 0,
-    deposit: Number(document.getElementById('formDeposit').value) || 0,
-    price: Number(document.getElementById('formPrice').value) || 0,
-    status: document.getElementById('formStatus').value,
-    customer: document.getElementById('formCustomer').value.trim(),
-    customerPhone: document.getElementById('formCustomerPhone').value.trim(),
-    customerPassport: document.getElementById('formCustomerPassport').value.trim(),
-    rentalStart: document.getElementById('formRentalStart').value,
-    rentalEnd: document.getElementById('formRentalEnd').value,
-    taxExpiry: document.getElementById('formTaxExpiry').value,
-    remarks: document.getElementById('formRemarks').value.trim(),
-    gpsImei: document.getElementById('formGpsImei').value.trim(),
-    gpsUrl: document.getElementById('formGpsUrl').value.trim(),
+    engineNo: getVal('formEngineNo').toUpperCase(),
+    exteriorColor: getVal('formExteriorColor'),
+    fuel: getVal('formFuel', 'เบนซิน 95'),
+    mileage: getNum('formMileage', 0),
+    branch: getVal('formBranch', 'สาขาหลัก (โชว์รูมพระราม 9)'),
+    rentDaily: getNum('formRentDaily', 0),
+    rentMonthly: getNum('formRentMonthly', 0),
+    deposit: getNum('formDeposit', 0),
+    price: getNum('formPrice', 0),
+    status: getVal('formStatus', 'available'),
+    customer: getVal('formCustomer'),
+    customerPhone: getVal('formCustomerPhone'),
+    customerPassport: getVal('formCustomerPassport'),
+    rentalStart: getVal('formRentalStart'),
+    rentalEnd: getVal('formRentalEnd'),
+    taxExpiry: getVal('formTaxExpiry'),
+    remarks: getVal('formRemarks'),
+    gpsImei: getVal('formGpsImei'),
+    gpsUrl: getVal('formGpsUrl'),
     accessories: {
-      helmet: document.getElementById('accHelmet').checked,
-      phoneMount: document.getElementById('accPhoneMount').checked,
-      smartKey: document.getElementById('accSmartKey').checked,
-      topBox: document.getElementById('accTopBox').checked
+      helmet: getChk('accHelmet'),
+      phoneMount: getChk('accPhoneMount'),
+      smartKey: getChk('accSmartKey'),
+      topBox: getChk('accTopBox')
     },
     inspection: {
-      oil: document.getElementById('chkOil').checked,
-      brakes: document.getElementById('chkBrakes').checked,
-      tyres: document.getElementById('chkTyres').checked,
-      clean: document.getElementById('chkClean').checked
+      oil: getChk('chkOil'),
+      brakes: getChk('chkBrakes'),
+      tyres: getChk('chkTyres'),
+      clean: getChk('chkClean')
     },
     photos: formPhotos.length > 0 ? formPhotos : ['assets/images/forza_350.jpg']
   };
@@ -1260,7 +1315,7 @@ function renderFormPhotosPreview() {
 
   grid.innerHTML = formPhotos.map((photo, i) => `
     <div class="photo-thumb-card ${i === 0 ? 'is-cover' : ''}">
-      <img src="${photo}" alt="Moto photo ${i + 1}">
+      <img src="${photo}" alt="Moto photo ${i + 1}" onclick="openLightbox('${photo}')" style="cursor: zoom-in;" title="คลิกเพื่อดูรูปภาพขนาดเต็ม">
       <button type="button" class="thumb-del-btn" onclick="removeFormPhoto(${i})" title="ลบรูปภาพ">&times;</button>
       ${i === 0 ? '<span class="thumb-cover-tag">รูปปก</span>' : `
         <button type="button" onclick="setCoverPhoto(${i})" style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 0.6rem; border-radius: 2px; padding: 2px 4px; cursor: pointer;">
@@ -1272,46 +1327,74 @@ function renderFormPhotosPreview() {
 }
 
 // ==================== MOTORCYCLE DETAIL & RENTAL CARD ====================
+let currentHeroFitMode = 'contain';
+
 function openCarDetail(motoId) {
   const moto = fleet.find(c => c.id === motoId);
   if (!moto) return;
 
   currentDetailMoto = moto;
+  currentHeroFitMode = 'contain';
   const statusInfo = STATUS_CONFIG[moto.status] || STATUS_CONFIG.available;
   const coverPhoto = (moto.photos && moto.photos.length > 0) ? moto.photos[0] : 'assets/images/forza_350.jpg';
 
   document.getElementById('detailModalTitle').textContent = `ข้อมูลรถ & สัญญา: ${moto.brand} ${moto.model} [${moto.licensePlate}]`;
 
   const html = `
-    <!-- Top Hero Image Gallery -->
-    <div class="detail-hero-box">
-      <img id="detailMainHeroImg" src="${coverPhoto}" class="detail-hero-img" alt="${moto.model}">
-      <div class="detail-hero-overlay">
-        <div>
-          <span class="status-pill ${statusInfo.class}" style="margin-bottom: 0.4rem;">
+    <!-- Top Vehicle Info Summary Bar (Clean header card, doesn't obscure photo) -->
+    <div class="detail-header-card">
+      <div>
+        <div class="detail-badge-group">
+          <span class="status-pill ${statusInfo.class}">
             <span class="status-dot"></span>
             สถานะ: ${statusInfo.label}
           </span>
-          <div class="detail-car-name">${moto.brand} ${moto.model} <span style="font-weight: 500; font-size: 1.1rem; color: var(--gold-400);">${moto.cc}</span></div>
-          <div style="font-size: 0.85rem; color: var(--cyan-300);">ทะเบียน: <strong>${moto.licensePlate}</strong> &bull; ${moto.category}</div>
+          <span class="detail-tag-pill">${moto.category}</span>
+          <span class="detail-tag-pill">ปี ${moto.year}</span>
         </div>
-        <div style="text-align: right;">
-          ${moto.rentDaily ? `
-            <div style="font-size: 0.75rem; color: var(--text-light);">ค่าเช่ารายวัน</div>
-            <div style="font-size: 1.7rem; font-weight: 800; color: #38bdf8;">${formatPrice(moto.rentDaily)}<span style="font-size: 0.85rem; font-weight: normal;">/วัน</span></div>
-          ` : `
-            <div style="font-size: 0.75rem; color: var(--text-light);">ราคาขายสด</div>
-            <div style="font-size: 1.7rem; font-weight: 800; color: #ffffff;">${formatPrice(moto.price)}</div>
-          `}
+        <div class="detail-car-title">
+          ${moto.brand} ${moto.model} <span class="detail-car-cc">${moto.cc}</span>
         </div>
+        <div class="detail-car-subtitle">
+          ทะเบียน: <span class="detail-plate-tag">${moto.licensePlate}</span> &bull; 
+          สาขา/จุดจอด: <strong>${moto.branch}</strong>
+        </div>
+      </div>
+      <div class="detail-header-price">
+        ${moto.rentDaily ? `
+          <div class="price-caption">ค่าเช่ารายวัน</div>
+          <div class="price-highlight-rent">${formatPrice(moto.rentDaily)}<span class="price-unit">/วัน</span></div>
+          ${moto.rentMonthly ? `<div class="price-sub-rent">รายเดือน ${formatPrice(moto.rentMonthly)}/ด.</div>` : ''}
+        ` : `
+          <div class="price-caption">ราคาขายสด (MSRP)</div>
+          <div class="price-highlight-sale">${formatPrice(moto.price)}</div>
+        `}
+      </div>
+    </div>
+
+    <!-- Top Hero Image Gallery (Ambient Blur Backdrop + Contain Fit) -->
+    <div class="detail-hero-box" id="detailHeroBox">
+      <div class="detail-hero-bg" id="detailHeroBg" style="background-image: url('${coverPhoto}');"></div>
+      <img id="detailMainHeroImg" src="${coverPhoto}" class="detail-hero-img fit-contain" alt="${moto.model}"
+           onclick="openLightbox(this.src)" title="คลิกเพื่อดูรูปภาพขนาดใหญ่เต็มหน้าจอ (Full Screen)">
+      
+      <div class="detail-hero-floating-actions">
+        <button type="button" class="hero-float-btn" id="btnToggleHeroFit" onclick="toggleHeroFit()" title="สลับโหมด พอดีรูปภาพ (Fit) / เต็มกรอบ (Fill)">
+          <span id="fitBtnIcon">↔️</span> <span id="fitBtnLabel">โหมด: พอดีรูป (Fit)</span>
+        </button>
+        <button type="button" class="hero-float-btn" onclick="openLightbox(document.getElementById('detailMainHeroImg').src)" title="ขยายดูรูปขนาดเต็มจอ">
+          🔍 ดูรูปเต็มจอ
+        </button>
       </div>
     </div>
 
     <!-- Gallery Thumbnail Strip -->
     ${moto.photos && moto.photos.length > 1 ? `
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 0.25rem;">
+      <div class="detail-thumb-strip">
         ${moto.photos.map((p, idx) => `
-          <img src="${p}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid ${idx === 0 ? 'var(--cyan-500)' : '#cbd5e1'};" onclick="document.getElementById('detailMainHeroImg').src='${p}'">
+          <div class="detail-thumb-wrapper ${idx === 0 ? 'active' : ''}" data-photo="${p}" onclick="setDetailHeroPhoto('${p}', this)" title="ดูรูปที่ ${idx + 1}">
+            <img src="${p}" class="detail-thumb-img" alt="ภาพย่อย ${idx + 1}">
+          </div>
         `).join('')}
       </div>
     ` : ''}
@@ -1321,9 +1404,9 @@ function openCarDetail(motoId) {
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span style="font-weight: 700; color: var(--navy-900);">🔄 เปลี่ยนสถานะรถคันนี้:</span>
         <select class="form-control" style="width: auto; font-weight: 600;" onchange="quickUpdateStatus('${moto.id}', this.value); openCarDetail('${moto.id}');">
-          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 พร้อมบริการ (Available)</option>
-          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 ปล่อยเช่าอยู่ (On Rent)</option>
-          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 จองแล้ว (Reserved)</option>
+          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง (Available)</option>
+          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า (On Rent)</option>
+          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน (Reserved)</option>
           <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน (Inspection)</option>
           <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน (Maintenance)</option>
           <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว (Sold Out)</option>
@@ -1351,6 +1434,7 @@ function openCarDetail(motoId) {
           <tr><td class="label-col">ขนาดความจุ CC</td><td class="value-col">${moto.cc} (ปี ${moto.year})</td></tr>
           <tr><td class="label-col">เลขไมล์ปัจจุบัน</td><td class="value-col">${(moto.mileage || 0).toLocaleString()} km</td></tr>
           <tr><td class="label-col">วันหมดอายุ พ.ร.บ. / ภาษี</td><td class="value-col" style="color: #d97706; font-weight: 700;">📅 ${moto.taxExpiry || '-'}</td></tr>
+          <tr><td class="label-col">เชื้อเพลิง (Fuel)</td><td class="value-col">⛽ ${moto.fuel || 'เบนซิน 95'}</td></tr>
           <tr><td class="label-col">สาขา / จุดจอด</td><td class="value-col">${moto.branch}</td></tr>
           <tr><td class="label-col">ระบบ GPSDD</td><td class="value-col">
             ${moto.gpsImei ? `<strong style="color: var(--cyan-600); font-family: monospace;">🛰️ IMEI: ${moto.gpsImei}</strong> <button class="copy-btn" onclick="copyPlate('${moto.gpsImei}')" title="คัดลอก IMEI">📋</button>` : '<span style="color: var(--text-light);">(ยังไม่ได้ระบุ GPS)</span>'}
@@ -1520,6 +1604,7 @@ function copySummaryForLine(motoId) {
 รุ่น: ${moto.brand} ${moto.model} (${moto.cc})
 ทะเบียน: ${moto.licensePlate}
 สี: ${moto.exteriorColor}
+เชื้อเพลิง: ${moto.fuel || 'เบนซิน 95'}
 ${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน` : ''}
 ${moto.rentMonthly ? `เรทเช่ารายเดือน: ${formatPrice(moto.rentMonthly)}/เดือน` : ''}
 ${moto.deposit ? `เงินประกันมัดจำ: ${formatPrice(moto.deposit)}` : ''}
@@ -1543,7 +1628,7 @@ function exportCsv() {
 
   const headers = [
     "Moto ID", "Brand", "Model", "Category", "CC", "Year", "Purpose",
-    "License Plate", "Frame No (VIN)", "Engine No", "Exterior Color",
+    "License Plate", "Frame No (VIN)", "Engine No", "Exterior Color", "Fuel",
     "Mileage (km)", "Branch", "Rent Daily (THB)", "Rent Monthly (THB)",
     "Deposit (THB)", "Price Sale (THB)", "Status",
     "Customer Name", "Customer Phone", "Rental Start", "Rental End", "Tax Expiry",
@@ -1562,6 +1647,7 @@ function exportCsv() {
     `"${m.vin}"`,
     `"${m.engineNo || ''}"`,
     `"${m.exteriorColor}"`,
+    `"${m.fuel || 'เบนซิน 95'}"`,
     m.mileage || 0,
     `"${m.branch}"`,
     m.rentDaily || 0,
@@ -1632,6 +1718,76 @@ function importJson(e) {
   e.target.value = '';
 }
 
+// ==================== DETAIL HERO & LIGHTBOX HELPERS ====================
+function setDetailHeroPhoto(url, el) {
+  const mainImg = document.getElementById('detailMainHeroImg');
+  const bg = document.getElementById('detailHeroBg');
+  if (mainImg) mainImg.src = url;
+  if (bg) bg.style.backgroundImage = `url('${url}')`;
+
+  document.querySelectorAll('.detail-thumb-wrapper').forEach(w => w.classList.remove('active'));
+  if (el) {
+    el.classList.add('active');
+  }
+}
+
+function toggleHeroFit() {
+  const img = document.getElementById('detailMainHeroImg');
+  const label = document.getElementById('fitBtnLabel');
+  const icon = document.getElementById('fitBtnIcon');
+  if (!img) return;
+
+  if (currentHeroFitMode === 'contain') {
+    currentHeroFitMode = 'cover';
+    img.classList.remove('fit-contain');
+    img.classList.add('fit-cover');
+    if (label) label.textContent = 'โหมด: เต็มกรอบ (Fill)';
+    if (icon) icon.textContent = '↕️';
+    showToast('เปลี่ยนเป็นโหมดเต็มกรอบ (Fill)', 'info');
+  } else {
+    currentHeroFitMode = 'contain';
+    img.classList.remove('fit-cover');
+    img.classList.add('fit-contain');
+    if (label) label.textContent = 'โหมด: พอดีรูป (Fit)';
+    if (icon) icon.textContent = '↔️';
+    showToast('เปลี่ยนเป็นโหมดพอดีรูป (เห็นเต็มรูปไม่ถูกตัด)', 'info');
+  }
+}
+
+function openLightbox(url) {
+  if (!url) return;
+  const modal = document.getElementById('imageLightboxModal');
+  const img = document.getElementById('lightboxImg');
+  if (modal && img) {
+    img.src = url;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeLightbox(e) {
+  if (e && e.target && e.target.id === 'lightboxImg') return;
+  const modal = document.getElementById('imageLightboxModal');
+  if (modal) {
+    modal.classList.remove('active');
+    const remainingOpen = document.querySelectorAll('.modal-backdrop.active');
+    if (remainingOpen.length === 0) {
+      document.body.style.overflow = '';
+    }
+  }
+}
+
+// Global ESC Key Listener for Lightbox
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const lightbox = document.getElementById('imageLightboxModal');
+    if (lightbox && lightbox.classList.contains('active')) {
+      closeLightbox();
+      e.stopPropagation();
+    }
+  }
+});
+
 // ==================== MODAL HELPER FUNCTIONS ====================
 function openModal(modalId) {
   const m = document.getElementById(modalId);
@@ -1647,7 +1803,10 @@ function closeModal(modalId) {
   const m = document.getElementById(modalId);
   if (m) {
     m.classList.remove('active');
-    document.body.style.overflow = '';
+    const remainingOpen = document.querySelectorAll('.modal-backdrop.active');
+    if (remainingOpen.length === 0) {
+      document.body.style.overflow = '';
+    }
   }
 }
 
@@ -1660,8 +1819,8 @@ function showToast(message, type = 'info') {
   toast.className = `toast toast-${type}`;
 
   const icon = type === 'success' ? '✅' :
-               type === 'warning' ? '⚠️' :
-               type === 'gold' ? '⭐' : 'ℹ️';
+    type === 'warning' ? '⚠️' :
+      type === 'gold' ? '⭐' : 'ℹ️';
 
   toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
   container.appendChild(toast);
@@ -1900,9 +2059,9 @@ function openFirebaseModal() {
   const colInput = document.getElementById('fbCollectionName');
   const banner = document.getElementById('fbPermanentConfigBanner');
 
-  const isPermanent = window.FIREBASE_CONFIG && 
-                      typeof window.FIREBASE_CONFIG.apiKey === 'string' && 
-                      window.FIREBASE_CONFIG.apiKey.trim() !== '';
+  const isPermanent = window.FIREBASE_CONFIG &&
+    typeof window.FIREBASE_CONFIG.apiKey === 'string' &&
+    window.FIREBASE_CONFIG.apiKey.trim() !== '';
 
   if (banner) {
     banner.style.display = isPermanent ? 'block' : 'none';
@@ -2112,7 +2271,7 @@ function setupFirebaseEvents() {
 }
 
 // Global helper for copying Firestore security rules
-window.copyFirestoreRules = function() {
+window.copyFirestoreRules = function () {
   const rules = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

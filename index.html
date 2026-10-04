@@ -394,19 +394,31 @@
 
             <div class="form-group">
               <label class="form-label">ความจุเครื่องยนต์ (CC) <span class="req">*</span></label>
-              <select id="formCc" class="form-control" required>
+              <input type="text" id="formCc" class="form-control" list="ccList"
+                placeholder="เช่น 110 cc, 125 cc, 300 cc (เลือกหรือพิมพ์เองได้)" required>
+              <datalist id="ccList">
                 <option value="110 cc">110 cc</option>
+                <option value="115 cc">115 cc</option>
                 <option value="125 cc">125 cc</option>
-                <option value="160 cc" selected>160 cc</option>
+                <option value="150 cc">150 cc</option>
+                <option value="155 cc">155 cc</option>
+                <option value="160 cc">160 cc</option>
+                <option value="250 cc">250 cc</option>
+                <option value="300 cc">300 cc</option>
                 <option value="350 cc">350 cc</option>
+                <option value="400 cc">400 cc</option>
                 <option value="500 cc">500 cc</option>
                 <option value="650 cc">650 cc</option>
-              </select>
+                <option value="750 cc">750 cc</option>
+                <option value="1000 cc">1000 cc</option>
+                <option value="EV ไฟฟ้า">EV ไฟฟ้า (Electric)</option>
+              </datalist>
             </div>
 
             <div class="form-group">
               <label class="form-label">ปีผลิต (Model Year) <span class="req">*</span></label>
-              <input type="text" id="formYear" class="form-control" list="yearList" placeholder="เช่น 2025 หรือ 2568 (เลือกหรือพิมพ์เองได้)" required>
+              <input type="text" id="formYear" class="form-control" list="yearList"
+                placeholder="เช่น 2025 หรือ 2568 (เลือกหรือพิมพ์เองได้)" required>
               <datalist id="yearList">
                 <option value="2027">2027</option>
                 <option value="2026">2026</option>
@@ -503,10 +515,26 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label">ประเภทเชื้อเพลิง (Fuel Type) <span class="req">*</span></label>
+              <input type="text" id="formFuel" list="fuelDatalist" class="form-control"
+                placeholder="เช่น เบนซิน 95, แก๊สโซฮอล์ 95, ไฟฟ้า EV" required>
+              <datalist id="fuelDatalist">
+                <option value="เบนซิน 95">
+                <option value="แก๊สโซฮอล์ 95">
+                <option value="แก๊สโซฮอล์ 91">
+                <option value="แก๊สโซฮอล์ E20">
+                <option value="เบนซิน">
+                <option value="ไฟฟ้า EV">
+              </datalist>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">เลขไมล์ปัจจุบัน (km)</label>
               <input type="number" id="formMileage" class="form-control" value="1200" min="0">
             </div>
+          </div>
 
+          <div style="margin-top: 0.85rem;">
             <div class="form-group">
               <label class="form-label">สาขา / จุดจอด / ตำแหน่งที่รถอยู่ <span class="req">*</span></label>
               <input type="text" id="formBranch" list="branchDatalist" class="form-control"
@@ -1000,6 +1028,14 @@
       <div class="modal-footer">
         <button type="button" class="header-btn btn-gold" data-close-modal="firebaseModal">ปิดหน้าต่าง</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== LIGHTBOX MODAL: FULLSCREEN IMAGE VIEWER ==================== -->
+  <div id="imageLightboxModal" class="modal-backdrop image-lightbox-backdrop" onclick="closeLightbox(event)">
+    <button type="button" class="lightbox-close-btn" onclick="closeLightbox()" title="ปิดรูปขยาย (ESC)">&times;</button>
+    <div class="lightbox-content">
+      <img id="lightboxImg" src="" alt="Full-size motorcycle photo" onclick="event.stopPropagation()">
     </div>
   </div>
 
