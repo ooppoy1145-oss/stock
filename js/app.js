@@ -1036,14 +1036,14 @@ function openCarModal(motoId = null) {
     idEl.value = '';
 
     document.getElementById('formPurpose').value = 'both';
-    document.getElementById('formYear').value = '2025';
+    document.getElementById('formYear').value = new Date().getFullYear().toString();
     document.getElementById('formMileage').value = 500;
     document.getElementById('formStatus').value = 'available';
     document.getElementById('formGpsImei').value = '';
     document.getElementById('formGpsUrl').value = 'https://www.gpsdd.com';
 
-    // Default Photo
-    formPhotos = ['assets/images/forza_350.jpg'];
+    // Default Photo (start empty so user uploads their own pictures)
+    formPhotos = [];
   }
 
   renderFormPhotosPreview();

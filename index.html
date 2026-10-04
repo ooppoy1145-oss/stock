@@ -77,7 +77,8 @@
         </div>
 
         <!-- Firebase Live Sync Status Button -->
-        <button id="btnOpenFirebaseModal" class="header-btn btn-firebase-status status-offline" title="ตั้งค่าและสถานะ Firebase Realtime Cloud Sync">
+        <button id="btnOpenFirebaseModal" class="header-btn btn-firebase-status status-offline"
+          title="ตั้งค่าและสถานะ Firebase Realtime Cloud Sync">
           <span class="firebase-pulse-dot"></span>
           <span id="firebaseStatusText">☁️ Firebase: รอเชื่อมต่อ</span>
         </button>
@@ -354,16 +355,16 @@
 
           <!-- SECTION 1: วัตถุประสงค์และข้อมูลพื้นฐาน -->
           <div class="form-section-title">
-            <span>⚙️</span> 1. วัตถุประสงค์และข้อมูลมอเตอร์ไซค์ (Purpose &amp; Model)
+            <span>⚙️</span> ข้อมูลมอเตอร์ไซค์
           </div>
 
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">วัตถุประสงค์ของคันนี้ <span class="req">*</span></label>
               <select id="formPurpose" class="form-control" required>
-                <option value="both" selected>🛵🏷️ ทั้งขายและให้เช่า (Sale &amp; Rent)</option>
-                <option value="rent">🛵 สำหรับเช่าอย่างเดียว (Rent Only)</option>
-                <option value="sale">🏷️ สำหรับขายอย่างเดียว (Sale Only)</option>
+                <option value="both" selected>🛵🏷️ ทั้งขายและเช่า (Sale &amp; Rent)</option>
+                <option value="rent">🛵 เช่า </option>
+                <option value="sale">🏷️ ขาย </option>
               </select>
             </div>
 
@@ -381,13 +382,13 @@
 
           <div class="form-grid-3" style="margin-top: 0.85rem;">
             <div class="form-group">
-              <label class="form-label">ประเภทรถ (Category) <span class="req">*</span></label>
+              <label class="form-label">ประเภทรถ <span class="req">*</span></label>
               <select id="formCategory" class="form-control" required>
-                <option value="พรีเมียม ออโตเมติก (Maxi-Scooter)">พรีเมียม ออโตเมติก (Maxi-Scooter)</option>
-                <option value="สกู๊ตเตอร์ในเมือง (City Scooter)">สกู๊ตเตอร์ในเมือง (City Scooter)</option>
-                <option value="แฟชั่น เรโทร (Classic/Retro)">แฟชั่น เรโทร (Classic/Retro)</option>
-                <option value="บิ๊กไบค์ / ทัวร์ริ่ง (BigBike)">บิ๊กไบค์ / ทัวร์ริ่ง (BigBike)</option>
-                <option value="รถครอบครัว (Family/Moped)">รถครอบครัว (Family/Moped)</option>
+                <option value="พรีเมียม ออโตเมติก (Maxi-Scooter)">พรีเมียม ออโตเมติก </option>
+                <option value="สกู๊ตเตอร์ในเมือง (City Scooter)">สกู๊ตเตอร์ในเมือง </option>
+                <option value="แฟชั่น เรโทร (Classic/Retro)">แฟชั่น เรโทร </option>
+                <option value="บิ๊กไบค์ / ทัวร์ริ่ง (BigBike)">บิ๊กไบค์ / ทัวร์ริ่ง </option>
+                <option value="รถครอบครัว (Family/Moped)">รถครอบครัว </option>
               </select>
             </div>
 
@@ -405,12 +406,34 @@
 
             <div class="form-group">
               <label class="form-label">ปีผลิต (Model Year) <span class="req">*</span></label>
-              <select id="formYear" class="form-control" required>
+              <input type="text" id="formYear" class="form-control" list="yearList" placeholder="เช่น 2025 หรือ 2568 (เลือกหรือพิมพ์เองได้)" required>
+              <datalist id="yearList">
+                <option value="2027">2027</option>
                 <option value="2026">2026</option>
-                <option value="2025" selected>2025</option>
+                <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
-              </select>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+                <option value="2020">2020</option>
+                <option value="2019">2019</option>
+                <option value="2018">2018</option>
+                <option value="2017">2017</option>
+                <option value="2016">2016</option>
+                <option value="2015">2015</option>
+                <option value="2014">2014</option>
+                <option value="2013">2013</option>
+                <option value="2012">2012</option>
+                <option value="2011">2011</option>
+                <option value="2010">2010</option>
+                <option value="2569">2569 (พ.ศ.)</option>
+                <option value="2568">2568 (พ.ศ.)</option>
+                <option value="2567">2567 (พ.ศ.)</option>
+                <option value="2566">2566 (พ.ศ.)</option>
+                <option value="2565">2565 (พ.ศ.)</option>
+                <option value="2564">2564 (พ.ศ.)</option>
+                <option value="2563">2563 (พ.ศ.)</option>
+              </datalist>
             </div>
           </div>
 
@@ -440,24 +463,6 @@
               </button>
             </div>
 
-            <!-- Quick Presets -->
-            <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted);">
-              หรือเลือกรูปภาพโชว์รูม Honda สำเร็จรูปด่วน:
-            </div>
-            <div class="photo-preset-btns">
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/forza_350.jpg', 'Forza 350')">+ Forza 350</button>
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/pcx_160.jpg', 'PCX 160')">+ PCX 160</button>
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/giorno_plus.jpg', 'Giorno+ 125')">+ Giorno+ 125</button>
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/adv_350.jpg', 'ADV 350')">+ ADV 350</button>
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/nx500_bigbike.jpg', 'NX500 BigBike')">+ NX500 BigBike</button>
-              <button type="button" class="preset-chip"
-                onclick="addPhotoPreset('assets/images/wave_125i.jpg', 'Wave 125i')">+ Wave 125i</button>
-            </div>
 
             <!-- Thumbnail Grid -->
             <div id="formPhotoPreviewGrid" class="photo-preview-grid">
@@ -737,8 +742,10 @@
 
       <div class="modal-body">
         <!-- Firebase Cloud Sync Card inside Data Management -->
-        <div style="background: linear-gradient(135deg, rgba(0, 153, 229, 0.08), rgba(212, 175, 55, 0.08)); border: 1px solid var(--cyan-400); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div
+          style="background: linear-gradient(135deg, rgba(0, 153, 229, 0.08), rgba(212, 175, 55, 0.08)); border: 1px solid var(--cyan-400); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem;">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
             <h4 style="color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
               <span>☁️</span> ซิงค์ข้อมูลคลาวด์ Firebase แบบเรียลไทม์
             </h4>
@@ -835,8 +842,10 @@
         </div>
 
         <!-- Permanent Config Info Banner -->
-        <div id="fbPermanentConfigBanner" style="background: #ecfdf5; border: 1px solid #10b981; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: none;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #065f46; font-size: 0.88rem;">
+        <div id="fbPermanentConfigBanner"
+          style="background: #ecfdf5; border: 1px solid #10b981; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: none;">
+          <div
+            style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #065f46; font-size: 0.88rem;">
             <span>🔒</span>
             <span>กำหนดค่า API Key ถาวรในไฟล์ js/firebase-config.js เรียบร้อยแล้ว</span>
           </div>
@@ -847,22 +856,26 @@
 
         <!-- Database Type Selection -->
         <div style="margin-bottom: 1.25rem;">
-          <label style="font-weight: 700; color: var(--navy-900); font-size: 0.88rem; display: block; margin-bottom: 0.4rem;">
+          <label
+            style="font-weight: 700; color: var(--navy-900); font-size: 0.88rem; display: block; margin-bottom: 0.4rem;">
             ประเภทฐานข้อมูล Firebase ที่ใช้งาน:
           </label>
           <div class="radio-group-row">
             <label class="radio-card-label selected" id="labelDbFirestore">
               <input type="radio" name="fbDbType" value="firestore" checked style="accent-color: var(--cyan-500);">
               <div>
-                <strong style="display: block; font-size: 0.88rem; color: var(--navy-900);">Cloud Firestore (แนะนำ)</strong>
-                <span style="font-size: 0.72rem; color: var(--text-muted);">เสถียรที่สุด แยกสต็อครถเป็นรายคัน ซิงค์ข้ามเครื่องเร็ว</span>
+                <strong style="display: block; font-size: 0.88rem; color: var(--navy-900);">Cloud Firestore
+                  (แนะนำ)</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">เสถียรที่สุด แยกสต็อครถเป็นรายคัน
+                  ซิงค์ข้ามเครื่องเร็ว</span>
               </div>
             </label>
             <label class="radio-card-label" id="labelDbRtdb">
               <input type="radio" name="fbDbType" value="rtdb" style="accent-color: var(--cyan-500);">
               <div>
                 <strong style="display: block; font-size: 0.88rem; color: var(--navy-900);">Realtime Database</strong>
-                <span style="font-size: 0.72rem; color: var(--text-muted);">โครงสร้าง JSON Tree สำหรับ Realtime Sync ทันที</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">โครงสร้าง JSON Tree สำหรับ Realtime Sync
+                  ทันที</span>
               </div>
             </label>
           </div>
@@ -870,10 +883,12 @@
 
         <!-- Collection / Node Name -->
         <div style="margin-bottom: 1.25rem;">
-          <label style="font-weight: 600; color: var(--navy-900); font-size: 0.83rem; display: block; margin-bottom: 0.35rem;">
+          <label
+            style="font-weight: 600; color: var(--navy-900); font-size: 0.83rem; display: block; margin-bottom: 0.35rem;">
             ชื่อ Collection / Root Node ในฐานข้อมูล:
           </label>
-          <input type="text" id="fbCollectionName" class="form-control" value="motorcycle_fleet" placeholder="motorcycle_fleet" style="font-family: monospace; font-size: 0.88rem;">
+          <input type="text" id="fbCollectionName" class="form-control" value="motorcycle_fleet"
+            placeholder="motorcycle_fleet" style="font-family: monospace; font-size: 0.88rem;">
         </div>
 
         <!-- Firebase Config Input -->
@@ -882,7 +897,8 @@
             <label style="font-weight: 700; color: var(--navy-900); font-size: 0.88rem;">
               Firebase Config (คัดลอกจาก Firebase Console):
             </label>
-            <button type="button" class="copy-btn" id="btnPasteConfigFromClipboard" title="วางจากคลิปบอร์ด" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">
+            <button type="button" class="copy-btn" id="btnPasteConfigFromClipboard" title="วางจากคลิปบอร์ด"
+              style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">
               📋 วางข้อความ (Paste)
             </button>
           </div>
@@ -907,24 +923,28 @@
           <button type="button" class="header-btn btn-gold" id="btnSaveFbConfig">
             💾 บันทึกและเริ่มซิงค์สด
           </button>
-          <button type="button" class="header-btn btn-glass" style="color: var(--navy-900); border-color: var(--border-light);" id="btnClearFbConfig">
+          <button type="button" class="header-btn btn-glass"
+            style="color: var(--navy-900); border-color: var(--border-light);" id="btnClearFbConfig">
             🗑️ ล้างการตั้งค่า
           </button>
         </div>
 
         <!-- Cloud Sync Operations -->
-        <div style="background: var(--cyan-50); border: 1px solid var(--cyan-100); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+        <div
+          style="background: var(--cyan-50); border: 1px solid var(--cyan-100); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
           <h5 style="color: var(--navy-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
             <span>🔄</span> จัดการข้อมูลระหว่างเครื่องนี้กับคลาวด์
           </h5>
           <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            หากเพิ่งเชื่อมต่อ Firebase เป็นครั้งแรก ให้กด <strong>"ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที"</strong> เพื่อให้ข้อมูลรถทั้งหมดขึ้นสู่ระบบคลาวด์และกระจายไปยังทุกคน
+            หากเพิ่งเชื่อมต่อ Firebase เป็นครั้งแรก ให้กด <strong>"ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที"</strong>
+            เพื่อให้ข้อมูลรถทั้งหมดขึ้นสู่ระบบคลาวด์และกระจายไปยังทุกคน
           </p>
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
             <button type="button" class="header-btn btn-gold" id="btnUploadLocalToFb">
               ☁️ ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที
             </button>
-            <button type="button" class="header-btn btn-glass" style="color: var(--navy-900);" id="btnDownloadFbToLocal">
+            <button type="button" class="header-btn btn-glass" style="color: var(--navy-900);"
+              id="btnDownloadFbToLocal">
               📥 ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้
             </button>
           </div>
@@ -932,7 +952,8 @@
 
         <!-- Step-by-Step Setup Guide Accordion -->
         <details class="fb-guide-box">
-          <summary style="font-weight: 700; color: var(--navy-900); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+          <summary
+            style="font-weight: 700; color: var(--navy-900); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
             <span>📖</span> วิธีสร้างและตั้งค่า Firebase ฟรี (ทำครั้งเดียวใช้งานได้ตลอด)
           </summary>
           <div style="margin-top: 1rem;">
@@ -940,30 +961,35 @@
               <span class="fb-step-num">1</span>
               <div>
                 <strong>สร้าง Project ใน Firebase:</strong><br>
-                เข้าเว็บไซต์ <a href="https://console.firebase.google.com" target="_blank" style="color: var(--cyan-500); text-decoration: underline;">console.firebase.google.com</a> แล้วเข้าสู่ระบบด้วยบัญชี Google -> กด <strong>"Create a project"</strong> (ตั้งชื่ออะไรก็ได้ เช่น honda-stock)
+                เข้าเว็บไซต์ <a href="https://console.firebase.google.com" target="_blank"
+                  style="color: var(--cyan-500); text-decoration: underline;">console.firebase.google.com</a>
+                แล้วเข้าสู่ระบบด้วยบัญชี Google -> กด <strong>"Create a project"</strong> (ตั้งชื่ออะไรก็ได้ เช่น
+                honda-stock)
               </div>
             </div>
             <div class="fb-guide-step">
               <span class="fb-step-num">2</span>
               <div>
                 <strong>เพิ่ม Web App &amp; รับ Config:</strong><br>
-                ในหน้า Project Overview กดที่ไอคอนเว็บ <strong>&lt;/&gt;</strong> -> ตั้งชื่อ App -> จะพบโค้ด <code>const firebaseConfig = { ... };</code> ให้คัดลอกมาวางในช่องด้านบนนี้
+                ในหน้า Project Overview กดที่ไอคอนเว็บ <strong>&lt;/&gt;</strong> -> ตั้งชื่อ App -> จะพบโค้ด
+                <code>const firebaseConfig = { ... };</code> ให้คัดลอกมาวางในช่องด้านบนนี้
               </div>
             </div>
             <div class="fb-guide-step">
               <span class="fb-step-num">3</span>
               <div>
                 <strong>เปิดใช้งาน Cloud Firestore &amp; Security Rules:</strong><br>
-                เมนูด้านซ้ายไปที่ <strong>Build &gt; Firestore Database</strong> -&gt; กด <strong>Create database</strong> -&gt; เลือก Location (เช่น asia-southeast1)<br>
+                เมนูด้านซ้ายไปที่ <strong>Build &gt; Firestore Database</strong> -&gt; กด <strong>Create
+                  database</strong> -&gt; เลือก Location (เช่น asia-southeast1)<br>
                 จากนั้นไปที่แท็บ <strong>Rules</strong> และวางโค้ดด้านล่างนี้เพื่อให้ทุกคนในร้านอ่าน-เขียนสต็อคได้:
                 <div class="code-snippet-box">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}<button type="button" class="copy-code-btn" onclick="copyFirestoreRules()">📋 คัดลอก</button></div>
+                  service cloud.firestore {
+                  match /databases/{database}/documents {
+                  match /{document=**} {
+                  allow read, write: if true;
+                  }
+                  }
+                  }<button type="button" class="copy-code-btn" onclick="copyFirestoreRules()">📋 คัดลอก</button></div>
                 กดปุ่ม <strong>Publish</strong> เป็นอันเสร็จสิ้น!
               </div>
             </div>
