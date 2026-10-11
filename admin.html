@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Easy Wealth Finance Admin Portal - ระบบจัดการสัญญาเงินกู้และผ่อนชำระสำหรับพนักงาน">
+  <title>Easy Wealth Finance Admin - ระบบจัดการหลังบ้านแอดมิน</title>
+
+  <!-- Google Fonts Prompt (Preconnect for zero-jitter fast rendering) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&subset=thai,latin&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+
+  <!-- Admin Dedicated Stylesheet -->
+  <link rel="stylesheet" href="admin.css">
+
+  <!-- Early script to avoid layout & theme flicker on page reload -->
+  <script>
+    (function () {
+      try {
+        const theme = localStorage.getItem('easyfinance_theme');
+        if (theme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.classList.add('theme-light');
+        }
+        if (localStorage.getItem('easyfinance_sidebar_collapsed') === 'true' && window.innerWidth > 900) {
+          document.documentElement.classList.add('sidebar-init-collapsed');
+        }
+        // Immediately hide login overlay if already authenticated to eliminate reload flicker
+        if (sessionStorage.getItem('easyfinance_admin_auth') === 'true') {
+          document.documentElement.classList.add('admin-authenticated');
+        }
+      } catch (e) { }
+
+      // Safe early toggle for password visibility
+      window.togglePassInputVisibility = function (inputId, btn) {
+        try {
+          const input = document.getElementById(inputId);
+          if (!input) return;
+          const isPass = input.type === "password";
+          input.type = isPass ? "text" : "password";
+          const icon = btn ? btn.querySelector("i") : null;
+          if (icon) {
+            icon.className = isPass ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+          }
+        } catch (err) { }
+      };
+    })();
+  </script>
+</head>
+
+<body>
+
+  <!-- ====================================================================
+       ADMIN LOGIN OVERLAY (Centered Card Frame Layout like Mockup)
+       ==================================================================== -->
+  <div id="adminLoginOverlay" class="admin-login-wrapper">
+
+    <!-- Centered Login Box Frame (~860px wide) -->
+    <div class="admin-login-frame">
+
+      <!-- SIDE PANEL: Image from User Photo (Left side, ~46% width) -->
+      <div class="admin-login-side-img">
+        <!-- Full-Height Image from user photo -->
+        <img src="images/login-bg.jpg" alt="Easy Wealth Finance" class="admin-login-img">
+
+        <!-- Subtle Dark Vignette Overlay -->
+        <div class="admin-login-overlay-vignette"></div>
+
+        <!-- Floating Brand Pill on bottom of image -->
+        <div class="admin-login-brand-pill">
+          <div class="brand-pill-title">Easy Wealth Finance</div>
+          <div class="brand-pill-sub">สำหรับเจ้าหน้าที่เท่านั้น</div>
+        </div>
+      </div>
+
+      <!-- FORM PANEL: Clean Login Form (Right side, ~54% width) -->
+      <div class="admin-login-form-side">
+
+        <!-- Header -->
+        <div class="admin-login-header">
+          <h1 class="admin-login-title">เข้าสู่ระบบ</h1>
+          <p class="admin-login-subtitle">กรุณาระบุข้อมูลเพื่อเข้าสู่ระบบจัดการหลังบ้าน</p>
+        </div>
+
+        <!-- Inline Error Banner -->
+        <div id="adminLoginError" class="admin-login-error" style="display: none;">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="adminLoginErrorText">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="adminAuthForm" class="admin-login-form" novalidate onsubmit="return false;">
+
+          <!-- Email Field (Mandatory) -->
+          <div class="admin-login-field">
+            <label for="adminEmail" class="admin-login-label">
+              อีเมลเข้าสู่ระบบ <span style="color: #ef4444; font-weight: bold;">*</span>
+            </label>
+            <div class="admin-login-input-wrap">
+              <i class="fa-regular fa-envelope admin-login-input-icon"></i>
+              <input type="email" id="adminEmail" name="email" value="" placeholder="ระบุอีเมล " autocomplete="email"
+                class="admin-login-input" required>
+            </div>
+          </div>
+
+          <!-- Password Field (Mandatory) -->
+          <div class="admin-login-field">
+            <label for="adminSecretPass" class="admin-login-label">
+              รหัสผ่านเข้าสู่ระบบ <span style="color: #ef4444; font-weight: bold;">*</span>
+            </label>
+            <div class="admin-login-input-wrap">
+              <i class="fa-solid fa-lock admin-login-input-icon"></i>
+              <input type="password" id="adminSecretPass" name="password" placeholder="Enter your password"
+                autocomplete="current-password" class="admin-login-input" required>
+              <button type="button" class="btn-toggle-eye" onclick="togglePassInputVisibility('adminSecretPass', this)"
+                title="แสดง/ซ่อนรหัสผ่าน" aria-label="แสดงหรือซ่อนรหัสผ่าน">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Full-width Primary Button -->
+          <button type="button" id="btnAdminLoginSubmit" class="btn-admin-login-submit">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>เข้าสู่ระบบหลังบ้าน</span>
+          </button>
+        </form>
+
+        <!-- Back to Customer App -->
+        <div class="admin-login-footer">
+          <a href="index.html" class="admin-login-back-link">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>กลับสู่หน้าลูกค้า (Customer App)</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Backdrop for mobile/iPad sidebar (Requirement 2) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ====================================================================
+       ADMIN MAIN LAYOUT
+       ==================================================================== -->
+  <div class="admin-layout" id="adminMainLayout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <!-- Top Brand Mark & Rail Collapse Chevron -->
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon has-img" title="Easy Wealth Finance">
+          <img src="images/logo.png" alt="Easy Wealth Finance">
+        </div>
+        <div class="sidebar-brand-text" data-label>
+          <h2>Easy Wealth Finance</h2>
+          <span>Admin Portal</span>
+        </div>
+        <!-- Collapse Rail Button (Desktop) -->
+        <button type="button" class="btn-rail-collapse" id="btnRailCollapse" title="ย่อ / ขยายแถบข้าง (Collapse Rail)"
+          aria-label="ย่อหรือขยายแถบเมนูข้าง">
+          <i class="fa-solid fa-chevron-left" id="railCollapseIcon"></i>
+        </button>
+        <!-- Close / Back Button for iPad & Mobile (Requirement 2) -->
+        <button type="button" class="btn-close-sidebar" id="btnCloseSidebar" title="ย้อนกลับ / ปิดเมนู"
+          aria-label="ปิดเมนู">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Search Box -->
+      <div class="sidebar-search-container">
+        <div class="sidebar-search-box" title="ค้นหาเมนูในระบบ">
+          <button type="button" class="search-box-btn" id="btnSidebarSearchTrigger" title="ค้นหาเมนู"
+            aria-label="ค้นหาเมนู">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          </button>
+          <input type="text" id="sidebarSearchInput" placeholder="ค้นหาเมนู..." data-label autocomplete="off"
+            aria-label="ค้นหาเมนู">
+          <button type="button" class="btn-clear-search" id="btnClearSearch" title="ล้างการค้นหา" data-label
+            aria-label="ล้างคำค้นหา">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <!-- Group 1: Workspace -->
+        <div class="sidebar-group" id="groupWrapWorkspace">
+          <button type="button" class="sidebar-group-header" data-group="groupWorkspace" aria-expanded="true"
+            title="Workspace (การติดตามยอดชำระ)">
+            <span class="group-title" data-label>Workspace</span>
+            <i class="fa-solid fa-chevron-down caret-icon" data-label></i>
+          </button>
+          <div class="sidebar-group-list" id="groupWorkspace">
+            <a class="sidebar-item" data-tab="overview" title="สรุปแดชบอร์ดภาพรวม (Overview)"
+              data-tooltip="สรุปแดชบอร์ด">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-chart-pie"></i></span>
+              <span class="sidebar-item-label" data-label>สรุปแดชบอร์ด (Overview)</span>
+              <i class="fa-solid fa-lock" id="iconOverviewLock" data-label
+                style="margin-left: auto; font-size: 0.72rem; color: #f59e0b; display: none;"
+                title="ต้องใช้รหัสหัวหน้า"></i>
+            </a>
+            <a class="sidebar-item active" data-tab="daily" title="สรุปรายวัน" data-tooltip="สรุปรายวัน">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-calendar-day"></i></span>
+              <span class="sidebar-item-label" data-label>สรุปรายวัน</span>
+            </a>
+            <a class="sidebar-item" data-tab="weekly" title="สรุปรายอาทิตย์" data-tooltip="สรุปรายอาทิตย์">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-calendar-week"></i></span>
+              <span class="sidebar-item-label" data-label>สรุปรายอาทิตย์</span>
+            </a>
+            <a class="sidebar-item" data-tab="monthly" title="สรุปรายเดือน" data-tooltip="สรุปรายเดือน">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-calendar-days"></i></span>
+              <span class="sidebar-item-label" data-label>สรุปรายเดือน</span>
+            </a>
+            <a class="sidebar-item" data-tab="motorcycle" id="menuMotorcycle" title="หมวดรถมอไซต์"
+              data-tooltip="หมวดรถมอไซต์">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-motorcycle" style="color: #38bdf8;"></i></span>
+              <span class="sidebar-item-label" data-label>หมวดรถมอไซต์</span>
+              <span id="motorcycleCountBadge" class="tab-count-badge" data-label
+                style="margin-left: auto; background: rgba(56, 189, 248, 0.2); color: #38bdf8; display: inline-flex;">0</span>
+            </a>
+            <a class="sidebar-item" data-tab="all" title="สัญญาทั้งหมด" data-tooltip="สัญญาทั้งหมด">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-file-contract"></i></span>
+              <span class="sidebar-item-label" data-label>สัญญาทั้งหมด</span>
+            </a>
+            <a class="sidebar-item" id="menuCustomerDb" onclick="openCustomerDatabaseModal()" style="cursor: pointer;"
+              title="ฐานข้อมูลลูกค้า" data-tooltip="ฐานข้อมูลลูกค้า">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-address-book" style="color: #34d399;"></i></span>
+              <span class="sidebar-item-label" data-label>ฐานข้อมูลลูกค้า</span>
+              <span id="customerCountBadge" class="tab-count-badge" data-label
+                style="margin-left: auto; background: rgba(16, 185, 129, 0.2); color: #34d399; display: inline-flex;">0</span>
+            </a>
+            <a class="sidebar-item" data-tab="bad_debt" id="menuBadDebt" title="เช็คประวัติลูกค้า"
+              data-tooltip="เช็คประวัติลูกค้า">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-triangle-exclamation"
+                  style="color: #f87171;"></i></span>
+              <span class="sidebar-item-label" data-label>เช็คประวัติลูกค้า</span>
+              <span id="badDebtBadgeCount" class="tab-count-badge" data-label
+                style="margin-left: auto; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); display: none;">0</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Group 2: Insights -->
+        <div class="sidebar-group" id="groupWrapInsights">
+          <button type="button" class="sidebar-group-header" data-group="groupInsights" aria-expanded="true"
+            title="Insights (การตั้งค่าระบบ)">
+            <span class="group-title" data-label>Insights</span>
+            <i class="fa-solid fa-chevron-down caret-icon" data-label></i>
+          </button>
+          <div class="sidebar-group-list" id="groupInsights">
+            <a class="sidebar-item" id="btnMenuQrSettings" title="ตั้งค่า QR รับเงิน" data-tooltip="ตั้งค่า QR รับเงิน">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-qrcode"></i></span>
+              <span class="sidebar-item-label" data-label>ตั้งค่า QR รับเงิน</span>
+            </a>
+            <a class="sidebar-item" id="btnMenuBankApi" title="ระบบตรวจสลิป (Bank API)"
+              data-tooltip="ระบบตรวจสลิป Bank API">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-shield-halved"></i></span>
+              <span class="sidebar-item-label" data-label>ระบบตรวจสลิป (Bank API)</span>
+            </a>
+            <a class="sidebar-item" id="btnMenuPassSettings" title="ตั้งรหัสหัวหน้า / พนักงาน"
+              data-tooltip="ตั้งรหัสผ่าน">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-key" style="color: #f59e0b;"></i></span>
+              <span class="sidebar-item-label" data-label>ตั้งรหัสหัวหน้า / พนักงาน</span>
+              <span data-label style="margin-left: auto; font-size: 0.7rem; color: #f59e0b; opacity: 0.85;"
+                title="ต้องใช้รหัสผ่านหัวหน้าเพื่อเข้า"><i class="fa-solid fa-lock"></i></span>
+            </a>
+            <a href="index.html" target="_blank" class="sidebar-item client-portal-link" title="เปิดดูหน้าบ้านลูกค้า"
+              data-tooltip="หน้าบ้านลูกค้า">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-mobile-screen"></i></span>
+              <span class="sidebar-item-label" data-label>เปิดดูหน้าบ้านลูกค้า</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" data-label
+                style="margin-left: auto; font-size: 0.7rem; opacity: 0.6;"></i>
+            </a>
+            <!-- Theme Toggle Item in Sidebar -->
+            <a class="sidebar-item" id="btnSidebarThemeToggle" title="สลับโหมดสี (สว่างขาว / มืด)"
+              data-tooltip="สลับธีม ขาว/มืด" style="cursor: pointer;">
+              <span class="sidebar-icon-glyph"><i class="fa-solid fa-circle-half-stroke"
+                  style="color: #38bdf8;"></i></span>
+              <span class="sidebar-item-label" data-label id="sidebarThemeText">เปลี่ยนเป็นธีมสีขาว</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Pin User Chip to the Bottom -->
+      <div class="sidebar-footer">
+        <div class="sidebar-user-chip" id="sidebarUserChip" title="ผู้ใช้ปัจจุบัน (คลิกเพื่อจัดการสิทธิ์/สลับโหมด)">
+          <div class="user-chip-avatar" id="sidebarUserAvatar">
+            <i class="fa-solid fa-crown" id="sidebarUserAvatarIcon"></i>
+          </div>
+          <div class="user-chip-info" data-label>
+            <div class="user-chip-name" id="sidebarUserName">หัวหน้า (Manager)</div>
+            <div class="user-chip-plan" id="sidebarUserPlan">Easy Wealth Finance</div>
+          </div>
+          <button type="button" class="user-chip-action" id="btnSidebarRoleAction" title="สลับสิทธิ์การใช้งาน"
+            data-label aria-label="สลับสิทธิ์การใช้งาน">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="admin-main">
+      <!-- Navbar -->
+      <header class="admin-navbar">
+        <div class="nav-left">
+          <button id="btnSidebarToggle" class="btn-sidebar-toggle">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="nav-page-title">
+            <h2 id="activeTabTitle">สรุปการเก็บเงินรายวัน (Daily Tracker)</h2>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <!-- Theme Toggle Button (Dark / Light White) -->
+          <button type="button" id="btnThemeToggle" class="btn-theme-toggle" title="สลับโหมดสี (สว่างขาว / มืด)"
+            aria-label="สลับโหมดสี ขาว/มืด">
+            <i class="fa-solid fa-sun" id="themeToggleIconSun" style="display: none; color: #f59e0b;"></i>
+            <i class="fa-solid fa-moon" id="themeToggleIconMoon" style="color: #38bdf8;"></i>
+            <span id="themeToggleText">โหมดสว่าง</span>
+          </button>
+
+          <!-- Role Badge (Manager / Staff Indicator & Unlock) -->
+          <div class="admin-role-badge manager" id="adminRoleBadge" title="คลิกเพื่อจัดการสิทธิ์">
+            <i class="fa-solid fa-crown" id="roleBadgeIcon"></i>
+            <span id="roleBadgeText">หัวหน้า</span>
+            <button type="button" id="btnRoleAction" class="btn-role-action" title="ปลดล็อก / สลับสิทธิ์"></button>
+          </div>
+
+          <div class="cloud-status-badge" id="cloudStatusBadge">
+            <i class="fa-solid fa-circle-dot"></i>
+            <span id="cloudStatusText">LocalStorage Ready</span>
+          </div>
+
+          <button id="btnAdminLogout" class="btn-admin-logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>ออกจากระบบ</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Container -->
+      <div class="admin-container">
+
+        <!-- 4 Stats Counters -->
+        <div class="stats-counter-row">
+          <div class="stat-counter-card">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelFinanced">ยอดปล่อยสินเชื่อรวม</div>
+              <div class="stat-val" id="statTotalFinanced">฿0</div>
+            </div>
+            <div class="stat-icon-box stat-icon-emerald" id="statIconFinanced">
+              <i class="fa-solid fa-vault"></i>
+            </div>
+          </div>
+
+          <div class="stat-counter-card">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelCollected">ยอดเก็บเงินได้แล้ว</div>
+              <div class="stat-val" id="statTotalCollected">฿0</div>
+            </div>
+            <div class="stat-icon-box stat-icon-blue" id="statIconCollected">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+
+          <div class="stat-counter-card">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelOutstanding">ยอดคงค้างรอเก็บ</div>
+              <div class="stat-val" id="statTotalOutstanding">฿0</div>
+            </div>
+            <div class="stat-icon-box stat-icon-amber" id="statIconOutstanding">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+          </div>
+
+          <div class="stat-counter-card">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelCount">สัญญาทั้งหมด</div>
+              <div class="stat-val" id="statContractsCount">0</div>
+            </div>
+            <div class="stat-icon-box stat-icon-purple" id="statIconCount">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+
+          <!-- ช่องรวมยอดค่าปรับ (Requirement 1: คลิกเปิดดูรายงานค่าปรับรายวันได้เหมือนยอดตัดดอก) -->
+          <div class="stat-counter-card" id="cardStatLateFines" style="cursor: pointer;"
+            onclick="openLateFineReportModal()" title="คลิกเพื่อดูสรุปยอดค่าปรับรายวัน">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelLateFines" style="color: #fb923c;">
+                <i class="fa-solid fa-triangle-exclamation"></i> ยอดรวมค่าปรับ
+              </div>
+              <div class="stat-val" id="statTotalLateFines" style="color: #fb923c;">฿0</div>
+              <div id="statLateFinesSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                แยกเฉพาะค่าปรับ (คลิกดูสรุปต่อวัน)</div>
+            </div>
+            <div class="stat-icon-box" id="statIconLateFines"
+              style="background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.35);">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+          </div>
+
+          <!-- ช่องยอดรวมมอไซต์ (Requirement: แยกยอดออกมาต่างหาก ไม่ต้องยกยอดไปรวมกับยอดปล่อยสินเชื่อรวม) -->
+          <div class="stat-counter-card" id="cardStatMotorcycle" style="cursor: pointer;"
+            onclick="switchTab('motorcycle')" title="คลิกเพื่อดูสรุปหมวดรถมอไซต์">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelMotorcycle" style="color: #38bdf8;">
+                <i class="fa-solid fa-motorcycle"></i> ยอดรวมมอไซต์
+              </div>
+              <div class="stat-val" id="statTotalMotorcycle" style="color: #38bdf8;">฿0</div>
+              <div id="statMotorcycleSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                แยกเฉพาะหมวดมอไซต์</div>
+            </div>
+            <div class="stat-icon-box" id="statIconMotorcycle"
+              style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);">
+              <i class="fa-solid fa-motorcycle"></i>
+            </div>
+          </div>
+
+          <!-- ช่องยอดรวมตัดดอก (Requirement 3.3: แยกต่างหาก ไม่รวมกับยอดปล่อยสินเชื่อรวม / ยอดเก็บเงินได้แล้ว / ยอดคงค้างรอเก็บ) -->
+          <div class="stat-counter-card" id="cardStatInterestCut" style="cursor: pointer;"
+            onclick="openInterestCutReportModal()" title="คลิกเพื่อดูสรุปยอดตัดดอกรายวัน">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelInterestCut" style="color: #38bdf8;">
+                <i class="fa-solid fa-percent"></i> ยอดรวมตัดดอก
+              </div>
+              <div class="stat-val" id="statTotalInterestCut" style="color: #38bdf8;">฿0</div>
+              <div id="statInterestCutSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                แยกเฉพาะตัดดอก (คลิกดูสรุปต่อวัน)</div>
+            </div>
+            <div class="stat-icon-box" id="statIconInterestCut"
+              style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+          </div>
+
+          <!-- ช่องรวมเงินดาวน์ (แยกต่างหาก ไม่รวมกับช่องอื่น เหมือนกันกับ ยอดรวมตัดดอก) -->
+          <div class="stat-counter-card" id="cardStatDownPayment" style="cursor: pointer;"
+            onclick="openDownPaymentReportModal()" title="คลิกเพื่อดูสรุปเงินดาวน์รายวัน">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelDownPayment" style="color: #34d399;">
+                <i class="fa-solid fa-coins"></i> ช่องรวมเงินดาวน์
+              </div>
+              <div class="stat-val" id="statTotalDownPayment" style="color: #34d399;">฿0</div>
+              <div id="statDownPaymentSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                แยกเฉพาะเงินดาวน์ (คลิกดูสรุปต่อวัน)</div>
+            </div>
+            <div class="stat-icon-box" id="statIconDownPayment"
+              style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+          </div>
+
+          <!-- ช่องสรุปรวมต่อวัน (Requirement: เพิ่มอีกช่องไว้ข้างๆ ช่องรวมเงินดาวน์ สรุปยอดทั้งหมดของวัน รวมรับแล้วของ รายวัน รายอาทิตย์ รายเดือน รถมอเตอร์ไซค์) -->
+          <div class="stat-counter-card" id="cardStatDailyAllCategories" style="cursor: pointer;"
+            onclick="openDailyAllCategoriesReportModal()" title="คลิกเพื่อดูสรุปรวมรับแล้วต่อวันทุกหมวด">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelDailyAllCategories" style="color: #c084fc;">
+                <i class="fa-solid fa-calendar-check"></i> ช่องสรุปรวมต่อวัน
+              </div>
+              <div class="stat-val" id="statTotalDailyAllCategories" style="color: #c084fc;">฿0</div>
+              <div id="statDailyAllCategoriesSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                รวมรับแล้วทุกหมวด (คลิกดูสรุปต่อวัน)</div>
+            </div>
+            <div class="stat-icon-box" id="statIconDailyAllCategories"
+              style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+          </div>
+
+          <!-- ช่องเปรียบเทียบยอดในบัญชี (Requirement: เพิ่มอีกช่องข้างๆ ช่องสรุปรวมต่อวัน คือช่องเปรียบเทียบยอดในบัญชี) -->
+          <div class="stat-counter-card" id="cardStatBankReconciliation" style="cursor: pointer;"
+            onclick="openBankReconciliationModal()" title="คลิกเพื่อเปรียบเทียบยอดในบัญชีธนาคารกับยอดรับประจำวัน">
+            <div class="stat-info">
+              <div class="stat-label" id="statLabelBankReconciliation" style="color: #14b8a6;">
+                <i class="fa-solid fa-scale-balanced"></i> ช่องเปรียบเทียบยอดในบัญชี
+              </div>
+              <div class="stat-val" id="statTotalBankReconciliation" style="color: #14b8a6;">฿0</div>
+              <div id="statBankReconciliationSub" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+                กระทบยอดเงินในธนาคาร (คลิกดูสรุป)</div>
+            </div>
+            <div class="stat-icon-box" id="statIconBankReconciliation"
+              style="background: rgba(20, 184, 166, 0.15); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.35);">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Bar: Search, Dashboard Overview Button & Add Contract -->
+        <div class="action-bar-header">
+          <div class="search-filter-box">
+            <div class="search-input-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="adminSearchInput" placeholder="ค้นหาชื่อลูกค้า, เบอร์โทรศัพท์, หรืออีเมล...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button id="btnOpenCustomerDb" type="button" class="btn-table-action" onclick="openCustomerDatabaseModal()"
+              style="padding: 10px 16px; font-size: 0.88rem; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-weight: 600; cursor: pointer;">
+              <i class="fa-solid fa-address-book"></i>
+              <span>ฐานข้อมูลลูกค้า</span>
+            </button>
+
+            <button id="btnOpenDashboardOverview" class="btn-table-action"
+              style="padding: 10px 16px; font-size: 0.88rem; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd; cursor: pointer;">
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>สรุปแดชบอร์ด</span>
+            </button>
+
+            <button id="btnOpenAddContract" class="btn-primary-action">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>+ เพิ่มสัญญาใหม่</span>
+            </button>
+
+            <button id="btnOpenAddBadDebt" class="btn-primary-action"
+              style="display: none; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>+ เพิ่มประวัติหนี้เสีย</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3.1 Quick Summary Category Pills (ยอดรวมรายวัน / ยอดรวมรายอาทิตย์ / ยอดรวมรายเดือน / ยอดรวมมอไซต์) -->
+        <div class="summary-pills-bar" id="summaryQuickPills">
+          <button class="summary-pill-btn active" id="pillDailyBtn" onclick="switchTab('daily')">
+            <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i>
+            <span>ยอดรวมรายวัน: <strong class="pill-val" id="quickPillDaily">฿0</strong></span>
+          </button>
+          <button class="summary-pill-btn" id="pillWeeklyBtn" onclick="switchTab('weekly')">
+            <i class="fa-solid fa-calendar-week" style="color: #60a5fa;"></i>
+            <span>ยอดรวมรายอาทิตย์: <strong class="pill-val" id="quickPillWeekly">฿0</strong></span>
+          </button>
+          <button class="summary-pill-btn" id="pillMonthlyBtn" onclick="switchTab('monthly')">
+            <i class="fa-solid fa-calendar-days" style="color: #c084fc;"></i>
+            <span>ยอดรวมรายเดือน: <strong class="pill-val" id="quickPillMonthly">฿0</strong></span>
+          </button>
+          <button class="summary-pill-btn" id="pillMotorcycleBtn" onclick="switchTab('motorcycle')"
+            style="border-color: rgba(56, 189, 248, 0.35);">
+            <i class="fa-solid fa-motorcycle" style="color: #38bdf8;"></i>
+            <span>ยอดรวมมอไซต์: <strong class="pill-val" id="quickPillMotorcycle"
+                style="color: #38bdf8;">฿0</strong></span>
+          </button>
+          <!-- 3.1.5 ยอดรวมค่าปรับ (คลิกเพื่อดูสรุปยอดค่าปรับรายวัน) -->
+          <button class="summary-pill-btn" id="pillLateFineBtn" onclick="openLateFineReportModal()"
+            style="border-color: rgba(251, 146, 60, 0.35);" title="คลิกเพื่อดูสรุปยอดค่าปรับรายวัน">
+            <i class="fa-solid fa-triangle-exclamation" style="color: #fb923c;"></i>
+            <span>ยอดรวมค่าปรับ: <strong class="pill-val" id="quickPillLateFine"
+                style="color: #fb923c;">฿0</strong></span>
+          </button>
+        </div>
+
+        <!-- DASHBOARD OVERVIEW SECTION (แสดงการ์ดสรุป 3 หมวดหมู่เมื่อเลือกสรุปแดชบอร์ด) -->
+        <div id="dashboardOverviewSection" class="hidden">
+          <div class="overview-cards-grid" id="overviewCardsGrid">
+            <!-- Dynamic 3 Summary Cards (รายวัน / รายอาทิตย์ / รายเดือน) -->
+          </div>
+        </div>
+
+        <!-- DYNAMIC SUB-TABS (ส่วนที่วงสีแดง: เปลี่ยนตามหมวดหมู่ เช่น ลูกค้าทั้งหมดของรายวัน / จ่ายแล้ว / ค้างจ่าย) -->
+        <div class="admin-tab-nav" id="adminSubTabNav">
+          <!-- Dynamic Sub-tabs will be rendered here -->
+        </div>
+
+        <!-- DATE / PERIOD FILTER BAR (Daily / Weekly / Monthly Tracker - Balanced & Proportioned) -->
+        <div class="date-filter-bar" id="dateFilterBar">
+          <!-- แถวบน: เลือกวันที่ + สเต็ปเปอร์ และยอดรวมของวัน (สมส่วน ซ้าย-ขวา) -->
+          <div class="date-filter-main-row">
+            <div class="date-filter-left">
+              <!-- Unified Single-Date Filter (สำหรับ รายวัน, รายอาทิตย์, และ รายเดือน เหมือนกันทั้งหมด) -->
+              <div class="date-input-group" id="dateFilterSingleGroup">
+                <label for="adminDateFilter" class="date-filter-label">
+                  <i class="fa-solid fa-calendar-day" id="dateFilterIcon" style="color: var(--primary);"></i>
+                  <span id="dateFilterLabelText">เลือกวันที่สรุปยอดรายวัน:</span>
+                </label>
+                <input type="date" id="adminDateFilter" class="input-admin-date">
+              </div>
+
+              <!-- Quick Navigation Buttons -->
+              <div class="date-quick-btns">
+                <button type="button" class="btn-date-quick" id="btnDatePrev" title="วันก่อนหน้า">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button type="button" class="btn-date-quick active" id="btnDateToday">
+                  วันนี้
+                </button>
+                <button type="button" class="btn-date-quick" id="btnDateNext" title="วันถัดไป">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- ยอดรวมของช่วงเวลาที่เลือก (เด้งสรุปขึ้นมาในวงสีเขียวมรกต) -->
+            <div class="date-daily-total-badge" id="dateDailyTotalBadge">
+              <div class="daily-total-main">
+                <span class="daily-total-label" id="dateTotalMainLabel">
+                  <i class="fa-solid fa-coins" style="color: #34d399;"></i>
+                  <span id="dateTotalLabelText">ยอดรวมของวัน:</span>
+                </span>
+                <strong class="daily-total-amount" id="dailyTotalAmountVal">฿0</strong>
+              </div>
+              <div class="daily-total-details" id="dailyTotalDetails">
+                <span class="daily-mini-chip chip-paid" id="dailyPaidAmountVal">
+                  <i class="fa-solid fa-circle-check"></i> รับแล้ว ฿0
+                </span>
+                <span class="daily-mini-chip chip-pending" id="dailyPendingAmountVal">
+                  <i class="fa-solid fa-clock"></i> รอเก็บ ฿0
+                </span>
+                <span class="daily-mini-chip chip-fine" id="dailyFineAmountVal" style="display: none; cursor: pointer;"
+                  onclick="openLateFineReportModal()" title="คลิกดูรายงานสรุปค่าปรับ">
+                  <i class="fa-solid fa-triangle-exclamation"></i> ค่าปรับ ฿0
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถวล่าง: สรุปประจำวัน (จ่ายแล้ว / ค้างจ่าย) จับคู่กับ ความคืบหน้าการจัดเก็บ (Balance สมส่วน สวยงาม) -->
+          <div class="date-filter-summary-row">
+            <div class="date-filter-summary" id="dateFilterSummary">
+              <!-- Dynamic summary text for selected date / week / month -->
+            </div>
+            <div class="date-filter-progress-wrap" id="dateFilterProgressWrap">
+              <span class="progress-label-text">
+                <i class="fa-solid fa-chart-pie" style="color: #34d399;"></i> ความคืบหน้าการจัดเก็บ:
+              </span>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="dateFilterProgressBar" style="width: 0%;"></div>
+              </div>
+              <span class="progress-pct-text" id="dateFilterProgressPct">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="data-table-card" id="dataTableCard">
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr id="tableHeaderRow">
+                  <!-- Dynamic Headers -->
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 1: ADD / EDIT CONTRACT (เพิ่ม/แก้ไขสัญญา & กำหนดรหัสผ่านลูกค้า)
+       ==================================================================== -->
+  <div id="contractModal" class="admin-modal-overlay">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-file-signature" style="color: var(--primary);"></i>
+          <span id="contractModalTitle">เพิ่มสัญญาสินเชื่อ / ผ่อนชำระใหม่</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseContractModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="contractForm">
+        <input type="hidden" id="formOriginalContractId">
+
+        <!-- Contract ID Field (Manual entry / Randomizer) -->
+        <div class="form-group-admin contract-id-group"
+          style="margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--admin-border); border-radius: var(--radius-md); padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label class="form-label-admin" for="formContractId"
+              style="margin-bottom: 0; font-weight: 600; color: var(--primary-light);">
+              <i class="fa-solid fa-hashtag"></i> รหัสสัญญา (Contract ID) *
+            </label>
+            <button type="button" class="btn-text-action" id="btnGenContractId" title="กดเพื่อสุ่มรหัสสัญญาใหม่"
+              style="font-size: 0.78rem; color: var(--primary); background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease;">
+              <i class="fa-solid fa-arrows-rotate"></i> <span>สุ่มรหัสสัญญา</span>
+            </button>
+          </div>
+          <div class="input-with-icon" style="position: relative;">
+            <i class="fa-solid fa-file-contract"
+              style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"></i>
+            <input type="text" id="formContractId" class="input-admin"
+              style="padding-left: 42px; font-weight: 700; font-family: monospace; font-size: 0.95rem; letter-spacing: 0.5px;"
+              placeholder="เช่น EF-2026-101 หรือพิมพ์รหัสสัญญาที่ต้องการ" required autocomplete="off">
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 6px; line-height: 1.4;">
+            <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> สามารถพิมพ์รหัสสัญญาเองได้อิสระ
+            หรือกดปุ่ม <strong>"สุ่มรหัสสัญญา"</strong> ด้านบน
+          </div>
+        </div>
+
+        <h4
+          style="font-size: 0.88rem; color: var(--primary-light); margin-bottom: 12px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">
+          1. บัญชีเข้าสู่ระบบของลูกค้า (Customer Login Credentials)
+        </h4>
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">อีเมลเข้าสู่ระบบ (Email) *</label>
+            <div class="email-input-group">
+              <input type="text" id="formEmailPrefix" class="input-admin email-prefix-input"
+                placeholder="เช่น somchai123" required autocomplete="off">
+              <span class="email-domain-addon">@Easy.com</span>
+            </div>
+            <input type="hidden" id="formEmail">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">รหัสผ่านที่แอดมินตั้งให้ (Password) *</label>
+            <input type="text" id="formPassword" class="input-admin" placeholder="รหัสผ่านเข้าหน้าลูกค้า" required>
+          </div>
+        </div>
+
+        <h4
+          style="font-size: 0.88rem; color: var(--primary-light); margin-top: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">
+          2. ข้อมูลส่วนตัวลูกค้า (Customer Information)
+        </h4>
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ชื่อ-นามสกุล ลูกค้า *</label>
+            <input type="text" id="formName" class="input-admin" placeholder="เช่น นายสมชาย ใจดี" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">เบอร์โทรศัพท์ *</label>
+            <input type="text" id="formPhone" class="input-admin" placeholder="เช่น 081-234-5678" required>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">เลขบัตรประชาชน (13 หลัก)</label>
+            <input type="text" id="formIdCard" class="input-admin" placeholder="เช่น 1-1020-00123-45-6" maxlength="17">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">ลิงก์ Facebook / ช่องทางติดต่อเสริม</label>
+            <input type="text" id="formFacebook" class="input-admin" placeholder="เช่น https://facebook.com/username">
+          </div>
+        </div>
+        <div class="form-group-admin">
+          <label class="form-label-admin">ที่อยู่ปัจจุบันของลูกค้า</label>
+          <input type="text" id="formAddress" class="input-admin"
+            placeholder="เช่น 123/45 ถนนพหลโยธิน แขวงลาดยาว เขตจตุจักร กรุงเทพฯ">
+        </div>
+        <div class="form-group-admin">
+          <label class="form-label-admin">รายละเอียดเพิ่มเติม / หมายเหตุบันทึก</label>
+          <input type="text" id="formAdditionalNotes" class="input-admin"
+            placeholder="เช่น บันทึกเพิ่มเติม หรือข้อมูลการประกอบอาชีพ">
+        </div>
+        <div class="form-group-admin">
+          <label class="form-label-admin">รูปโปรไฟล์ (URL ภาพ หรือเว้นว่างได้)</label>
+          <input type="text" id="formAvatar" class="input-admin" placeholder="https://...">
+        </div>
+
+        <h4
+          style="font-size: 0.88rem; color: var(--primary-light); margin-top: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">
+          3. ข้อมูลสัญญาและการผ่อนชำระ (Financing & Installment Setup)
+        </h4>
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">หมวดหมู่สัญญา / สินค้า *</label>
+            <select id="formItemCategory" class="input-admin">
+              <option value="general">สินค้าทั่วไป / มือถือ / อื่นๆ (General)</option>
+              <option value="motorcycle">ผ่อนมอเตอร์ไซค์ (Motorcycle)</option>
+              <option value="gold">ผ่อนทอง (Gold)</option>
+            </select>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">สิ่งที่กำลังผ่อน / รายละเอียดสินค้า *</label>
+            <input type="text" id="formItemFinanced" class="input-admin"
+              placeholder="เช่น ผ่อนทองคำ 1 บาท, Honda Wave 110i, iPhone 16" required>
+          </div>
+        </div>
+
+        <!-- 5. ช่องกรอกเงินดาวน์ -->
+        <div class="form-group-admin" id="formDownPaymentGroup"
+          style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(16, 185, 129, 0.35); padding: 12px; border-radius: var(--radius-md);">
+          <div class="form-grid-2" style="margin-bottom: 0;">
+            <div>
+              <label class="form-label-admin" style="color: #34d399; font-weight: 600;">
+                <span id="lblDownPaymentTitle"><i class="fa-solid fa-coins"></i> เงินดาวน์ (บาท)</span>
+                <span style="font-size: 0.74rem; color: #94a3b8; font-weight: normal;">(ใส่ 0 หากไม่มี)</span>
+              </label>
+              <input type="number" id="formDownPayment" class="input-admin" min="0" step="any"
+                placeholder="ระบุจำนวนเงินดาวน์ เช่น 5000 (ใส่ได้ทุกยอด)">
+            </div>
+            <div>
+              <label class="form-label-admin" style="color: #34d399; font-weight: 600;">
+                <span><i class="fa-solid fa-calendar-day"></i> วันที่รับเงินดาวน์</span>
+                <span style="font-size: 0.74rem; color: #94a3b8; font-weight: normal;">(สำหรับดูสรุปต่อวัน)</span>
+              </label>
+              <input type="date" id="formDownPaymentDate" class="input-admin">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ยอดเงินกู้ / ยอดผ่อนรวม (บาท) *</label>
+            <input type="number" id="formTotalAmount" class="input-admin" min="0" step="any" placeholder="เช่น 30000"
+              required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">จำนวนงวดทั้งหมด (งวด) *</label>
+            <input type="number" id="formTotalInstallments" class="input-admin" min="1" max="360" placeholder="เช่น 6"
+              required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ค่างวดต่องวด (บาท/งวด) *</label>
+            <input type="number" id="formInstallmentAmount" class="input-admin" min="0" step="any"
+              placeholder="ระบุค่างวดต่องวด เช่น 5000" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">หมวดการชำระ (Frequency) *</label>
+            <select id="formPaymentFrequency" class="input-admin">
+              <option value="daily">รายวัน (Daily - รันวันละ +1 วัน)</option>
+              <option value="weekly">รายอาทิตย์ (Weekly - รันสัปดาห์ละ +7 วัน)</option>
+              <option value="monthly" selected>รายเดือน (Monthly - รันเดือนละ +1 เดือน)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin" style="color: #38bdf8; font-weight: 600;">
+              <i class="fa-solid fa-calendar-day"></i> กำหนดวันที่เริ่มจ่าย (งวดที่ 1) *
+            </label>
+            <input type="date" id="formFirstPaymentDate" class="input-admin" required
+              style="border-color: rgba(56, 189, 248, 0.45); font-weight: 600; color: #fff;">
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">
+              * ระบบจะรันวันที่ของงวดถัดไปให้อัตโนมัติและแสดงผลตามที่กำหนดไปหน้าลูกค้า
+            </div>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">กำหนดวันชำระ (รายละเอียดแสดงผล)</label>
+            <input type="text" id="formDueSchedule" class="input-admin"
+              placeholder="เช่น ทุกวัน, ทุกวันศุกร์, ทุกวันที่ 25">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ระยะเวลาสัญญา (ข้อความแสดงผล)</label>
+            <input type="text" id="formDuration" class="input-admin" placeholder="เช่น 6 เดือน หรือ 30 วัน">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">สัญญาที่ปิดไปแล้วในอดีต (ครั้ง)</label>
+            <input type="number" id="formClosedContractsCount" class="input-admin" value="0" min="0">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-table-action" id="btnCancelContractModal"
+            style="flex: 1; justify-content: center; padding: 12px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i> ยกเลิก
+          </button>
+          <button type="submit" class="btn-primary-action" style="flex: 2; justify-content: center; padding: 12px;">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>บันทึกข้อมูลสัญญาและสร้างตารางงวด</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 2: PAYMENT QR CODE & BANK SETTINGS (อัปโหลดรูป QR และตั้งค่าบัญชี)
+       ==================================================================== -->
+  <div id="qrSettingsModal" class="admin-modal-overlay">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-qrcode" style="color: var(--primary);"></i>
+          <span>ตั้งค่า QR Code รับเงิน และบัญชีธนาคาร</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseQrModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="qrSettingsForm">
+        <!-- Live QR Preview -->
+        <div class="qr-preview-admin-box">
+          <div class="qr-preview-img-frame">
+            <img id="adminQrPreviewImg" src="" alt="QR Preview">
+          </div>
+          <div style="text-align: center;">
+            <input type="file" id="adminQrFileInput" accept="image/*" style="display: none;">
+            <button type="button" id="btnSelectQrFile" class="btn-primary-action"
+              style="padding: 6px 14px; font-size: 0.8rem;">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>อัปโหลดรูป QR Code ใหม่</span>
+            </button>
+            <p style="font-size: 0.72rem; color: var(--text-dim); margin-top: 6px;">
+              รองรับไฟล์ PNG, JPG (รูปจะซิงค์ไปแสดงที่หน้าชำระเงินของลูกค้าทันที)
+            </p>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ชื่อธนาคาร</label>
+            <input type="text" id="settingBankName" class="input-admin" placeholder="เช่น ธนาคารกสิกรไทย">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">เลขที่บัญชี</label>
+            <input type="text" id="settingAccountNumber" class="input-admin" placeholder="เช่น 089-2-88899-0">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ชื่อบัญชี</label>
+            <input type="text" id="settingAccountName" class="input-admin" placeholder="ระบุชื่อบัญชีรับเงิน">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">เบอร์พร้อมเพย์ (PromptPay)</label>
+            <input type="text" id="settingPromptPay" class="input-admin"
+              placeholder="ระบุเบอร์พร้อมเพย์ หรือเลขประจำตัว">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">เบอร์โทรติดต่อเจ้าหน้าที่ (แสดงหน้าลูกค้า)</label>
+            <input type="text" id="settingOfficerPhone" class="input-admin" placeholder="เช่น 089-123-4567">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">LINE ID เจ้าหน้าที่ (แสดงหน้าลูกค้า)</label>
+            <input type="text" id="settingOfficerLine" class="input-admin" placeholder="เช่น @easyfinance">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary-action"
+          style="width: 100%; justify-content: center; margin-top: 14px; padding: 12px;">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>บันทึกการตั้งค่า QR และบัญชีรับเงิน</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3: CONTRACT DETAILS & INSTALLMENT SCHEDULE (ดูตารางงวด & สลิป)
+       ==================================================================== -->
+  <div id="contractDetailModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 750px;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-file-invoice-dollar" style="color: var(--primary);"></i>
+          <span id="detailModalTitle">รายละเอียดสัญญาและตารางงวด</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseDetailModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="detailContractMeta"
+        style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--admin-border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 18px;">
+        <!-- Dynamic Contract Metadata -->
+      </div>
+
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <h4 style="font-size: 0.95rem; font-weight: 600; color: #fff; margin: 0;">
+          รายการงวดการชำระเงินทั้งหมด
+        </h4>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn-table-action" id="btnOpenPrincipalInterestCut"
+            onclick="openPrincipalInterestCutModal()"
+            style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+            <i class="fa-solid fa-scale-balanced"></i> ตัดต้น / ตัดดอก
+          </button>
+          <button type="button" class="btn-table-action" id="btnOpenAddManualInstallment"
+            onclick="openAddManualInstallmentModal()"
+            style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 5px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+            <i class="fa-solid fa-plus-circle"></i> + คีย์งวดแมนนวล
+          </button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="admin-table detail-installments-table" id="detailInstallmentsTable">
+          <thead>
+            <tr>
+              <th class="col-inst-no">งวดที่</th>
+              <th class="col-inst-due">กำหนดชำระ</th>
+              <th class="col-inst-amount">ยอดค่างวด</th>
+              <th class="col-inst-status">สถานะ</th>
+              <th class="col-inst-paid-date">วันที่ชำระ</th>
+              <th class="col-inst-slip">สลิป / อ้างอิง</th>
+              <th class="col-inst-actions">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="detailInstallmentsBody">
+            <!-- Dynamic Installments Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.1: DAILY INTEREST-ONLY REPORT (สรุปยอดตัดดอกรายวัน - Requirement 3.3.1)
+       ==================================================================== -->
+  <div id="interestCutReportModal" class="admin-modal-overlay">
+    <div class="admin-modal-card admin-modal-card-report">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-hand-holding-dollar" style="color: #38bdf8;"></i>
+          <span>สรุปยอดตัดดอกรายวัน (รายงานตัดดอก)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseInterestCutModal"
+          onclick="closeInterestCutReportModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Controls & Date Filter -->
+      <div
+        style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--admin-border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: 500;">
+              <i class="fa-solid fa-calendar-day" style="color: #38bdf8;"></i> เลือกวันที่:
+            </label>
+            <input type="date" id="interestCutDatePicker"
+              style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--admin-border); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;"
+              onchange="onInterestCutDateChange(this.value)" />
+            <button type="button" class="btn-table-action" onclick="setInterestCutDateToday()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+              วันนี้
+            </button>
+            <button type="button" class="btn-table-action" onclick="showAllInterestCuts()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--admin-border);">
+              แสดงทั้งหมด
+            </button>
+          </div>
+          <div id="interestCutSummaryBadges" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- Dynamic Badges -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Table 1: รายการตัดดอกของวันที่เลือก -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span id="interestCutListTitle">รายการลูกค้าที่ตัดดอกประจำวัน</span>
+        <span id="interestCutCountBadge" class="status-badge badge-interest">0 รายการ</span>
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-daily-scroll" style="margin-bottom: 22px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่/เวลา</th>
+              <th>ลูกค้า</th>
+              <th>สิ่งที่ผ่อน</th>
+              <th>งวดที่ตัดดอก</th>
+              <th>ยอดตัดดอก (บาท)</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="interestCutTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: สรุปแยกตามวัน (Daily Breakdown) -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-chart-line" style="color: #38bdf8;"></i> สรุปยอดตัดดอกแยกตามวัน (ภาพรวมทุกวัน)
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-breakdown-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>จำนวนรายการ (ราย)</th>
+              <th>ยอดตัดดอกรวมวันนั้น (บาท)</th>
+              <th>รายชื่อลูกค้า</th>
+              <th>เปิดดู</th>
+            </tr>
+          </thead>
+          <tbody id="interestCutDailyBreakdownBody">
+            <!-- Dynamic Breakdown Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.15: DAILY DOWN PAYMENT REPORT (สรุปยอดรวมเงินดาวน์รายวัน)
+       ==================================================================== -->
+  <div id="downPaymentReportModal" class="admin-modal-overlay">
+    <div class="admin-modal-card admin-modal-card-report">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(16, 185, 129, 0.25);">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-coins" style="color: #34d399;"></i>
+          <span>สรุปยอดรวมเงินดาวน์รายวัน (รายงานเงินดาวน์)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseDownPaymentModal"
+          onclick="closeDownPaymentReportModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Controls & Date Filter -->
+      <div
+        style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: 500;">
+              <i class="fa-solid fa-calendar-day" style="color: #34d399;"></i> เลือกวันที่:
+            </label>
+            <input type="date" id="downPaymentDatePicker"
+              style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(16, 185, 129, 0.35); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;"
+              onchange="onDownPaymentDateChange(this.value)" />
+            <button type="button" class="btn-table-action" onclick="setDownPaymentDateToday()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
+              วันนี้
+            </button>
+            <button type="button" class="btn-table-action" onclick="showAllDownPayments()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--admin-border);">
+              แสดงทั้งหมด
+            </button>
+          </div>
+          <div id="downPaymentSummaryBadges" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- Dynamic Badges -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Table 1: รายการเงินดาวน์ของวันที่เลือก -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span id="downPaymentListTitle">รายการลูกค้าที่ชำระเงินดาวน์ประจำวัน</span>
+        <span id="downPaymentCountBadge" class="status-badge"
+          style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">0
+          รายการ</span>
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-daily-scroll" style="margin-bottom: 22px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่รับเงินดาวน์</th>
+              <th>ลูกค้า</th>
+              <th>สิ่งที่ผ่อน</th>
+              <th>หมวดหมู่</th>
+              <th style="text-align: right;">ยอดเงินดาวน์ (บาท)</th>
+              <th style="text-align: center;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="downPaymentTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: สรุปแยกตามวัน (Daily Breakdown) -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-chart-line" style="color: #34d399;"></i> สรุปยอดเงินดาวน์แยกตามวัน (ภาพรวมทุกวัน)
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-breakdown-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th style="text-align: center;">จำนวนรายการ (ราย)</th>
+              <th style="text-align: right;">ยอดเงินดาวน์รวมวันนั้น (บาท)</th>
+              <th>รายชื่อลูกค้า</th>
+              <th style="text-align: center;">เปิดดู</th>
+            </tr>
+          </thead>
+          <tbody id="downPaymentDailyBreakdownBody">
+            <!-- Dynamic Breakdown Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.16: DAILY ALL CATEGORIES REPORT (ช่องสรุปรวมต่อวัน - รวมรับแล้ว รายวัน รายอาทิตย์ รายเดือน รถมอเตอร์ไซค์)
+       ==================================================================== -->
+  <div id="dailyAllCategoriesReportModal" class="admin-modal-overlay">
+    <div class="admin-modal-card admin-modal-card-report" style="max-width: 1100px; width: 96%;">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(168, 85, 247, 0.25);">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-calendar-check" style="color: #c084fc;"></i>
+          <span>สรุปรวมรับแล้วต่อวัน (รวมทั้ง รายวัน, รายอาทิตย์, รายเดือน, รถมอเตอร์ไซค์, ตัดดอก)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseDailyAllCategoriesModal"
+          onclick="closeDailyAllCategoriesReportModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Controls & Date Filter -->
+      <div
+        style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: 500;">
+              <i class="fa-solid fa-calendar-day" style="color: #c084fc;"></i> เลือกวันที่:
+            </label>
+            <input type="date" id="dailyAllCategoriesDatePicker"
+              style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(168, 85, 247, 0.35); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;"
+              onchange="onDailyAllCategoriesDateChange(this.value)" />
+            <button type="button" class="btn-table-action" onclick="setDailyAllCategoriesDateToday()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">
+              วันนี้
+            </button>
+            <button type="button" class="btn-table-action" onclick="showAllDailyCategoriesPayments()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--admin-border);">
+              แสดงทั้งหมด
+            </button>
+          </div>
+          <div id="dailyAllCategoriesSummaryBadges" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Dynamic Badges -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Category Breakdown Cards of the Selected Date (4 กล่องสรุปย่อย: รายวัน / รายอาทิตย์ / รายเดือน / มอเตอร์ไซค์) -->
+      <div id="dailyAllCategoriesCardsGrid"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">
+        <!-- Dynamic Category Cards -->
+      </div>
+
+      <!-- Table 1: รายการรับชำระของวันที่เลือก (ระบุที่มาของแต่ละยอดชัดเจน) -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span id="dailyAllCategoriesListTitle">รายการรับชำระเงินทุกหมวดประจำวัน</span>
+        <span id="dailyAllCategoriesCountBadge" class="status-badge"
+          style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">0
+          รายการ</span>
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-daily-scroll" style="margin-bottom: 22px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่/เวลาที่รับชำระ</th>
+              <th>ลูกค้า</th>
+              <th>สิ่งที่ผ่อน</th>
+              <th style="text-align: center;">หมวดหมู่ที่มา</th>
+              <th>งวดที่ชำระ</th>
+              <th style="text-align: right;">ยอดรับแล้ว (บาท)</th>
+              <th style="text-align: center;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="dailyAllCategoriesTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: สรุปแยกตามวัน (Daily Breakdown - ภาพรวมทุกวัน) -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-chart-line" style="color: #c084fc;"></i> สรุปยอดรับแล้วแยกตามวัน (ภาพรวมทุกวัน -
+        แจกแจงที่มารายวัน, รายอาทิตย์, รายเดือน, รถมอเตอร์ไซค์)
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-breakdown-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th style="text-align: center;">จำนวนรายการ</th>
+              <th>ยอดแยกตามหมวดหมู่ (รายวัน / รายอาทิตย์ / รายเดือน / มอเตอร์ไซค์)</th>
+              <th style="text-align: right;">ยอดรวมรับแล้ววันนั้น (บาท)</th>
+              <th>รายชื่อลูกค้า</th>
+              <th style="text-align: center;">เปิดดู</th>
+            </tr>
+          </thead>
+          <tbody id="dailyAllCategoriesBreakdownBody">
+            <!-- Dynamic Breakdown Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.17: BANK RECONCILIATION REPORT (ช่องเปรียบเทียบยอดในบัญชี & กระทบยอดเงินธนาคาร)
+       ==================================================================== -->
+  <div id="bankReconciliationModal" class="admin-modal-overlay">
+    <div class="admin-modal-card admin-modal-card-report" style="max-width: 1100px; width: 96%;">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(20, 184, 166, 0.3);">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-scale-balanced" style="color: #2dd4bf;"></i>
+          <span>เปรียบเทียบยอดในบัญชี (กระทบยอดเงินในธนาคารกับยอดรับประจำวัน)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseBankReconModal"
+          onclick="closeBankReconciliationModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Controls & Date Filter -->
+      <div
+        style="background: rgba(20, 184, 166, 0.05); border: 1px solid rgba(20, 184, 166, 0.25); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: 500;">
+              <i class="fa-solid fa-calendar-day" style="color: #2dd4bf;"></i> เลือกวันที่:
+            </label>
+            <input type="date" id="bankReconDatePicker"
+              style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(20, 184, 166, 0.35); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;"
+              onchange="onBankReconDateChange(this.value)" />
+            <button type="button" class="btn-table-action" onclick="setBankReconDateToday()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.4);">
+              วันนี้
+            </button>
+          </div>
+          <div id="bankReconSummaryBadges" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Dynamic Badges -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. มีช่องเล็กๆด้านบน สำหรับกรอก เพิ่ม หรือ ลดยอดเงิน (Requirement 2) -->
+      <div class="bank-recon-adjust-bar"
+        style="background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(15, 23, 42, 0.7)); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px;">
+        <div
+          style="font-size: 0.86rem; font-weight: 600; color: #5eead4; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <span>
+            <i class="fa-solid fa-pen-to-square"></i> ช่องสำหรับกรอก เพิ่ม หรือ ลดยอดเงินในบัญชี
+          </span>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <label
+              style="display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: #5eead4; background: rgba(20, 184, 166, 0.12); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(20, 184, 166, 0.35); cursor: pointer; user-select: none;"
+              title="เปิดเพื่อให้ยอดเงินในธนาคารอัปเดตตามยอดสุทธิประจำวันอัตโนมัติ">
+              <input type="checkbox" id="bankReconAutoSyncToggle" onchange="onBankReconAutoSyncToggle(this.checked)"
+                style="accent-color: #10b981; cursor: pointer;" />
+              <span>⚡ ซิงค์ยอดสุทธิอัตโนมัติ</span>
+            </label>
+            <button type="button" class="btn-table-action" onclick="applyReconciledToBankBalance()"
+              style="font-size: 0.78rem; padding: 4px 12px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.45); font-weight: 600;">
+              <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกยอดสุทธิเป็นเงินในธนาคาร
+            </button>
+            <button type="button" class="btn-table-action" onclick="promptClearAccumulatedAdjustments()"
+              style="font-size: 0.78rem; padding: 4px 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+              <i class="fa-solid fa-arrows-rotate"></i> เคลียร์ยอดสะสม
+            </button>
+            <button type="button" class="btn-table-action" onclick="promptSetBankBaseBalance()"
+              style="font-size: 0.78rem; padding: 4px 12px; background: rgba(255, 255, 255, 0.08); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.2);">
+              <i class="fa-solid fa-sliders"></i> กำหนดยอดเริ่มต้น
+            </button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 170px;">
+            <input type="number" id="bankAdjAmountInput" placeholder="กรอกจำนวนเงิน (บาท)" min="0" step="any"
+              style="width: 100%; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(20, 184, 166, 0.45); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;" />
+          </div>
+          <div style="flex: 1.5; min-width: 220px;">
+            <input type="text" id="bankAdjNoteInput"
+              placeholder="หมายเหตุ / รายละเอียด (เช่น โอนยอดออก บัญชี..., ถอนจ่ายค่าน้ำมัน)"
+              style="width: 100%; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(20, 184, 166, 0.45); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;" />
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-table-action" onclick="submitBankAdjustment('add')"
+              style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid #10b981; padding: 8px 14px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-plus"></i> เพิ่มยอดเงิน
+            </button>
+            <button type="button" class="btn-table-action" onclick="submitBankAdjustment('deduct')"
+              style="background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; padding: 8px 14px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-minus"></i> ลดยอดเงิน
+            </button>
+          </div>
+        </div>
+        <!-- Quick Note Pills (คำแนะนำหมายเหตุด่วน กันลืม) -->
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
+          <span style="font-size: 0.74rem; color: var(--text-dim);"><i class="fa-solid fa-tag"
+              style="color: #5eead4;"></i> หมายเหตุด่วน (คลิกเพื่อเติมข้อความ):</span>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('โอนยอดออก')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; cursor: pointer;">
+            💸 โอนยอดออก
+          </button>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('ถอนเงินสด')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(251, 146, 60, 0.15); color: #fdba74; border: 1px solid rgba(251, 146, 60, 0.35); border-radius: 4px; cursor: pointer;">
+            🏧 ถอนเงินสด
+          </button>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('ฝากเงินสดเข้าบัญชี')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 4px; cursor: pointer;">
+            💵 ฝากเงินสดเข้า
+          </button>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('ค่าน้ำมัน / ค่าเดินทาง')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 4px; cursor: pointer;">
+            ⛽ ค่าน้ำมัน/เดินทาง
+          </button>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('ค่าใช้จ่ายสำนักงาน')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 4px; cursor: pointer;">
+            🏢 ค่าใช้จ่ายสำนักงาน
+          </button>
+          <button type="button" class="btn-quick-note" onclick="fillBankAdjNote('ปรับยอดตรงสเตทเม้น')"
+            style="font-size: 0.72rem; padding: 3px 8px; background: rgba(20, 184, 166, 0.15); color: #5eead4; border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 4px; cursor: pointer;">
+            ⚖️ ปรับยอดตรงสเตทเม้น
+          </button>
+        </div>
+      </div>
+
+      <!-- 2 Boxes: 1.เงินในธนาคาร & 3.ยอดรวมของวันนั้นยอดรวมทุกอย่าง ยกเว้นเงินดาว -->
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 18px;">
+        <!-- Card 1: เงินในธนาคาร (Requirement 1) -->
+        <div class="bank-recon-card"
+          style="background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: var(--radius-md); padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.88rem; font-weight: 600; color: #5eead4;">
+                <i class="fa-solid fa-building-columns"></i> 1. เงินในธนาคาร
+              </span>
+              <span id="bankReconBaseLabel" style="font-size: 0.74rem; color: var(--text-dim);">ยอดตั้งต้น: ฿0</span>
+            </div>
+            <div id="bankReconCurrentBalance" style="font-size: 2rem; font-weight: 800; color: #2dd4bf; margin: 4px 0;">
+              ฿0
+            </div>
+          </div>
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; border-top: 1px dashed rgba(20, 184, 166, 0.25); padding-top: 8px; margin-top: 8px;">
+            <div id="bankReconAdjustmentsSummary" style="font-size: 0.78rem; color: var(--text-dim); flex: 1;">
+              <!-- Adjustments info -->
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-table-action" onclick="applyReconciledToBankBalance()"
+                title="นำยอดบวกแล้วคงเหลือสุทธิมาบันทึกเป็นเงินในธนาคาร"
+                style="font-size: 0.74rem; padding: 3px 9px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.45); border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกยอดสุทธิ
+              </button>
+              <button type="button" class="btn-table-action" onclick="promptClearAccumulatedAdjustments()"
+                title="เคลียร์ยอดปรับเพิ่ม/ลดสะสม และยกยอดคงเหลือปัจจุบันเป็นยอดตั้งต้นใหม่"
+                style="font-size: 0.74rem; padding: 3px 9px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-arrows-rotate"></i> เคลียร์ยอดสะสม
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: ยอดรวมของวันนั้น ยอดรวมทุกอย่าง ยกเว้นเงินดาว (Requirement 3) -->
+        <div class="bank-recon-card"
+          style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: var(--radius-md); padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.88rem; font-weight: 600; color: #c084fc;">
+                <i class="fa-solid fa-receipt"></i> 2. ยอดรวมของวันนั้น (ยกเว้นเงินดาวน์)
+              </span>
+              <span id="bankReconTodayCountBadge" class="status-badge"
+                style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.74rem;">0
+                รายการ</span>
+            </div>
+            <div id="bankReconTodayTotalAmount"
+              style="font-size: 2rem; font-weight: 800; color: #c084fc; margin: 4px 0;">
+              ฿0
+            </div>
+          </div>
+          <div id="bankReconCategoryBadges"
+            style="display: flex; gap: 4px; flex-wrap: wrap; border-top: 1px dashed rgba(168, 85, 247, 0.25); padding-top: 8px; margin-top: 8px;">
+            <!-- Category Chips -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: แสดง 2 ยอดแล้วกระทบกัน ให้มียอดแสดงว่ายอดรวมเข้ามาวันนี้ บวกแล้วคงเหลือเท่าไหร่ (Requirement 4) -->
+      <div class="bank-recon-summary-card"
+        style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 2px solid rgba(20, 184, 166, 0.5); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 22px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);">
+        <div
+          style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-calculator" style="color: #2dd4bf;"></i>
+            <span>สรุปผลการกระทบยอด: ยอดรวมเข้ามาวันนี้ บวกแล้วคงเหลือเท่าไหร่</span>
+          </div>
+          <div id="bankReconHeaderBadge">
+            <!-- Dynamic saved status -->
+          </div>
+        </div>
+        <div class="bank-recon-equation-grid"
+          style="display: grid; grid-template-columns: 1fr auto 1fr auto 1.3fr; align-items: center; gap: 12px; text-align: center;">
+          <!-- 1. เงินในธนาคาร -->
+          <div
+            style="background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 8px; padding: 14px 10px;">
+            <div style="font-size: 0.8rem; color: #5eead4; font-weight: 500;">เงินในธนาคาร</div>
+            <div id="eqBankAmount" style="font-size: 1.45rem; font-weight: 800; color: #2dd4bf; margin-top: 4px;">฿0
+            </div>
+          </div>
+          <!-- เครื่องหมาย + -->
+          <div style="font-size: 1.8rem; font-weight: 800; color: #94a3b8;">+</div>
+          <!-- 2. ยอดรวมเข้ามาวันนี้ -->
+          <div
+            style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 8px; padding: 14px 10px;">
+            <div style="font-size: 0.8rem; color: #c084fc; font-weight: 500;">ยอดรวมเข้ามาวันนี้ (ยกเว้นดาวน์)</div>
+            <div id="eqTodayAmount" style="font-size: 1.45rem; font-weight: 800; color: #c084fc; margin-top: 4px;">฿0
+            </div>
+          </div>
+          <!-- เครื่องหมาย = -->
+          <div style="font-size: 1.8rem; font-weight: 800; color: #94a3b8;">=</div>
+          <!-- 3. บวกแล้วคงเหลือเท่าไหร่ -->
+          <div
+            style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(20, 184, 166, 0.28)); border: 2px solid #10b981; border-radius: 8px; padding: 14px 10px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);">
+            <div style="font-size: 0.85rem; color: #6ee7b7; font-weight: 600;">บวกแล้วคงเหลือสุทธิ</div>
+            <div id="eqTotalReconciledAmount"
+              style="font-size: 1.75rem; font-weight: 800; color: #34d399; margin-top: 4px;">฿0</div>
+          </div>
+        </div>
+
+        <!-- Action Row: บันทึกยอดบวกแล้วคงเหลือสุทธิเป็นเงินในธนาคารทันที -->
+        <div id="bankReconApplyActionArea"
+          style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
+          <div id="bankReconReconciledStatusText"
+            style="font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-circle-info" style="color: #2dd4bf;"></i>
+            <span>ยอดคงเหลือสุทธิหลังรวมยอดรับและหักยอดโอนออก (คือยอดเงินจริงในธนาคาร)</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="btnApplyReconciledToBank" onclick="applyReconciledToBankBalance()"
+              style="background: linear-gradient(135deg, #10b981, #0d9488); color: #fff; border: 1px solid #34d399; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); transition: all 0.2s ease;">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span id="btnApplyReconciledLabel">บันทึกยอดสุทธิเป็นเงินในธนาคาร</span>
+            </button>
+            <button type="button" id="btnUndoReconciledBank" onclick="promptUndoReconciledBankBalance()"
+              style="display: none; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 9px 13px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-rotate-left"></i> ยกเลิกบันทึก
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section Tabs: 1. ประวัติการปรับปรุงยอด & หมายเหตุ (โอนออก/เพิ่มเงิน) | 2. รายการรับชำระเงินทุกหมวดประจำวัน -->
+      <div
+        style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" id="tabBtnBankReconAdjustments" class="btn-table-action"
+            onclick="setBankReconBottomTab('adjustments')"
+            style="font-size: 0.86rem; font-weight: 600; padding: 8px 14px; background: rgba(20, 184, 166, 0.2); color: #5eead4; border: 1px solid rgba(20, 184, 166, 0.45); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>ประวัติการปรับปรุงยอด & หมายเหตุ (โอนออก/เพิ่มเงิน)</span>
+            <span id="bankReconAdjTabBadge" class="status-badge"
+              style="background: rgba(20, 184, 166, 0.25); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.45); font-size: 0.72rem;">0
+              รายการ</span>
+          </button>
+          <button type="button" id="tabBtnBankReconCollections" class="btn-table-action"
+            onclick="setBankReconBottomTab('collections')"
+            style="font-size: 0.86rem; font-weight: 600; padding: 8px 14px; background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-receipt"></i>
+            <span>รายการรับชำระประจำวัน (ยกเว้นเงินดาวน์)</span>
+            <span id="bankReconColTabBadge" class="status-badge"
+              style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.72rem;">0
+              รายการ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content 1: ประวัติการเพิ่ม/ลดยอดเงินในบัญชี และหมายเหตุ/รายละเอียด (กันลืมโอนออก) -->
+      <div id="tabContentBankAdjustments" style="display: block; flex-shrink: 0;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.8rem; color: var(--text-dim);">ตัวกรองรอบ:</label>
+            <select id="bankAdjFilterScope" onchange="onBankAdjFilterChange(this.value)"
+              style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(20, 184, 166, 0.35); color: #fff; padding: 4px 8px; border-radius: 5px; font-size: 0.8rem;">
+              <option value="all">แสดงประวัติทั้งหมด</option>
+              <option value="active">เฉพาะรอบปัจจุบัน (ยังไม่เคลียร์)</option>
+              <option value="today">เฉพาะวันที่เลือก</option>
+            </select>
+            <input type="text" id="bankAdjSearchNoteInput" placeholder="🔍 ค้นหาหมายเหตุ (เช่น โอนออก, ค่าน้ำมัน)..."
+              oninput="onBankAdjSearchChange(this.value)"
+              style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; width: 220px;" />
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-table-action" onclick="promptClearAccumulatedAdjustments()"
+              style="font-size: 0.75rem; padding: 4px 10px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">
+              <i class="fa-solid fa-arrows-rotate"></i> เคลียร์ยอดสะสม
+            </button>
+            <button type="button" class="btn-table-action" onclick="promptClearAllBankAdjustmentsHistory()"
+              style="font-size: 0.75rem; padding: 4px 10px; background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">
+              <i class="fa-solid fa-trash-can"></i> ลบประวัติทั้งหมด
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive report-table-scroll-wrap"
+          style="min-height: 280px; max-height: 440px; margin-bottom: 16px; overflow-y: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 160px;">วันและเวลา</th>
+                <th style="text-align: center; width: 130px;">ประเภท</th>
+                <th style="min-width: 200px;">รายละเอียด / หมายเหตุ (โอนออก/เพิ่มเงิน)</th>
+                <th style="text-align: right; width: 150px;">จำนวนเงิน (บาท)</th>
+                <th style="text-align: center; width: 110px;">สถานะรอบ</th>
+                <th style="text-align: center; width: 130px;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="bankReconAdjustmentsTableBody">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab Content 2: ตารางรายการรับชำระเงินของวันนั้น (Today's Collections Table) -->
+      <div id="tabContentBankCollections" style="display: none; flex-shrink: 0;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+          <span id="bankReconCollectionListTitle"
+            style="font-size: 0.92rem; font-weight: 600; color: #fff;">รายการรับชำระเงินของวันที่เลือก (ยอดรวมทุกอย่าง
+            ยกเว้นเงินดาวน์)</span>
+          <span id="bankReconCollectionsCountBadge" class="status-badge"
+            style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">0
+            รายการ</span>
+        </div>
+        <div class="table-responsive report-table-scroll-wrap"
+          style="min-height: 280px; max-height: 440px; margin-bottom: 16px; overflow-y: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>วันที่/เวลา</th>
+                <th>ลูกค้า</th>
+                <th>สิ่งที่ผ่อน</th>
+                <th style="text-align: center;">หมวดหมู่</th>
+                <th>งวด/ประเภท</th>
+                <th style="text-align: right;">ยอดเงิน (บาท)</th>
+                <th style="text-align: center;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="bankReconCollectionsTableBody">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.5: DAILY LATE FINE REPORT (สรุปยอดค่าปรับรายวัน - Requirement 1)
+       ==================================================================== -->
+  <div id="lateFineReportModal" class="admin-modal-overlay">
+    <div class="admin-modal-card admin-modal-card-report">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(251, 146, 60, 0.25);">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-triangle-exclamation" style="color: #fb923c;"></i>
+          <span>สรุปยอดค่าปรับรายวัน (รายงานค่าปรับ)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseLateFineModal" onclick="closeLateFineReportModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Controls & Date Filter -->
+      <div
+        style="background: rgba(251, 146, 60, 0.04); border: 1px solid rgba(251, 146, 60, 0.2); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: 500;">
+              <i class="fa-solid fa-calendar-day" style="color: #fb923c;"></i> เลือกวันที่:
+            </label>
+            <input type="date" id="lateFineDatePicker"
+              style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(251, 146, 60, 0.35); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem;"
+              onchange="onLateFineDateChange(this.value)" />
+            <button type="button" class="btn-table-action" onclick="setLateFineDateToday()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4);">
+              วันนี้
+            </button>
+            <button type="button" class="btn-table-action" onclick="showAllLateFines()"
+              style="padding: 6px 12px; font-size: 0.8rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--admin-border);">
+              แสดงทั้งหมด
+            </button>
+          </div>
+          <div id="lateFineSummaryBadges" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- Dynamic Badges -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Table 1: รายการค่าปรับของวันที่เลือก -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span id="lateFineListTitle">รายการลูกค้าที่ถูกปรับประจำวัน</span>
+        <span id="lateFineCountBadge" class="status-badge"
+          style="background: rgba(251, 146, 60, 0.18); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4);">0
+          รายการ</span>
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-daily-scroll" style="margin-bottom: 22px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่บันทึก/ชำระ</th>
+              <th>ลูกค้า</th>
+              <th>สิ่งที่ผ่อน</th>
+              <th>งวด / สาเหตุที่ปรับ</th>
+              <th style="text-align: right;">ยอดค่าปรับ</th>
+              <th style="text-align: center;">สถานะ</th>
+              <th style="text-align: center;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="lateFineTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: สรุปแยกตามวัน (Daily Breakdown) -->
+      <h4
+        style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-chart-line" style="color: #fb923c;"></i> สรุปยอดค่าปรับแยกตามวัน (ภาพรวมทุกวัน)
+      </h4>
+      <div class="table-responsive report-table-scroll-wrap report-breakdown-scroll">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th style="text-align: center;">จำนวนรายการ (ราย)</th>
+              <th style="text-align: right;">ยอดค่าปรับรวมวันนั้น (บาท)</th>
+              <th>รายชื่อลูกค้า</th>
+              <th style="text-align: center;">เปิดดู</th>
+            </tr>
+          </thead>
+          <tbody id="lateFineDailyBreakdownBody">
+            <!-- Dynamic Breakdown Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.2: ADD MANUAL INSTALLMENT (คีย์งวดแมนนวล - สวยพรีเมียม สมส่วน)
+       ==================================================================== -->
+  <div id="addManualInstallmentModal" class="admin-modal-overlay">
+    <div class="admin-modal-card modal-card-elevated" style="max-width: 460px;">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(16, 185, 129, 0.25);">
+        <div class="admin-modal-title">
+          <div class="modal-icon-badge badge-emerald">
+            <i class="fa-solid fa-plus-circle"></i>
+          </div>
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #fff;">คีย์เพิ่มงวดแมนนวล</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); font-weight: 400;">
+              เพิ่มงวดใหม่หรือกำหนดการชำระพิเศษเฉพาะสัญญา</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeAddManualInstallmentModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Contract Reference Banner -->
+      <div id="manualInstallmentContractBanner" class="modal-contract-context-banner banner-emerald">
+        <i class="fa-solid fa-file-contract"></i>
+        <span id="manualContractBannerText">กำลังดำเนินการกับสัญญา...</span>
+      </div>
+
+      <form id="addManualInstallmentForm" onsubmit="submitAddManualInstallment(event)">
+        <input type="hidden" id="manualContractId" />
+
+        <div class="styled-form-grid-2"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div class="styled-form-group">
+            <label class="styled-form-label">
+              <i class="fa-solid fa-list-ol" style="color: #34d399;"></i> งวดที่
+            </label>
+            <input type="number" id="manualInstallmentNo" class="styled-form-input" required min="1"
+              placeholder="เช่น 25" />
+          </div>
+          <div class="styled-form-group">
+            <label class="styled-form-label">
+              <i class="fa-solid fa-calendar-day" style="color: #34d399;"></i> กำหนดชำระ
+            </label>
+            <input type="date" id="manualDueDate" class="styled-form-input" required />
+          </div>
+        </div>
+
+        <div class="styled-form-group" style="margin-bottom: 18px;">
+          <label class="styled-form-label" style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-money-bill-wave" style="color: #34d399;"></i> ยอดชำระค่างวด</span>
+            <span style="font-size: 0.72rem; color: #34d399; font-weight: normal;">* ระบุเป็นเงินบาท</span>
+          </label>
+          <div class="input-currency-wrapper theme-emerald">
+            <span class="currency-prefix">฿</span>
+            <input type="number" id="manualAmount" class="styled-input-currency" required min="0" step="any"
+              placeholder="0.00" />
+          </div>
+          <div class="form-helper-hint">
+            <i class="fa-solid fa-circle-info"></i> ยอดนี้จะถูกนำไปคำนวณในกำหนดชำระของสัญญาเมื่อบันทึก
+          </div>
+        </div>
+
+        <div class="styled-modal-actions">
+          <button type="button" class="btn-styled-cancel" onclick="closeAddManualInstallmentModal()">
+            <i class="fa-solid fa-xmark"></i> ยกเลิก
+          </button>
+          <button type="submit" class="btn-styled-submit theme-emerald">
+            <i class="fa-solid fa-check"></i> บันทึกงวด
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.3: EDIT INSTALLMENT (แก้ไขยอดชำระงวด - สวยพรีเมียม สมส่วน)
+       ==================================================================== -->
+  <div id="editInstallmentModal" class="admin-modal-overlay">
+    <div class="admin-modal-card modal-card-elevated" style="max-width: 460px;">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.25);">
+        <div class="admin-modal-title">
+          <div class="modal-icon-badge badge-blue">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #fff;" id="editInstallmentModalTitle">แก้ไขงวดชำระ
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); font-weight: 400;">
+              ปรับแก้ยอดเงินหรือวันกำหนดชำระของงวดนี้</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeEditInstallmentModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Contract Reference Banner -->
+      <div id="editInstallmentContractBanner" class="modal-contract-context-banner banner-blue">
+        <i class="fa-solid fa-file-contract"></i>
+        <span id="editContractBannerText">กำลังดำเนินการกับสัญญา...</span>
+      </div>
+
+      <form id="editInstallmentForm" onsubmit="submitEditInstallment(event)">
+        <input type="hidden" id="editContractId" />
+        <input type="hidden" id="editInstallmentNo" />
+
+        <div class="styled-form-group" style="margin-bottom: 14px;">
+          <label class="styled-form-label">
+            <i class="fa-solid fa-calendar-day" style="color: #38bdf8;"></i> กำหนดชำระ (Due Date)
+          </label>
+          <input type="date" id="editDueDate" class="styled-form-input" required />
+        </div>
+
+        <div class="styled-form-group" style="margin-bottom: 18px;">
+          <label class="styled-form-label" style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-money-bill-wave" style="color: #38bdf8;"></i> ยอดชำระค่างวด</span>
+            <span style="font-size: 0.72rem; color: #38bdf8; font-weight: normal;">* ระบุยอดใหม่</span>
+          </label>
+          <div class="input-currency-wrapper theme-blue">
+            <span class="currency-prefix">฿</span>
+            <input type="number" id="editAmount" class="styled-input-currency" required min="0" step="any"
+              placeholder="0.00" />
+          </div>
+          <div class="form-helper-hint">
+            <i class="fa-solid fa-circle-info"></i> เมื่อยอดเปลี่ยนแล้ว และกดมาร์คชำระ
+            ระบบจะดึงยอดที่แก้ไขใหม่นี้ไปคำนวณและแสดงผลทันที
+          </div>
+        </div>
+
+        <div class="styled-modal-actions">
+          <button type="button" class="btn-styled-cancel" onclick="closeEditInstallmentModal()">
+            <i class="fa-solid fa-xmark"></i> ยกเลิก
+          </button>
+          <button type="submit" class="btn-styled-submit theme-blue">
+            <i class="fa-solid fa-check"></i> บันทึกยอดใหม่
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3.4: PRINCIPAL & INTEREST CUT (งวดตัดต้น / ตัดดอก - สวยพรีเมียม สมส่วน)
+       ==================================================================== -->
+  <div id="principalInterestCutModal" class="admin-modal-overlay">
+    <div class="admin-modal-card modal-card-elevated" style="max-width: 480px;">
+      <div class="admin-modal-header" style="border-bottom: 1px solid rgba(56, 189, 248, 0.25);">
+        <div class="admin-modal-title">
+          <div class="modal-icon-badge badge-blue">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #fff;">เพิ่มงวด ตัดต้น / ตัดดอก</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); font-weight: 400;">
+              บันทึกตัดเงินต้นและดอกเบี้ยพิเศษแบบแยกสัดส่วน</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closePrincipalInterestCutModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Contract Reference Banner -->
+      <div id="picContractBanner" class="modal-contract-context-banner banner-blue">
+        <i class="fa-solid fa-file-contract"></i>
+        <span id="picContractBannerText">กำลังดำเนินการกับสัญญา...</span>
+      </div>
+
+      <form id="principalInterestCutForm" onsubmit="submitPrincipalInterestCut(event)">
+        <input type="hidden" id="picContractId" />
+
+        <div class="styled-form-group" style="margin-bottom: 14px;">
+          <label class="styled-form-label">
+            <i class="fa-solid fa-calendar-day" style="color: #38bdf8;"></i> กำหนดชำระ / วันที่ทำรายการ
+          </label>
+          <input type="date" id="picDueDate" class="styled-form-input" required />
+        </div>
+
+        <!-- ช่องที่ 1: ยอดต้นที่ต้องการตัด -->
+        <div class="styled-form-group" style="margin-bottom: 14px;">
+          <label class="styled-form-label" style="display: flex; justify-content: space-between;">
+            <span style="color: #38bdf8; font-weight: 700;">
+              <i class="fa-solid fa-money-bill-wave"></i> ยอดต้นที่ต้องการตัด (บาท) *
+            </span>
+            <span style="font-size: 0.72rem; color: #38bdf8;">ลดลงจากยอดรวมสัญญา</span>
+          </label>
+          <div class="input-currency-wrapper theme-blue">
+            <span class="currency-prefix">฿</span>
+            <input type="number" id="picPrincipalAmount" class="styled-input-currency" required min="0" step="any"
+              placeholder="0.00" />
+          </div>
+        </div>
+
+        <!-- ช่องที่ 2: ดอกที่ต้องการตัด -->
+        <div class="styled-form-group" style="margin-bottom: 16px;">
+          <label class="styled-form-label" style="display: flex; justify-content: space-between;">
+            <span style="color: #c084fc; font-weight: 700;">
+              <i class="fa-solid fa-percent"></i> ดอกที่ต้องการตัด (บาท)
+            </span>
+            <span style="font-size: 0.72rem; color: #c084fc;">เข้ายอดรวมตัดดอก</span>
+          </label>
+          <div class="input-currency-wrapper theme-purple">
+            <span class="currency-prefix">฿</span>
+            <input type="number" id="picInterestAmount" class="styled-input-currency" min="0" step="any"
+              placeholder="0.00 (ถ้ามี)" />
+          </div>
+        </div>
+
+        <!-- Styled Information Callout Box -->
+        <div class="styled-helper-card">
+          <div class="styled-helper-title">
+            <i class="fa-solid fa-circle-info"></i> กฎการคำนวณยอดเงิน:
+          </div>
+          <div class="styled-helper-body">
+            <div class="helper-bullet">
+              <i class="fa-solid fa-check"></i>
+              <span>เมื่อกดเพิ่มงวดนี้ จะยังไม่นำยอดไปเพิ่มกับยอดรวมสัญญา</span>
+            </div>
+            <div class="helper-bullet">
+              <i class="fa-solid fa-arrow-down-long" style="color: #38bdf8;"></i>
+              <span>เมื่อกด <strong>"มาร์คชำระ"</strong> ยอดตัดต้นจะไป <strong>ลด ยอดรวมสัญญา</strong></span>
+            </div>
+            <div class="helper-bullet">
+              <i class="fa-solid fa-arrow-up-long" style="color: #c084fc;"></i>
+              <span>ยอดตัดดอกจะไปเพิ่มที่ <strong>ยอดรวมตัดดอก</strong> อัตโนมัติ</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="styled-modal-actions">
+          <button type="button" class="btn-styled-cancel" onclick="closePrincipalInterestCutModal()">
+            <i class="fa-solid fa-xmark"></i> ยกเลิก
+          </button>
+          <button type="submit" class="btn-styled-submit theme-blue">
+            <i class="fa-solid fa-plus"></i> เพิ่มงวดตัดต้น/ตัดดอก
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ====================================================================
+       MODAL 4: BANK VERIFICATION API SETTINGS (SlipOK / EasySlip)
+       ==================================================================== -->
+  <div id="bankApiModal" class="admin-modal-overlay">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i>
+          <span>ตั้งค่าระบบตรวจสลิปธนาคาร (Bank API)</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseBankApiModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="bankApiForm">
+        <div class="form-group-admin">
+          <label class="form-label-admin">ผู้ให้บริการ API ตรวจสอบสลิป (Provider)</label>
+          <select id="formBankProvider" class="input-admin">
+            <option value="mock">Sandbox Simulation Mode (โหมดจำลองฟรี ตรวจจับสลิปเสมือนจริง)</option>
+            <option value="slipok">SlipOK API (slipok.com)</option>
+            <option value="easyslip">EasySlip API (easyslip.com)</option>
+            <option value="openslipverify">OpenSlipVerify</option>
+          </select>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">API Key / Token</label>
+          <input type="password" id="formBankApiKey" class="input-admin"
+            placeholder="กรอก API Key ที่ได้จากผู้ให้บริการ">
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">Branch ID (สำหรับ SlipOK / ตัวเลือกเสริม)</label>
+          <input type="text" id="formBankBranchId" class="input-admin" placeholder="เช่น branch_001 หรือเว้นว่างได้">
+        </div>
+
+        <div class="form-group-admin">
+          <label class="remember-label" style="margin-top: 6px;">
+            <input type="checkbox" id="formAutoApprove" checked>
+            <span style="font-size: 0.85rem; color: #fff;">ตัดงวดในระบบอัตโนมัติเมื่อยอดเงินและบัญชีถูกต้อง 100%</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-primary-action"
+          style="width: 100%; justify-content: center; margin-top: 14px; padding: 12px;">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>บันทึกการตั้งค่า API ตรวจสลิป</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Slip Image Modal -->
+  <div id="slipViewerModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 420px; text-align: center;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-image" style="color: var(--primary);"></i>
+          <span>หลักฐานสลิปการโอนเงิน</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseSlipViewer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div style="padding: 10px; background: #000; border-radius: var(--radius-md);">
+        <img id="viewerSlipImg" src="" alt="Slip Image"
+          style="max-width: 100%; max-height: 450px; object-fit: contain; border-radius: var(--radius-sm);">
+      </div>
+      <div id="viewerSlipMeta" style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted);"></div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 4: ADD / EDIT BAD DEBT (เพิ่ม/แก้ไขประวัติหนี้เสีย, แบล็คลิส, ผ่อนล่าช้า)
+       ==================================================================== -->
+  <div id="badDebtModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 620px;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
+          <span id="badDebtModalTitle">เพิ่มประวัติหนี้เสีย / แบล็คลิส</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseBadDebtModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="badDebtForm">
+        <input type="hidden" id="formBadDebtId">
+
+        <h4
+          style="font-size: 0.88rem; color: #f87171; margin-bottom: 12px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">
+          1. ข้อมูลส่วนบุคคลลูกหนี้
+        </h4>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">ชื่อ-นามสกุล *</label>
+            <input type="text" id="formBdName" class="input-admin" placeholder="เช่น นายสมชาย หนีหนี้" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">เลขบัตรประชาชน (13 หลัก) *</label>
+            <input type="text" id="formBdIdCard" class="input-admin" placeholder="เช่น 1-1020-00345-67-8" maxlength="17"
+              required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">เบอร์โทรศัพท์ *</label>
+            <input type="text" id="formBdPhone" class="input-admin" placeholder="เช่น 081-234-5678" required>
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">ยอดหนี้ค้างชำระ (บาท) *</label>
+            <input type="number" id="formBdAmount" class="input-admin" min="0" placeholder="เช่น 35000" required>
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">ที่อยู่ปัจจุบัน / ที่อยู่ตามบัตร *</label>
+          <input type="text" id="formBdAddress" class="input-admin"
+            placeholder="เช่น 99/12 หมู่ 4 ต.บางกรวย อ.บางกรวย จ.นนทบุรี 11130" required>
+        </div>
+
+        <h4
+          style="font-size: 0.88rem; color: #f87171; margin-top: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">
+          2. สถานะและพฤติกรรมลูกหนี้
+        </h4>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">ประเภทหมวดหมู่ *</label>
+          <div class="category-radio-group">
+            <label class="category-radio-label radio-bad-debt">
+              <input type="radio" name="bdCategory" value="bad_debt" checked>
+              <div class="category-radio-btn">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>หนี้เสีย</span>
+              </div>
+            </label>
+            <label class="category-radio-label radio-blacklist">
+              <input type="radio" name="bdCategory" value="blacklist">
+              <div class="category-radio-btn">
+                <i class="fa-solid fa-ban"></i>
+                <span>แบล็คลิส</span>
+              </div>
+            </label>
+            <label class="category-radio-label radio-delayed">
+              <input type="radio" name="bdCategory" value="delayed">
+              <div class="category-radio-btn">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>ผ่อนล่าช้า</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group-admin">
+            <label class="form-label-admin">สิ่งที่ผ่อน / วัตถุประสงค์สินเชื่อ</label>
+            <input type="text" id="formBdItemDescription" class="input-admin"
+              placeholder="เช่น ผ่อนรถมอเตอร์ไซค์, สินเชื่อเงินสด">
+          </div>
+          <div class="form-group-admin">
+            <label class="form-label-admin">วันที่บันทึกข้อมูล</label>
+            <input type="date" id="formBdRecordedAt" class="input-admin">
+          </div>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin">หมายเหตุพฤติกรรม / ประวัติการติดตาม *</label>
+          <textarea id="formBdNote" class="input-admin" rows="3" style="resize: vertical;"
+            placeholder="เช่น ย้ายที่อยู่หนี, ปลอมแปลงเอกสาร, เบี้ยวจ่ายงวด, ติดต่อไม่ได้" required></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary-action"
+          style="width: 100%; justify-content: center; margin-top: 16px; padding: 12px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>บันทึกประวัติลูกหนี้</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 5: CUSTOMER DATABASE (ฐานข้อมูลลูกค้าทั้งหมด)
+       3.1 กดเข้าไปแล้วจะมีรายชื่อลูกค้าทั้งหมดเด้งขึ้นมา
+       3.2 แต่ละรายชื่อจะมี 3 ขีดให้กด
+       ==================================================================== -->
+  <div id="customerDatabaseModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 960px; width: 95%;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-address-book" style="color: #34d399;"></i>
+          <span>ฐานข้อมูลลูกค้าทั้งหมด (Customer Database)</span>
+          <span class="tab-count-badge" id="modalCustomerTotalBadge"
+            style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.85rem; padding: 4px 10px;">0
+            ราย</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseCustomerDbModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Search & Filters for Customer DB -->
+      <div
+        style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div class="search-input-wrapper" style="flex: 1; min-width: 280px; position: relative;">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="customerDbSearchInput"
+            placeholder="พิมพ์ค้นหาชื่อลูกค้า, เบอร์โทร, เลขบัตร ปชช, รหัสสัญญา, สิ่งที่ผ่อน..." autocomplete="off">
+          <button type="button" id="btnCustomerDbSearchClear" onclick="clearCustomerDbSearch()"
+            style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 4px; font-size: 0.9rem;"
+            title="ล้างคำค้นหา">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <div class="customer-db-filters" style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" class="tab-btn active btn-cdb-filter" data-cdb-filter="all"
+            onclick="filterCustomerDb('all')">
+            <i class="fa-solid fa-users"></i> ทั้งหมด
+          </button>
+          <button type="button" class="tab-btn btn-cdb-filter" data-cdb-filter="active"
+            onclick="filterCustomerDb('active')">
+            <i class="fa-solid fa-clock" style="color: #38bdf8;"></i> กำลังผ่อน
+          </button>
+          <button type="button" class="tab-btn btn-cdb-filter" data-cdb-filter="completed"
+            onclick="filterCustomerDb('completed')">
+            <i class="fa-solid fa-circle-check" style="color: #34d399;"></i> ปิดสัญญาแล้ว
+          </button>
+          <button type="button" class="tab-btn btn-cdb-filter" data-cdb-filter="has_bad_debt"
+            onclick="filterCustomerDb('has_bad_debt')">
+            <i class="fa-solid fa-triangle-exclamation" style="color: #f87171;"></i> มีประวัติหนี้เสีย
+          </button>
+        </div>
+      </div>
+
+      <!-- Customer List Table (3.1 & 3.2: แต่ละรายชื่อจะมี 3 ขีดให้กด) -->
+      <div class="table-container"
+        style="max-height: 55vh; overflow-y: auto; border: 1px solid var(--admin-border); border-radius: var(--radius-md);">
+        <table class="admin-data-table" style="width: 100%;">
+          <thead>
+            <tr>
+              <th>ลูกค้า</th>
+              <th>เบอร์โทรศัพท์</th>
+              <th>เลขบัตรประชาชน</th>
+              <th>สถานะสินเชื่อ</th>
+              <th>ยอดปล่อยรวม</th>
+              <th>คงค้างรอเก็บ</th>
+              <th style="text-align: center;">ดูข้อมูล (3 ขีด)</th>
+            </tr>
+          </thead>
+          <tbody id="customerDbTableBody">
+            <!-- Dynamic Customer Rows with 3-bar button -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 6: CUSTOMER DOSSIER & PROFILE (ข้อมูลทั้งหมดของลูกค้า + ดาวน์โหลด Excel และ PDF)
+       3.3 กดเข้าไปแล้ว จะมีข้อมูลทั้งหมด
+       3.3.1 ชื่อ-นามสกุล
+       3.3.2 เบอร์
+       3.3.3 หมายเลขบัตร ปชช
+       3.3.4 ที่อยู่
+       3.3.5 ช่องใส่รายละเอียดเพิ่มเติม เอาไว้ใส่ลิงค์เฟส
+       3.3.6 รายละเอียดต่างๆที่ลูกค้า เคยผ่อน กำลังผ่อน มีทุกอย่าง
+       3.3.7 หลังจากมีข้อมูลแล้ว ในหน้านั้นอยากให้มีปุ่ม Download ไฟล์ Excel และ PDF ได้ด้วย
+       ==================================================================== -->
+  <div id="customerDossierModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 1000px; width: 96%; max-height: 92vh;">
+      <div class="admin-modal-header" style="flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" class="btn-table-action" onclick="backToCustomerDbList()" title="กลับหน้ารายชื่อ"
+            style="padding: 6px 12px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>กลับ</span>
+          </button>
+          <div class="admin-modal-title">
+            <i class="fa-solid fa-id-card-clip" style="color: #38bdf8;"></i>
+            <span id="dossierCustomerTitle">ข้อมูลประวัติลูกค้า</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <!-- 3.3.7 ปุ่มดาวน์โหลด Excel และ PDF -->
+          <button type="button" class="btn-table-action" id="btnDownloadExcel" onclick="downloadCurrentCustomerExcel()"
+            style="background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.35); color: #4ade80; font-weight: 600; padding: 7px 14px; cursor: pointer;">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>ดาวน์โหลด Excel</span>
+          </button>
+          <button type="button" class="btn-table-action" id="btnDownloadPDF" onclick="downloadCurrentCustomerPDF()"
+            style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171; font-weight: 600; padding: 7px 14px; cursor: pointer;">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>ดาวน์โหลด PDF</span>
+          </button>
+          <button type="button" class="btn-table-action" onclick="printCurrentCustomerDossier()" title="พิมพ์เอกสาร"
+            style="cursor: pointer;">
+            <i class="fa-solid fa-print"></i>
+          </button>
+          <!-- 1. ปุ่มลบลูกค้า (ต้องใส่รหัสความปลอดภัยก่อนลบ) -->
+          <button type="button" class="btn-table-action" onclick="deleteCustomerConfirm(currentViewingCustomerKey)"
+            title="ลบข้อมูลลูกค้ารายนี้ทั้งหมด"
+            style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; font-weight: 600; padding: 7px 14px; cursor: pointer;">
+            <i class="fa-solid fa-user-xmark"></i>
+            <span>ลบลูกค้า</span>
+          </button>
+          <button class="btn-close-modal" id="btnCloseDossierModal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dossier Container -->
+      <div id="customerDossierContent" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Dynamic Content Rendered Here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 7: LATE PAYMENT FINE / PENALTY (จัดการค่าปรับชำระล่าช้า)
+       4. หลังบ้านสามารถกรอกค่าปรับได้ของลูกค้าแต่ละคนหากเกินวันจ่าย แอดมินสามารถกรอกยอดปรับแล้วจะแสดงหน้าของลูกค้า
+       หากลูกค้าจ่ายมาแล้ว เราสามารถมาคีออกได้ แล้วยืนยันค่าปรับหน้าลูกค้าก็จะหาย
+       ==================================================================== -->
+  <div id="penaltyModalAdmin" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 520px; width: 95%;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">
+          <i class="fa-solid fa-triangle-exclamation" style="color: #fb923c;"></i>
+          <span>จัดการค่าปรับชำระล่าช้า (Late Payment Fine)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnClosePenaltyModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div style="padding: 16px 0;">
+        <div
+          style="background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.25); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #fff; font-size: 1.05rem;" id="penaltyTargetCustomerName">ชื่อลูกค้า</strong>
+            <span class="status-badge" style="background: rgba(251, 146, 60, 0.2); color: #fb923c;"
+              id="penaltyTargetContractId">EF-2026-001</span>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-dim);" id="penaltyTargetItemInfo">สิ่งที่ผ่อน: -</div>
+          <div style="font-size: 0.85rem; color: #38bdf8; margin-top: 4px; font-weight: 500;" id="penaltyTargetDueInfo">
+            งวดค้างชำระ: -</div>
+        </div>
+
+        <form id="penaltyAdminForm">
+          <input type="hidden" id="penaltyContractId">
+
+          <div class="form-group-admin">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label-admin" style="font-size: 0.9rem; font-weight: 600; color: #fb923c;">
+                <i class="fa-solid fa-coins"></i> จำนวนเงินค่าปรับ (บาท) *
+              </label>
+              <span id="currentFineStatusBadge" class="status-badge"
+                style="display: none; background: rgba(239,68,68,0.2); color: #f87171; font-size: 0.72rem;">มีค่าปรับค้างอยู่</span>
+            </div>
+            <input type="number" id="penaltyAmountInput" class="input-admin" min="0" step="10"
+              placeholder="ระบุจำนวนเงินค่าปรับ เช่น 100, 200, 500"
+              style="font-size: 1.2rem; font-weight: 700; color: #fb923c; border-color: rgba(251, 146, 60, 0.4);">
+            <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-table-action" onclick="setQuickFine(50)"
+                style="padding: 4px 10px; font-size: 0.75rem;">+50฿</button>
+              <button type="button" class="btn-table-action" onclick="setQuickFine(100)"
+                style="padding: 4px 10px; font-size: 0.75rem;">+100฿</button>
+              <button type="button" class="btn-table-action" onclick="setQuickFine(200)"
+                style="padding: 4px 10px; font-size: 0.75rem;">+200฿</button>
+              <button type="button" class="btn-table-action" onclick="setQuickFine(300)"
+                style="padding: 4px 10px; font-size: 0.75rem;">+300฿</button>
+              <button type="button" class="btn-table-action" onclick="setQuickFine(500)"
+                style="padding: 4px 10px; font-size: 0.75rem;">+500฿</button>
+            </div>
+          </div>
+
+          <div class="form-group-admin" style="margin-top: 14px;">
+            <label class="form-label-admin">เหตุผล / ข้อความแจ้งลูกค้า (จะแสดงบนหน้าจอของลูกค้า)</label>
+            <input type="text" id="penaltyReasonInput" class="input-admin"
+              placeholder="เช่น ชำระเกินกำหนด 3 วัน, ค่าปรับผิดนัดชำระ">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 22px;">
+            <button type="submit" class="btn-primary-action"
+              style="justify-content: center; padding: 12px; font-weight: 600; background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);">
+              <i class="fa-solid fa-check"></i>
+              <span>ยืนยันบันทึกค่าปรับ (ส่งไปหน้าลูกค้าทันที)</span>
+            </button>
+
+            <!-- ปุ่มบันทึกรับเงินค่าปรับ (ลูกค้าโอนค่าปรับแล้ว นับเข้ายอดรับแล้วประจำวัน) -->
+            <button type="button" id="btnPayPenaltyAction" class="btn-table-action" onclick="payPenaltyAndConfirm()"
+              style="justify-content: center; padding: 10px; color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); font-weight: 600;">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>บันทึกรับชำระค่าปรับนี้ (นับเข้ายอดรับแล้วประจำวัน)</span>
+            </button>
+
+            <!-- 4. ปุ่มยกเลิกค่าปรับ (ให้ค่าปรับหน้าลูกค้าหายไปทันที) -->
+            <button type="button" id="btnClearPenaltyAction" class="btn-table-action"
+              onclick="cancelCustomerLateFineFromModal()"
+              style="justify-content: center; padding: 11px; color: #f87171; border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.12); font-weight: 600; font-size: 0.88rem; border-radius: 8px;">
+              <i class="fa-solid fa-ban"></i>
+              <span>ยกเลิกค่าปรับของลูกค้ารายนี้ (เว้นค่าปรับ / ล้างเป็น 0 บาท หน้าลูกค้าหายทันที)</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 8: SECURE DELETION CONFIRMATION (ใส่รหัสผ่านก่อนลบลูกค้า/สัญญา)
+       1. อยากเพิ่ม ฟังชั่นใส่รหัสก่อนลบลููกค้า หากกดลบลูกค้าจะต้องใส่รหัสก่อน รหัสคนละอันกันกับรหัสเข้าหลังบ้าน
+       ==================================================================== -->
+  <div id="deleteSecurityModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 440px; width: 95%;">
+      <div class="admin-modal-header" style="border-bottom-color: rgba(239, 68, 68, 0.3);">
+        <div class="admin-modal-title" style="color: #f87171;">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>กรุณาติดต่อผู้บริหารเป้ ก่อนลบข้อมูล</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseDeleteSecurityModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div style="padding: 12px 0;">
+        <div
+          style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+          <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">
+            ต้องการลบ: <span id="deleteTargetItemLabel" style="color: #fca5a5;">-</span>
+          </div>
+          <p style="font-size: 0.8rem; color: #fca5a5; margin: 0; line-height: 1.4;">
+            ⚠️ การลบข้อมูลนี้จะไม่สามารถกู้คืนได้ เพื่อความปลอดภัยกรุณากรอกรหัสผ่านยืนยันการลบ
+            (รหัสผ่านคนละชุดกับรหัสผ่านเข้าหลังบ้าน)
+          </p>
+        </div>
+
+        <form id="deleteSecurityForm">
+          <input type="hidden" id="deleteTargetId">
+          <input type="hidden" id="deleteTargetType" value="contract">
+
+          <div class="form-group-admin">
+            <label class="form-label-admin" style="color: #f87171; font-weight: 600;">
+              <i class="fa-solid fa-key"></i> รหัสผ่านยืนยันการลบข้อมูล (Delete Security PIN) *
+            </label>
+            <div style="position: relative;">
+              <input type="password" id="deleteSecurityPasswordInput" class="input-admin"
+                placeholder="กรอกรหัสผ่านเพื่อลบ" autocomplete="off" required
+                style="border-color: rgba(239,68,68,0.4); padding-right: 40px; font-size: 1.05rem;">
+              <button type="button" id="btnToggleDeletePass"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px;">
+                <i class="fa-solid fa-eye" id="iconToggleDeletePass"></i>
+              </button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+              * รหัสผ่านยืนยันการลบ: <code
+                style="background: rgba(255,255,255,0.1); color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-weight: 700;">ติดต่อผู้บริหารเป้</code>
+            </div>
+          </div>
+
+          <div id="deleteSecurityErrorMsg"
+            style="display: none; color: #ef4444; font-size: 0.82rem; margin-top: 10px; font-weight: 600;">
+            <i class="fa-solid fa-circle-xmark"></i> รหัสผ่านยืนยันการลบไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn-table-action" id="btnCancelDeleteSecurity"
+              style="flex: 1; justify-content: center; padding: 10px;">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-primary-action"
+              style="flex: 1.5; justify-content: center; padding: 10px; background: linear-gradient(135deg, #ef4444, #dc2626); border: none; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
+              <i class="fa-solid fa-trash"></i> ยืนยันการลบ
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 8: MANAGER AUTH MODAL (Requirement 4: ยืนยันรหัสหัวหน้าก่อนเข้าสรุปแดชบอร์ด)
+       ==================================================================== -->
+  <div id="managerAuthModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 440px;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title" style="color: #fbbf24;">
+          <i class="fa-solid fa-lock"></i>
+          <span>ยืนยันรหัสผ่านหัวหน้า (Manager Required)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseManagerAuthModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div style="padding: 16px 0 6px 0; text-align: center;">
+        <div
+          style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 12px; border: 1px solid rgba(245, 158, 11, 0.3);">
+          <i class="fa-solid fa-chart-pie" id="managerAuthIcon"></i>
+        </div>
+        <h3 id="managerAuthTitle" style="font-size: 1.1rem; color: #fff; margin-bottom: 6px;">สรุปแดชบอร์ดภาพรวมการเงิน
+        </h3>
+        <p id="managerAuthDesc" style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 18px;">
+          หน้านี้และยอดสรุปสงวนสิทธิ์เฉพาะหัวหน้าเท่านั้น<br>
+          <span style="color: #cbd5e1;">กรุณาระบุรหัสผ่านหัวหน้าเพื่อปลดล็อกเข้าดูข้อมูล</span>
+        </p>
+
+        <form id="managerAuthForm" style="text-align: left;">
+          <div class="form-group-admin">
+            <label class="form-label-admin" for="managerAuthPassInput" style="color: #fbbf24;">
+              <i class="fa-solid fa-key"></i> รหัสผ่านหัวหน้า (Manager Password)
+            </label>
+            <div style="position: relative;">
+              <input type="password" id="managerAuthPassInput" class="input-admin" placeholder="ระบุรหัสหัวหน้า"
+                required autofocus style="padding-right: 40px; border-color: rgba(245, 158, 11, 0.4);">
+              <button type="button" id="btnToggleManagerAuthPass"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px;">
+                <i class="fa-solid fa-eye" id="iconToggleManagerAuthPass"></i>
+              </button>
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 5px;">
+
+            </div>
+          </div>
+
+          <div id="managerAuthErrorMsg"
+            style="display: none; color: #f87171; font-size: 0.82rem; margin-top: 10px; font-weight: 600;">
+            <i class="fa-solid fa-circle-xmark"></i> รหัสผ่านหัวหน้าไม่ถูกต้อง
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn-table-action" id="btnCancelManagerAuth"
+              style="flex: 1; justify-content: center; padding: 10px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; cursor: pointer;">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-primary-action"
+              style="flex: 1.5; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+              <i class="fa-solid fa-unlock"></i> ปลดล็อกดูข้อมูล
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 9: MANAGE PASSWORDS (ตั้งค่ารหัสผ่านหัวหน้า และ พนักงาน)
+       ==================================================================== -->
+  <div id="passwordSettingsModal" class="admin-modal-overlay">
+    <div class="admin-modal-card" style="max-width: 480px;">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title" style="color: #fbbf24;">
+          <i class="fa-solid fa-key"></i>
+          <span id="passSettingsModalTitleText">ตั้งค่ารหัสผ่าน (หัวหน้า / พนักงาน)</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnClosePasswordSettingsModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Phase 1: ล็อกไว้ ต้องใส่รหัสหัวหน้าก่อนถึงเข้าเปลี่ยนได้ -->
+      <div id="passSettingsLockSection" style="padding: 16px 0 6px 0; text-align: center;">
+        <div
+          style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 12px; border: 1px solid rgba(245, 158, 11, 0.3);">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 6px;">ล็อกการตั้งค่ารหัสผ่าน</h3>
+        <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 18px;">
+          ส่วนนี้ถูกล็อกไว้เพื่อความปลอดภัย<br>
+          <span style="color: #cbd5e1;">กรุณาระบุรหัสผ่านหัวหน้าปัจจุบันก่อนเข้าเปลี่ยนรหัสผ่าน</span>
+        </p>
+
+        <form id="passSettingsUnlockForm" style="text-align: left;">
+          <div class="form-group-admin">
+            <label class="form-label-admin" for="passSettingsCurrentInput" style="color: #fbbf24; font-weight: 600;">
+              <i class="fa-solid fa-key"></i> รหัสผ่านหัวหน้าปัจจุบัน *
+            </label>
+            <div style="position: relative;">
+              <input type="password" id="passSettingsCurrentInput" class="input-admin" placeholder="กรอกรหัสผ่านหัวหน้า"
+                required autofocus style="padding-right: 40px; border-color: rgba(245, 158, 11, 0.4);">
+              <button type="button" class="btn-toggle-eye"
+                onclick="togglePassInputVisibility('passSettingsCurrentInput', this)"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 5px;">
+              * ค่าเริ่มต้นของระบบ: <code
+                style="background: rgba(255,255,255,0.1); color: #fbbf24; padding: 2px 6px; border-radius: 4px;">กรุณาแจ้งคุณเป้</code>
+            </div>
+          </div>
+
+          <div id="passSettingsUnlockError"
+            style="display: none; color: #f87171; font-size: 0.82rem; margin-top: 10px; font-weight: 600;">
+            <i class="fa-solid fa-circle-xmark"></i> รหัสผ่านหัวหน้าไม่ถูกต้อง
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn-table-action" id="btnCancelPassSettingsUnlock"
+              style="flex: 1; justify-content: center; padding: 10px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; cursor: pointer;">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-primary-action"
+              style="flex: 1.5; justify-content: center; padding: 10px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+              <i class="fa-solid fa-unlock"></i> ปลดล็อกเข้าแก้ไข
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Phase 2: ฟอร์มตั้งค่ารหัสผ่านหัวหน้าและพนักงาน (เปิดเมื่อปลดล็อกรหัสผ่านสำเร็จ) -->
+      <form id="passwordSettingsForm" style="display: none; padding-top: 14px;">
+        <div
+          style="margin-bottom: 14px; padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; font-size: 0.8rem; color: #34d399; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>ยืนยันรหัสหัวหน้าสำเร็จ สามารถเปลี่ยนหรือตั้งรหัสผ่านใหม่ได้ทันที</span>
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin" style="color: #fbbf24; font-weight: 600;">
+            <i class="fa-solid fa-crown"></i> รหัสผ่านหัวหน้า (Manager Password) *
+          </label>
+          <div style="position: relative;">
+            <input type="password" id="settingManagerPass" class="input-admin" placeholder="เช่น Easy123" required
+              style="padding-right: 40px;">
+            <button type="button" class="btn-toggle-eye" onclick="togglePassInputVisibility('settingManagerPass', this)"
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px;">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">
+            สำหรับหัวหน้า: ปลดล็อกดูยอดรวมทั้งหมด และเข้าหน้าสรุปแดชบอร์ดภาพรวม
+          </div>
+        </div>
+
+        <div class="form-group-admin" style="margin-top: 14px;">
+          <label class="form-label-admin" style="color: #38bdf8; font-weight: 600;">
+            <i class="fa-solid fa-user-tie"></i> รหัสผ่านพนักงาน (Staff Password) *
+          </label>
+          <div style="position: relative;">
+            <input type="password" id="settingStaffPass" class="input-admin" placeholder="เช่น Staff123" required
+              style="padding-right: 40px;">
+            <button type="button" class="btn-toggle-eye" onclick="togglePassInputVisibility('settingStaffPass', this)"
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px;">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">
+            สำหรับพนักงาน: ปิดยอดรวมเป็น * และจำกัดการเข้าหน้าสรุปแดชบอร์ด
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 22px;">
+          <button type="button" class="btn-table-action" id="btnCancelPasswordSettings"
+            style="flex: 1; justify-content: center; padding: 10px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; cursor: pointer;">
+            ยกเลิก
+          </button>
+          <button type="submit" id="btnSavePasswordSettings" onclick="saveNewAdminPasswords(event)"
+            class="btn-primary-action" style="flex: 1.5; justify-content: center; padding: 10px;">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึกรหัสผ่านใหม่
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="adminToastContainer" class="toast-container"></div>
+
+  <!-- SheetJS (Excel .xlsx export) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- html2pdf.js (PDF export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Firebase App & Firestore SDKs (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Scripts -->
+  <script src="firebase-config.js"></script>
+  <script src="bank-verification.js"></script>
+  <script src="admin.js"></script>
+</body>
+
+</html>
