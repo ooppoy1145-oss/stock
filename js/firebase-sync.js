@@ -4,7 +4,7 @@
  * Supports Cloud Firestore & Realtime Database with instant multi-device sync
  */
 
-const FirebaseSync = (function() {
+const FirebaseSync = (function () {
   'use strict';
 
   // Internal state
@@ -87,9 +87,9 @@ const FirebaseSync = (function() {
   function getActiveConfig() {
     // 1. ตรวจสอบจากไฟล์โค้ดถาวร window.FIREBASE_CONFIG เป็นอันดับแรก
     const codeConfig = window.FIREBASE_CONFIG || (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
-    if (codeConfig && 
-        typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' &&
-        typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '') {
+    if (codeConfig &&
+      typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' &&
+      typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '') {
       return codeConfig;
     }
 
@@ -719,9 +719,9 @@ const FirebaseSync = (function() {
 
   function isConfiguredInCode() {
     const codeConfig = window.FIREBASE_CONFIG || (typeof firebaseConfig !== 'undefined' ? firebaseConfig : null);
-    return Boolean(codeConfig && 
-                   typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' && 
-                   typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '');
+    return Boolean(codeConfig &&
+      typeof codeConfig.apiKey === 'string' && codeConfig.apiKey.trim() !== '' &&
+      typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '');
   }
 
   // Pre-initialize Firebase immediately as soon as this script is loaded!
@@ -741,7 +741,7 @@ const FirebaseSync = (function() {
 
         if (state.dbType === 'firestore' && firebase.firestore) {
           state.db = firebase.firestore();
-          state.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+          state.db.enablePersistence({ synchronizeTabs: true }).catch(() => { });
         } else if (state.dbType === 'rtdb' && firebase.database) {
           if (!config.databaseURL) {
             config.databaseURL = `https://${config.projectId}-default-rtdb.firebaseio.com`;

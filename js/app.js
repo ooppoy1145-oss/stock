@@ -23,6 +23,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 18000,
     deposit: 3000,
     price: 179000,
+    downPayment: 15000,
+    installmentAmount: 23240,
+    installmentTerm: 12,
     status: "rented",
     customer: "Mr. Alexander Wright (UK)",
     customerPhone: "+66 82-991-4421",
@@ -67,6 +70,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 8500,
     deposit: 1500,
     price: 93400,
+    downPayment: 5000,
+    installmentAmount: 12530,
+    installmentTerm: 12,
     status: "available",
     customer: "",
     customerPhone: "",
@@ -100,7 +106,7 @@ const DEFAULT_MOTO_FLEET = [
     category: "แฟชั่น เรโทร (Classic/Retro)",
     cc: "125 cc",
     year: "2025",
-    purpose: "rent",
+    purpose: "both",
     licensePlate: "2กค-7719 เชียงใหม่",
     vin: "MLHJC9202RS089123",
     engineNo: "JC92E-3104921",
@@ -111,6 +117,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 6000,
     deposit: 1000,
     price: 61900,
+    downPayment: 0,
+    installmentAmount: 13930,
+    installmentTerm: 6,
     status: "rented",
     customer: "คุณมินตรา พงษ์ศิริ",
     customerPhone: "089-445-1234",
@@ -155,6 +164,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 19500,
     deposit: 4000,
     price: 181900,
+    downPayment: 18000,
+    installmentAmount: 23220,
+    installmentTerm: 12,
     status: "reserved",
     customer: "คุณธนกฤต วิเศษสมบัติ",
     customerPhone: "081-998-7766",
@@ -199,6 +211,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 32000,
     deposit: 8000,
     price: 227900,
+    downPayment: 25000,
+    installmentAmount: 28750,
+    installmentTerm: 12,
     status: "check",
     customer: "คุณสุรศักดิ์ เดชานนท์",
     customerPhone: "084-555-8912",
@@ -243,6 +258,9 @@ const DEFAULT_MOTO_FLEET = [
     rentMonthly: 4500,
     deposit: 1000,
     price: 55200,
+    downPayment: 0,
+    installmentAmount: 12420,
+    installmentTerm: 6,
     status: "available",
     customer: "",
     customerPhone: "",
@@ -324,6 +342,24 @@ function loadFleet() {
       saveFleet();
     }
   }
+
+  // Ensure all items have downPayment, installmentAmount, installmentTerm populated with 6 terms 35%, 12 terms 70%
+  fleet.forEach(item => {
+    const seed = DEFAULT_MOTO_FLEET.find(s => s.id === item.id);
+    if (seed) {
+      item.downPayment = seed.downPayment;
+      item.installmentAmount = seed.installmentAmount;
+      item.installmentTerm = seed.installmentTerm;
+    } else {
+      if (item.downPayment === undefined) item.downPayment = 0;
+      if (!item.installmentTerm || item.installmentTerm <= 0) item.installmentTerm = 6;
+      if (!item.installmentAmount || item.installmentAmount <= 0) {
+        const principal = Math.max(0, (item.price || 0) - (item.downPayment || 0));
+        const rate = (item.installmentTerm / 6) * 0.35;
+        item.installmentAmount = Math.ceil((principal * (1 + rate)) / item.installmentTerm / 10) * 10;
+      }
+    }
+  });
 }
 
 function saveFleet() {
@@ -335,10 +371,7 @@ function saveFleet() {
 
 function updateBranchOptions() {
   const defaultBranches = [
-    "สาขาหลัก (โชว์รูมพระราม 9)",
-    "สาขาเชียงใหม่ (นิมมาน/ท่าแพ)",
-    "สาขาภูเก็ต (ป่าตอง/ในเมือง)",
-    "สาขาพัทยา"
+    "วีระมอเตอร์"
   ];
 
   // Aggregate all unique branches and locations from the fleet
@@ -463,6 +496,12 @@ function setupEventListeners() {
 
   // Form Submission
   document.getElementById('vehicleForm').addEventListener('submit', handleFormSubmit);
+
+  // Live calculation listeners for finance inputs
+  ['formPrice', 'formDownPayment', 'formInstallmentTerm', 'formInstallmentAmount'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateFinanceLiveSummary);
+  });
 
   // Photo file upload in modal
   document.getElementById('formPhotoUpload').addEventListener('change', handlePhotoFileUpload);
@@ -602,6 +641,9 @@ function getFilteredFleet() {
     if (sortBy === 'rent-asc') return (a.rentDaily || 0) - (b.rentDaily || 0);
     if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
     if (sortBy === 'price-asc') return (a.price || 0) - (b.price || 0);
+    if (sortBy === 'installment-asc') return (a.installmentAmount || 0) - (b.installmentAmount || 0);
+    if (sortBy === 'installment-desc') return (b.installmentAmount || 0) - (a.installmentAmount || 0);
+    if (sortBy === 'down-asc') return (a.downPayment || 0) - (b.downPayment || 0);
     if (sortBy === 'model-asc') return a.model.localeCompare(b.model);
     return 0;
   });
@@ -772,6 +814,30 @@ function renderGridView(motos) {
             ` : ''}
           </div>
 
+          <!-- Installment Badge (Easy Finance) -->
+          ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount || moto.installmentTerm) ? `
+            <div class="card-installment-badge">
+              <div class="inst-badge-head">
+                <span class="inst-badge-icon">⚡</span>
+                <span class="inst-badge-title">ผ่อนชำระ (Easy Finance)</span>
+              </div>
+              <div class="inst-badge-body">
+                <div class="inst-spec">
+                  <span class="inst-lbl">ดาวน์</span>
+                  <span class="inst-val inst-down">${(moto.downPayment !== undefined && Number(moto.downPayment) === 0) ? '<span class="free-down-tag">ฟรีดาวน์</span>' : formatPrice(moto.downPayment || 0)}</span>
+                </div>
+                <div class="inst-spec">
+                  <span class="inst-lbl">ผ่อนงวดละ</span>
+                  <span class="inst-val inst-monthly">${moto.installmentAmount ? formatPrice(moto.installmentAmount) : '-'}</span>
+                </div>
+                <div class="inst-spec">
+                  <span class="inst-lbl">ผ่อนกี่งวด</span>
+                  <span class="inst-val inst-term">${moto.installmentTerm ? `${moto.installmentTerm} งวด` : '-'}</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Specs Info Grid -->
           <div class="spec-tags-grid">
             <div class="spec-item">
@@ -881,8 +947,15 @@ function renderTableView(motos) {
           ${getPurposeBadge(moto.purpose)}
         </td>
         <td>
-          ${moto.rentDaily ? `<div style="font-weight: 700; color: var(--cyan-500);">${formatPrice(moto.rentDaily)}/วัน</div>` : ''}
-          ${moto.price ? `<div style="font-size: 0.75rem; color: var(--navy-900); font-weight: 600;">ขาย: ${formatPrice(moto.price)}</div>` : ''}
+          ${moto.rentDaily ? `<div style="font-weight: 700; color: var(--cyan-500); font-size: 0.85rem;">${formatPrice(moto.rentDaily)}/วัน</div>` : ''}
+          ${moto.price ? `<div style="font-size: 0.78rem; color: var(--navy-900); font-weight: 700;">ขายสด: ${formatPrice(moto.price)}</div>` : ''}
+          ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount) ? `
+            <div class="table-installment-pill">
+              <span class="table-inst-down">ดาวน์: <strong>${(moto.downPayment !== undefined && Number(moto.downPayment) === 0) ? 'ฟรีดาวน์' : formatPrice(moto.downPayment || 0)}</strong></span>
+              <span class="table-inst-monthly">ผ่อน: <strong>${formatPrice(moto.installmentAmount || 0)}</strong>/งวด</span>
+              <span class="table-inst-term">(${moto.installmentTerm || '-'} งวด)</span>
+            </div>
+          ` : ''}
         </td>
         <td>
           <span class="status-pill ${statusInfo.class}">
@@ -970,6 +1043,104 @@ function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ==================== FINANCE CALCULATION HELPERS ====================
+function applyDownPaymentPreset(amount) {
+  const el = document.getElementById('formDownPayment');
+  if (el) {
+    el.value = amount;
+    updateFinanceLiveSummary();
+  }
+}
+
+function applyDownPaymentPercent(percent) {
+  const priceEl = document.getElementById('formPrice');
+  const downEl = document.getElementById('formDownPayment');
+  if (priceEl && downEl) {
+    const price = Number(priceEl.value) || 0;
+    const down = Math.round((price * (percent / 100)) / 100) * 100;
+    downEl.value = down;
+    updateFinanceLiveSummary();
+  }
+}
+
+function applyTermPreset(term) {
+  const termEl = document.getElementById('formInstallmentTerm');
+  if (termEl) {
+    termEl.value = term;
+    calculateSuggestedInstallment();
+  }
+}
+
+function calculateSuggestedInstallment() {
+  const price = Number(document.getElementById('formPrice')?.value) || 0;
+  const down = Number(document.getElementById('formDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('formInstallmentTerm')?.value) || 6;
+
+  if (price <= 0) {
+    showToast('กรุณากรอกราคาขายสดก่อนคำนวณค่างวด', 'warning');
+    return;
+  }
+
+  const principal = Math.max(0, price - down);
+  if (principal === 0) {
+    const amountEl = document.getElementById('formInstallmentAmount');
+    if (amountEl) amountEl.value = 0;
+    updateFinanceLiveSummary();
+    return;
+  }
+
+  // อัตราดอกเบี้ย: 6 งวด = 35% (0.35), 12 งวด = 70% (0.70), เพิ่มงวดละ 35% ทุกๆ 6 งวด ((term / 6) * 0.35)
+  const interestRate = (term / 6) * 0.35;
+  const totalInterest = principal * interestRate;
+  const totalFinanced = principal + totalInterest;
+  const monthly = Math.ceil(totalFinanced / term / 10) * 10;
+
+  const amountEl = document.getElementById('formInstallmentAmount');
+  if (amountEl) {
+    amountEl.value = monthly;
+    updateFinanceLiveSummary();
+    const percentDisplay = Math.round((term / 6) * 35 * 10) / 10;
+    showToast(`คำนวณค่างวด ${term} งวด (ดอกเบี้ย ${percentDisplay}%): ${formatPrice(monthly)}/งวด เรียบร้อยแล้ว`, 'gold');
+  }
+}
+
+function updateFinanceLiveSummary() {
+  const price = Number(document.getElementById('formPrice')?.value) || 0;
+  const down = Number(document.getElementById('formDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('formInstallmentTerm')?.value) || 0;
+  const monthly = Number(document.getElementById('formInstallmentAmount')?.value) || 0;
+
+  const financedPrincipal = Math.max(0, price - down);
+  const totalPayable = down + (monthly * term);
+  const interestRate = (term > 0) ? (term / 6) * 35 : 0;
+
+  const financedEl = document.getElementById('previewFinancedAmount');
+  const rateEl = document.getElementById('previewInterestRate');
+  const monthlySummaryEl = document.getElementById('previewMonthlySummary');
+  const totalPayableEl = document.getElementById('previewTotalPayable');
+
+  if (financedEl) financedEl.textContent = formatPrice(financedPrincipal);
+  if (rateEl) {
+    rateEl.textContent = term > 0 ? `${Math.round(interestRate * 10) / 10}% (${term} งวด)` : '-';
+  }
+  if (monthlySummaryEl) {
+    if (monthly > 0 && term > 0) {
+      monthlySummaryEl.textContent = `${formatPrice(monthly)} x ${term} งวด`;
+    } else {
+      monthlySummaryEl.textContent = '-';
+    }
+  }
+  if (totalPayableEl) {
+    if (monthly > 0 && term > 0) {
+      totalPayableEl.textContent = formatPrice(totalPayable);
+    } else if (price > 0) {
+      totalPayableEl.textContent = formatPrice(price);
+    } else {
+      totalPayableEl.textContent = '฿0';
+    }
+  }
+}
+
 // ==================== MODAL LOGIC (ADD / EDIT) ====================
 function openCarModal(motoId = null) {
   const form = document.getElementById('vehicleForm');
@@ -1015,6 +1186,9 @@ function openCarModal(motoId = null) {
     setVal('formRentMonthly', moto.rentMonthly || '');
     setVal('formDeposit', moto.deposit || '');
     setVal('formPrice', moto.price || '');
+    setVal('formDownPayment', (moto.downPayment !== undefined && moto.downPayment !== null) ? moto.downPayment : '');
+    setVal('formInstallmentTerm', (moto.installmentTerm !== undefined && moto.installmentTerm !== null) ? moto.installmentTerm : '');
+    setVal('formInstallmentAmount', (moto.installmentAmount !== undefined && moto.installmentAmount !== null) ? moto.installmentAmount : '');
     setVal('formStatus', moto.status);
 
     setVal('formCustomer', moto.customer || '');
@@ -1062,11 +1236,14 @@ function openCarModal(motoId = null) {
     setVal('formExteriorColor', '');
     setVal('formFuel', 'เบนซิน 95');
     setVal('formMileage', 500);
-    setVal('formBranch', 'สาขาหลัก (โชว์รูมพระราม 9)');
+    setVal('formBranch', 'สาขาหลัก (วีระมอเตอร์)');
     setVal('formRentDaily', '');
     setVal('formRentMonthly', '');
     setVal('formDeposit', '');
     setVal('formPrice', '');
+    setVal('formDownPayment', '');
+    setVal('formInstallmentTerm', '6');
+    setVal('formInstallmentAmount', '');
     setVal('formStatus', 'available');
     setVal('formCustomer', '');
     setVal('formCustomerPhone', '');
@@ -1092,6 +1269,7 @@ function openCarModal(motoId = null) {
     formPhotos = [];
   }
 
+  updateFinanceLiveSummary();
   renderFormPhotosPreview();
   openModal('carFormModal');
 }
@@ -1134,11 +1312,14 @@ function handleFormSubmit(e) {
     exteriorColor: getVal('formExteriorColor'),
     fuel: getVal('formFuel', 'เบนซิน 95'),
     mileage: getNum('formMileage', 0),
-    branch: getVal('formBranch', 'สาขาหลัก (โชว์รูมพระราม 9)'),
+    branch: getVal('formBranch', 'สาขาหลัก (วีระมอเตอร์)'),
     rentDaily: getNum('formRentDaily', 0),
     rentMonthly: getNum('formRentMonthly', 0),
     deposit: getNum('formDeposit', 0),
     price: getNum('formPrice', 0),
+    downPayment: getNum('formDownPayment', 0),
+    installmentAmount: getNum('formInstallmentAmount', 0),
+    installmentTerm: getNum('formInstallmentTerm', 0),
     status: getVal('formStatus', 'available'),
     customer: getVal('formCustomer'),
     customerPhone: getVal('formCustomerPhone'),
@@ -1372,10 +1553,20 @@ function openCarDetail(motoId) {
           <div class="price-caption">ค่าเช่ารายวัน</div>
           <div class="price-highlight-rent">${formatPrice(moto.rentDaily)}<span class="price-unit">/วัน</span></div>
           ${moto.rentMonthly ? `<div class="price-sub-rent">รายเดือน ${formatPrice(moto.rentMonthly)}/ด.</div>` : ''}
-        ` : `
-          <div class="price-caption">ราคาขายสด (MSRP)</div>
+        ` : ''}
+        ${moto.price ? `
+          <div class="price-caption" style="${moto.rentDaily ? 'margin-top: 6px;' : ''}">ราคาขายสด (MSRP)</div>
           <div class="price-highlight-sale">${formatPrice(moto.price)}</div>
-        `}
+        ` : ''}
+        ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount) ? `
+          <div class="detail-installment-tag">
+            <span style="color: #b45309; font-weight: 700;">⚡ ผ่อนชำระ:</span>
+            <span>ดาวน์: <strong>${(moto.downPayment !== undefined && Number(moto.downPayment) === 0) ? 'ฟรีดาวน์' : formatPrice(moto.downPayment || 0)}</strong></span>
+            <span>&bull;</span>
+            <span>ผ่อน: <strong style="color: #15803d;">${formatPrice(moto.installmentAmount || 0)}/งวด</strong></span>
+            <span>(${moto.installmentTerm || '-'} งวด)</span>
+          </div>
+        ` : ''}
       </div>
     </div>
 
@@ -1411,12 +1602,12 @@ function openCarDetail(motoId) {
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span style="font-weight: 700; color: var(--navy-900);">🔄 เปลี่ยนสถานะรถคันนี้:</span>
         <select class="form-control" style="width: auto; font-weight: 600;" onchange="quickUpdateStatus('${moto.id}', this.value); openCarDetail('${moto.id}');">
-          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง (Available)</option>
-          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า (On Rent)</option>
-          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน (Reserved)</option>
-          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน (Inspection)</option>
-          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน (Maintenance)</option>
-          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว (Sold Out)</option>
+          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง </option>
+          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า</option>
+          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน</option>
+          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน</option>
+          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน </option>
+          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว </option>
         </select>
       </div>
       <div>
@@ -1452,14 +1643,21 @@ function openCarDetail(motoId) {
 
       <!-- Rental & Commercial Rates -->
       <div style="background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1rem;">
-        <h4 style="color: var(--navy-900); margin-bottom: 0.75rem; border-bottom: 2px solid var(--gold-500); padding-bottom: 0.35rem;">
-          💰 อัตราค่าเช่า &amp; ราคาขาย
+        <h4 style="color: var(--navy-900); margin-bottom: 0.75rem; border-bottom: 2px solid var(--gold-500); padding-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>💰 อัตราค่าเช่า &amp; ราคาขาย / ผ่อนชำระ</span>
+          <span style="font-size: 0.72rem; color: #b45309; font-weight: 600; background: #fefce8; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fef08a;">Easy Finance</span>
         </h4>
         <table class="detail-specs-table">
           <tr><td class="label-col">ค่าเช่ารายวัน</td><td class="value-col"><strong style="color: var(--cyan-500); font-size: 1rem;">${moto.rentDaily ? formatPrice(moto.rentDaily) + '/วัน' : '-'}</strong></td></tr>
           <tr><td class="label-col">ค่าเช่ารายเดือน</td><td class="value-col">${moto.rentMonthly ? formatPrice(moto.rentMonthly) + '/เดือน' : '-'}</td></tr>
           <tr><td class="label-col">เงินประกันมัดจำ</td><td class="value-col">${moto.deposit ? formatPrice(moto.deposit) : '-'}</td></tr>
-          <tr><td class="label-col">ราคาขายสด (MSRP)</td><td class="value-col"><strong style="color: var(--navy-900);">${moto.price ? formatPrice(moto.price) : '-'}</strong></td></tr>
+          <tr><td class="label-col">ราคาขายสด (MSRP)</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.price ? formatPrice(moto.price) : '-'}</strong></td></tr>
+          <tr><td class="label-col">ราคาดาวน์ (เงินดาวน์)</td><td class="value-col"><strong style="color: #1d4ed8;">${(moto.downPayment !== undefined && moto.downPayment !== '') ? (Number(moto.downPayment) === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(moto.downPayment)) : '-'}</strong></td></tr>
+          <tr><td class="label-col">ราคาผ่อนงวดละ</td><td class="value-col"><strong style="color: #15803d; font-size: 1.05rem;">${moto.installmentAmount ? formatPrice(moto.installmentAmount) + '/งวด' : '-'}</strong></td></tr>
+          <tr><td class="label-col">ผ่อนกี่งวด (จำนวนงวด)</td><td class="value-col">${moto.installmentTerm ? `<strong style="color: var(--navy-900);">${moto.installmentTerm} งวด</strong> (${Math.round((moto.installmentTerm / 12) * 10) / 10} ปี)` : '-'}</td></tr>
+          ${(moto.installmentAmount && moto.installmentTerm) ? `
+            <tr><td class="label-col">ยอดรวมการผ่อนทั้งหมด (ดาวน์+ค่างวด)</td><td class="value-col"><strong style="color: var(--navy-800);">${formatPrice(Number(moto.downPayment || 0) + (Number(moto.installmentAmount) * Number(moto.installmentTerm)))}</strong></td></tr>
+          ` : ''}
           <tr><td class="label-col">ผู้เช่า / ผู้ซื้อปัจจุบัน</td><td class="value-col">${moto.customer ? `<strong>${moto.customer}</strong>` : '<span style="color: var(--text-light);">-</span>'}</td></tr>
           <tr><td class="label-col">เบอร์โทรติดต่อ</td><td class="value-col">${moto.customerPhone || '-'}</td></tr>
           <tr><td class="label-col">ระยะเวลาสัญญาเช่า</td><td class="value-col">${moto.rentalStart && moto.rentalEnd ? `${moto.rentalStart} ถึง ${moto.rentalEnd}` : '-'}</td></tr>
@@ -1613,17 +1811,13 @@ function copySummaryForLine(motoId) {
 ทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}
 สี: ${moto.exteriorColor}
 เชื้อเพลิง: ${moto.fuel || 'เบนซิน 95'}
-${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน` : ''}
-${moto.rentMonthly ? `เรทเช่ารายเดือน: ${formatPrice(moto.rentMonthly)}/เดือน` : ''}
-${moto.deposit ? `เงินประกันมัดจำ: ${formatPrice(moto.deposit)}` : ''}
-${moto.price ? `ราคาขายสด: ${formatPrice(moto.price)}` : ''}
-สาขา/จุดรับรถ: ${moto.branch}
+${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน\n` : ''}${moto.rentMonthly ? `เรทเช่ารายเดือน: ${formatPrice(moto.rentMonthly)}/เดือน\n` : ''}${moto.deposit ? `เงินประกันมัดจำ: ${formatPrice(moto.deposit)}\n` : ''}${moto.price ? `ราคาขายสด: ${formatPrice(moto.price)}\n` : ''}${(moto.downPayment !== undefined && moto.downPayment !== '') ? `ราคาดาวน์: ${Number(moto.downPayment) === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(moto.downPayment)}\n` : ''}${moto.installmentAmount ? `ราคาผ่อนงวดละ: ${formatPrice(moto.installmentAmount)}/งวด (ผ่อน ${moto.installmentTerm || '-'} งวด)\n` : ''}สาขา/จุดรับรถ: ${moto.branch}
 ${moto.gpsImei ? `GPS ติดตามรถ (GPSDD): IMEI ${moto.gpsImei}\n` : ''}สถานะ: ${STATUS_CONFIG[moto.status]?.label || moto.status}
 อุปกรณ์ที่ให้: หมวกกันน็อค 2 ใบ + ที่จับมือถือ
-ติดต่อจองรถ โทร: 081-xxx-xxxx หรือทักแชทได้ทันทีครับ`;
+ติดต่อสอบถาม / จองรถ โทร: 081-xxx-xxxx หรือทักแชทได้ทันทีครับ`;
 
   navigator.clipboard.writeText(summary).then(() => {
-    showToast('คัดลอกสรุปสเปกและอัตราค่าเช่าสำหรับส่ง LINE ลูกค้าแล้ว!', 'gold');
+    showToast('คัดลอกสรุปสเปก ราคาขาย และข้อมูลตารางผ่อนสำหรับส่ง LINE ลูกค้าแล้ว!', 'gold');
   });
 }
 
@@ -1638,8 +1832,8 @@ function exportCsv() {
     "Moto ID", "Brand", "Model", "Category", "CC", "Year", "Purpose",
     "License Plate", "Province", "Frame No (VIN)", "Engine No", "Exterior Color", "Fuel",
     "Mileage (km)", "Branch", "Rent Daily (THB)", "Rent Monthly (THB)",
-    "Deposit (THB)", "Price Sale (THB)", "Status",
-    "Customer Name", "Customer Phone", "Rental Start", "Rental End", "Tax Expiry",
+    "Deposit (THB)", "Price Sale (THB)", "Down Payment (THB)", "Installment Amount (THB)", "Installment Term (Periods)",
+    "Status", "Customer Name", "Customer Phone", "Rental Start", "Rental End", "Tax Expiry",
     "GPS IMEI (GPSDD)", "GPS Tracking URL"
   ];
 
@@ -1663,6 +1857,9 @@ function exportCsv() {
     m.rentMonthly || 0,
     m.deposit || 0,
     m.price || 0,
+    m.downPayment !== undefined ? m.downPayment : 0,
+    m.installmentAmount || 0,
+    m.installmentTerm || 0,
     `"${STATUS_CONFIG[m.status]?.label || m.status}"`,
     `"${m.customer || ''}"`,
     `"${m.customerPhone || ''}"`,

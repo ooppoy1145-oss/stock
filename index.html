@@ -68,11 +68,8 @@
         <div class="branch-select-box" title="เลือกสาขา / จุดบริการ">
           <span>🏪</span>
           <select id="headerBranchSelect">
-            <option value="ALL">ทุกสาขา / ทุกจุดจอด</option>
-            <option value="สาขาหลัก (โชว์รูมพระราม 9)">สาขาหลัก (โชว์รูมพระราม 9)</option>
-            <option value="สาขาเชียงใหม่ (นิมมาน/ท่าแพ)">สาขาเชียงใหม่ (นิมมาน/ท่าแพ)</option>
-            <option value="สาขาภูเก็ต (ป่าตอง/ในเมือง)">สาขาภูเก็ต (ป่าตอง/ในเมือง)</option>
-            <option value="สาขาพัทยา">สาขาพัทยา</option>
+            <option value="ALL">สาขา</option>
+            <option value="วีระมอเตอร์">วีระมอเตอร์</option>
           </select>
         </div>
 
@@ -106,7 +103,7 @@
         <div class="kpi-content">
           <span class="kpi-title">รถมอเตอร์ไซค์ทั้งหมด</span>
           <span class="kpi-value" id="kpiTotalUnits">0</span>
-          <span class="kpi-sub">รถในระบบ (ขาย &amp; เช่า)</span>
+          <span class="kpi-sub">&amp; </span>
         </div>
       </div>
 
@@ -115,7 +112,7 @@
         <div class="kpi-content">
           <span class="kpi-title">ว่างพร้อมบริการ </span>
           <span class="kpi-value" id="kpiAvailableUnits">0</span>
-          <span class="kpi-sub">พร้อมปล่อยเช่า / ขายทันที</span>
+          <span class="kpi-sub"></span>
         </div>
       </div>
 
@@ -124,7 +121,7 @@
         <div class="kpi-content">
           <span class="kpi-title">กำลังเช่า </span>
           <span class="kpi-value" id="kpiRentedUnits">0</span>
-          <span class="kpi-sub">มีสัญญาเช่าที่กำลังใช้งาน</span>
+          <span class="kpi-sub"></span>
         </div>
       </div>
 
@@ -133,7 +130,7 @@
         <div class="kpi-content">
           <span class="kpi-title">ยอดเช่ารวม / วัน</span>
           <span class="kpi-value" id="kpiRentalRevenue">฿0 /วัน</span>
-          <span class="kpi-sub">คำนวณจากเรทเช่าทุกคัน</span>
+          <span class="kpi-sub"></span>
         </div>
       </div>
 
@@ -142,7 +139,7 @@
         <div class="kpi-content">
           <span class="kpi-title">ตรวจเช็ค / ถ่ายน้ำมันเครื่อง</span>
           <span class="kpi-value" id="kpiServiceUnits">0</span>
-          <span class="kpi-sub">รอซ่อมบำรุง หรือตรวจส่งคืน</span>
+          <span class="kpi-sub"> </span>
         </div>
       </div>
     </section>
@@ -231,10 +228,13 @@
         <!-- Sort By -->
         <select id="sortBy" class="filter-select">
           <option value="date-desc">รับเข้าล่าสุด</option>
-          <option value="rent-desc">ค่าเช่าต่อวัน</option>
-          <option value="rent-asc">ค่าเช่าต่อวัน</option>
-          <option value="price-desc">ราคาขายสด</option>
-          <option value="price-asc">ราคาขายสด</option>
+          <option value="rent-desc">ค่าเช่าต่อวัน (มาก->น้อย)</option>
+          <option value="rent-asc">ค่าเช่าต่อวัน (น้อย->มาก)</option>
+          <option value="price-desc">ราคาขายสด (มาก->น้อย)</option>
+          <option value="price-asc">ราคาขายสด (น้อย->มาก)</option>
+          <option value="installment-asc">ค่างวดผ่อน (น้อย->มาก)</option>
+          <option value="installment-desc">ค่างวดผ่อน (มาก->น้อย)</option>
+          <option value="down-asc">เงินดาวน์ (น้อย->มาก / ฟรีดาวน์)</option>
           <option value="model-asc">ชื่อรุ่น</option>
         </select>
 
@@ -272,7 +272,7 @@
                 <th>ป้ายทะเบียน / เลขคอรถ</th>
                 <th>สี / เลขไมล์</th>
                 <th>วัตถุประสงค์</th>
-                <th>อัตราค่าเช่า / ราคาขาย</th>
+                <th>อัตราค่าเช่า / ราคาขาย &amp; ผ่อนชำระ</th>
                 <th>สถานะปัจจุบัน</th>
                 <th>ผู้เช่า / ผู้จองปัจจุบัน</th>
                 <th style="text-align: center; width: 140px;">จัดการ</th>
@@ -344,7 +344,7 @@
       <div class="modal-header">
         <div class="modal-title-wrap">
           <span style="font-size: 1.3rem;">🏍️</span>
-          <span id="carModalTitle" class="modal-title">คีย์รับรถมอเตอร์ไซค์เข้าสต็อคใหม่ (New Motorcycle Entry)</span>
+          <span id="carModalTitle" class="modal-title">เพิ่มรถ </span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="carFormModal">&times;</button>
       </div>
@@ -362,19 +362,19 @@
             <div class="form-group">
               <label class="form-label">วัตถุประสงค์ของคันนี้ <span class="req">*</span></label>
               <select id="formPurpose" class="form-control" required>
-                <option value="both" selected>🛵🏷️ ทั้งขายและเช่า (Sale &amp; Rent)</option>
+                <option value="both" selected>🛵🏷️ ทั้งขายและเช่า &amp; </option>
                 <option value="rent">🛵 เช่า </option>
                 <option value="sale">🏷️ ขาย </option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">ยี่ห้อ (Brand) <span class="req">*</span></label>
+              <label class="form-label">ยี่ห้อ <span class="req">*</span></label>
               <input type="text" id="formBrand" class="form-control" value="Honda" required>
             </div>
 
             <div class="form-group">
-              <label class="form-label">รุ่นรถ (Model) <span class="req">*</span></label>
+              <label class="form-label">รุ่นรถ <span class="req">*</span></label>
               <input type="text" id="formModel" class="form-control" placeholder="เช่น Forza 350, PCX 160, Giorno+"
                 required>
             </div>
@@ -386,9 +386,7 @@
               <select id="formCategory" class="form-control" required>
                 <option value="พรีเมียม ออโตเมติก (Maxi-Scooter)">พรีเมียม ออโตเมติก </option>
                 <option value="สกู๊ตเตอร์ในเมือง (City Scooter)">สกู๊ตเตอร์ในเมือง </option>
-                <option value="แฟชั่น เรโทร (Classic/Retro)">แฟชั่น เรโทร </option>
-                <option value="บิ๊กไบค์ / ทัวร์ริ่ง (BigBike)">บิ๊กไบค์ / ทัวร์ริ่ง </option>
-                <option value="รถครอบครัว (Family/Moped)">รถครอบครัว </option>
+                <option value="รถครอบครัว ">รถครอบครัว </option>
               </select>
             </div>
 
@@ -411,12 +409,12 @@
                 <option value="650 cc">650 cc</option>
                 <option value="750 cc">750 cc</option>
                 <option value="1000 cc">1000 cc</option>
-                <option value="EV ไฟฟ้า">EV ไฟฟ้า (Electric)</option>
+                <option value="EV ไฟฟ้า">EV ไฟฟ้า </option>
               </datalist>
             </div>
 
             <div class="form-group">
-              <label class="form-label">ปีผลิต (Model Year) <span class="req">*</span></label>
+              <label class="form-label">ปีผลิต <span class="req">*</span></label>
               <input type="text" id="formYear" class="form-control" list="yearList"
                 placeholder="เช่น 2025 หรือ 2568 (เลือกหรือพิมพ์เองได้)" required>
               <datalist id="yearList">
@@ -451,16 +449,16 @@
 
           <!-- SECTION 2: รูปภาพรถมอเตอร์ไซค์ (ใส่รูปเองได้สะดวกที่สุด) -->
           <div class="form-section-title">
-            <span>📷</span> 2. รูปภาพรถมอเตอร์ไซค์ (ใส่รูปเอง / ถ่ายรูปจากมือถือ)
+            <span>📷</span> รูปภาพรถมอเตอร์ไซค์
           </div>
 
           <div class="photo-manager-box" id="photoDropZone">
             <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">📸</div>
             <p style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); margin-bottom: 0.25rem;">
-              อัปโหลดรูปภาพรถคันนี้ (ถ่ายจากมือถือ หรือเลือกไฟล์ในเครื่อง)
+              อัปโหลดรูปภาพรถ
             </p>
             <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">
-              ลากไฟล์รูปมาวางที่นี่ หรือกดปุ่มด้านล่าง (เลือกได้หลายรูปพร้อมกัน / กด Ctrl+V วางรูปได้ทันที)
+              ลากไฟล์รูปวาง หรือกดปุ่มด้านล่าง
             </p>
 
             <input type="file" id="formPhotoUpload" multiple accept="image/*" style="display: none;">
@@ -471,7 +469,7 @@
               </button>
               <button type="button" class="header-btn btn-glass" style="color: var(--navy-900); border-color: #cbd5e1;"
                 onclick="promptImageUrl()">
-                🔗 วางลิงก์รูป (Image URL)
+                🔗 วางลิงก์รูป
               </button>
             </div>
 
@@ -484,18 +482,18 @@
 
           <!-- SECTION 3: ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่ -->
           <div class="form-section-title">
-            <span>🔢</span> 3. ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่ (Identification &amp; Location)
+            <span>🔢</span> ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่ &amp;
           </div>
 
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">ป้ายทะเบียนรถ <span class="req">*</span></label>
-              <input type="text" id="formLicensePlate" class="form-control"
-                placeholder="เช่น 1กข-8821, 2กภ 1213" required>
+              <input type="text" id="formLicensePlate" class="form-control" placeholder="เช่น 1กข-8821, 2กภ 1213"
+                required>
             </div>
 
             <div class="form-group">
-              <label class="form-label">จังหวัด (ตามป้ายทะเบียน) <span class="req">*</span></label>
+              <label class="form-label">จังหวัด <span class="req">*</span></label>
               <input type="text" id="formProvince" list="provinceList" class="form-control"
                 placeholder="เช่น กรุงเทพมหานคร, เชียงใหม่" required>
               <datalist id="provinceList">
@@ -579,7 +577,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">เลขคอ / เลขตัวถัง (Frame No.) <span class="req">*</span></label>
+              <label class="form-label">เลขตัวถัง <span class="req">*</span></label>
               <input type="text" id="formVin" class="form-control" placeholder="เช่น MLHNF080..." required
                 style="font-family: monospace; text-transform: uppercase;">
             </div>
@@ -587,26 +585,26 @@
 
           <div class="form-grid-3" style="margin-top: 0.85rem;">
             <div class="form-group">
-              <label class="form-label">เลขเครื่องยนต์ (Engine No.)</label>
+              <label class="form-label">เลขเครื่องยนต์ </label>
               <input type="text" id="formEngineNo" class="form-control" placeholder="เช่น NF08E-..."
                 style="font-family: monospace; text-transform: uppercase;">
             </div>
 
             <div class="form-group">
-              <label class="form-label">สีตัวรถ (Color) <span class="req">*</span></label>
+              <label class="form-label">สีตัวรถ <span class="req">*</span></label>
               <input type="text" id="formExteriorColor" class="form-control" placeholder="เช่น ขาวมุก, เทาด้าน, ดำเงา"
                 required>
             </div>
 
             <div class="form-group">
-              <label class="form-label">ประเภทเชื้อเพลิง (Fuel Type) <span class="req">*</span></label>
+              <label class="form-label">ประเภทเชื้อเพลิง <span class="req">*</span></label>
               <input type="text" id="formFuel" list="fuelDatalist" class="form-control"
                 placeholder="เช่น เบนซิน 95, แก๊สโซฮอล์ 95, ไฟฟ้า EV" required>
               <datalist id="fuelDatalist">
-                <option value="เบนซิน 95">
-                <option value="แก๊สโซฮอล์ 95">
-                <option value="แก๊สโซฮอล์ 91">
-                <option value="แก๊สโซฮอล์ E20">
+                <option value="เบนซิน ">
+                <option value="แก๊สโซฮอล์ ">
+                <option value="แก๊สโซฮอล์ ">
+                <option value="แก๊สโซฮอล์ ">
                 <option value="เบนซิน">
                 <option value="ไฟฟ้า EV">
               </datalist>
@@ -615,74 +613,179 @@
 
           <div class="form-grid-2" style="margin-top: 0.85rem;">
             <div class="form-group">
-              <label class="form-label">เลขไมล์ปัจจุบัน (km)</label>
-              <input type="number" id="formMileage" class="form-control" value="1200" min="0">
+              <label class="form-label">เลขไมล์ปัจจุบัน </label>
+              <input type="number" id="formMileage" class="form-control" value="1200" min="0" step="any">
             </div>
 
             <div class="form-group">
-              <label class="form-label">สาขา / จุดจอด / ตำแหน่งที่รถอยู่ <span class="req">*</span></label>
-              <input type="text" id="formBranch" list="branchDatalist" class="form-control"
-                placeholder="พิมพ์สาขา หรือพิมพ์ตำแหน่ง/โรงแรมที่รถอยู่ เช่น โรงแรมเซ็นทารา, นิมมาน ซ.9" required>
+              <label class="form-label">สาขา <span class="req">*</span></label>
+              <input type="text" id="formBranch" list="branchDatalist" class="form-control" placeholder="พิมพ์สาขา "
+                required>
               <datalist id="branchDatalist">
-                <option value="สาขาหลัก (โชว์รูมพระราม 9)">
-                <option value="สาขาเชียงใหม่ (นิมมาน/ท่าแพ)">
-                <option value="สาขาภูเก็ต (ป่าตอง/ในเมือง)">
-                <option value="สาขาพัทยา">
+                <option value="วีระมอเตอร์">
               </datalist>
               <span style="font-size: 0.72rem; color: var(--cyan-500); margin-top: 2px;">
-                💡 พิมพ์เพิ่มสาขาใหม่ หรือระบุตำแหน่ง/โรงแรมที่ลูกค้าเช่าไปได้ทันที
+                💡 เพิ่มสาขาใหม่
               </span>
             </div>
           </div>
 
-          <!-- SECTION 4: ราคาเช่าและราคาขาย -->
+          <!-- SECTION 4: ราคาเช่าและราคาขาย / ผ่อนชำระ -->
           <div class="form-section-title">
-            <span>💰</span> 4. อัตราค่าเช่า และราคาจำหน่าย (Pricing &amp; Rates)
+            <span>💰</span>อัตราค่าเช่า, ราคาจำหน่าย และข้อมูลผ่อนชำระ (Pricing &amp; Financing)
           </div>
 
+          <!-- 4.1 ข้อมูลการเช่า -->
+          <div
+            style="font-size: 0.78rem; font-weight: 700; color: var(--cyan-600); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🛵</span> อัตราค่าเช่า
+          </div>
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">ค่าเช่ารายวัน (บาท/วัน)</label>
               <input type="number" id="formRentDaily" class="form-control" placeholder="เช่น 350, 600, 1200" min="0"
-                step="50">
+                step="any">
             </div>
 
             <div class="form-group">
               <label class="form-label">ค่าเช่ารายเดือน (บาท/เดือน)</label>
               <input type="number" id="formRentMonthly" class="form-control" placeholder="เช่น 5500, 9000, 18000"
-                min="0" step="100">
+                min="0" step="any">
             </div>
 
             <div class="form-group">
-              <label class="form-label">เงินประกันมัดจำ (Deposit บาท)</label>
+              <label class="form-label">เงินประกันมัดจำ ( บาท)</label>
               <input type="number" id="formDeposit" class="form-control" placeholder="เช่น 1000, 3000, 5000" min="0"
-                step="500">
+                step="any">
             </div>
           </div>
 
-          <div class="form-grid-2" style="margin-top: 0.85rem;">
-            <div class="form-group">
-              <label class="form-label">ราคาขายสด (MSRP บาท)</label>
-              <input type="number" id="formPrice" class="form-control" placeholder="เช่น 95000, 179000" min="0"
-                step="500">
+          <!-- 4.2 ข้อมูลราคาขาย & ผ่อนชำระ (Easy Finance) - กรอกเองได้ -->
+          <div class="finance-input-card">
+            <div class="finance-card-header">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 1.15rem;">🏷️</span>
+                <span style="font-size: 0.88rem; font-weight: 700; color: var(--navy-900);">ราคาจำหน่าย และ แผนผ่อนชำระ
+                  (Easy Finance)</span>
+                <span class="badge-free-edit">✏️ </span>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">สถานะปัจจุบันของรถ <span class="req">*</span></label>
-              <select id="formStatus" class="form-control" required>
-                <option value="available">🟢 ว่าง</option>
-                <option value="rented">🔵 กำลังเช่า</option>
-                <option value="reserved">🟡 กำลังผ่อน</option>
-                <option value="check">🟣 รอตรวจเช็ค / ส่งคืน</option>
-                <option value="maintenance">🔴 ซ่อมบำรุง / ถ่ายน้ำมันเครื่อง</option>
-                <option value="sold">⚪ ขายแล้ว</option>
-              </select>
+            <!-- Row 1: ราคาขายสด & ราคาดาวน์ -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">
+                  ราคาขายสด (บาท) <span class="help-text-inline"></span>
+                </label>
+                <input type="number" id="formPrice" class="form-control font-weight-bold"
+                  placeholder="เช่น 61900, 93400, 179000" min="0" step="any">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  ราคาดาวน์ (บาท) <span class="help-text-inline"></span>
+                </label>
+                <input type="number" id="formDownPayment" class="form-control font-weight-bold"
+                  placeholder="เช่น 0 (ฟรีดาวน์), 5000, 15000" min="0" step="any">
+                <!-- Quick Preset Chips for Down Payment -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">ดาวน์:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyDownPaymentPreset(0)">ฟรีดาวน์ ฿0</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyDownPaymentPercent(10)">ดาวน์ 10%</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyDownPaymentPercent(15)">ดาวน์ 15%</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyDownPaymentPercent(20)">ดาวน์ 20%</button>
+                </div>
+              </div>
             </div>
+
+            <!-- Row 2: ผ่อนกี่งวด & ราคาผ่อนงวดละ -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">
+                  ผ่อนกี่งวด <span class="help-text-inline"></span>
+                </label>
+                <input type="number" id="formInstallmentTerm" list="installmentTermList"
+                  class="form-control font-weight-bold" placeholder="จำนวนงวด" min="1" max="120" step="any">
+                <datalist id="installmentTermList">
+                  <option value="6">6 งวด </option>
+                  <option value="12">12 งวด </option>
+                  <option value="18">18 งวด </option>
+                  <option value="24">24 งวด </option>
+                  <option value="30">30 งวด </option>
+                  <option value="36">36 งวด </option>
+                  <option value="48">48 งวด </option>
+                  <option value="60">60 งวด </option>
+                </datalist>
+                <!-- Quick Preset Chips for Terms -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">งวด:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(6)">6 งวด </button>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(12)">12 งวด </button>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(18)">18 งวด </button>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(24)">24 งวด </button>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(36)">36 งวด </button>
+                  <button type="button" class="quick-chip-btn" onclick="applyTermPreset(48)">48 งวด </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  ผ่อนงวดละ (บาท) <span class="help-text-inline"></span>
+                </label>
+                <div style="display: flex; gap: 0.4rem;">
+                  <input type="number" id="formInstallmentAmount" class="form-control font-weight-bold"
+                    style="color: #059669; font-size: 1rem;" placeholder="ราคางวดละ" min="0" step="any">
+                  <button type="button" class="btn-calc-auto" onclick="calculateSuggestedInstallment()"
+                    title="คลิกเพื่อให้ระบบช่วยคำนวณค่างวดแนะนำให้อัตโนมัติ (สามารถแก้ไขตัวเลขเองต่อได้)">
+                    ⚡ คำนวณ
+                  </button>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+
+                </span>
+              </div>
+            </div>
+
+            <!-- Live Calculation Preview Card -->
+            <div id="financeSummaryBox" class="finance-summary-box">
+              <div class="summary-col">
+                <span class="summary-lbl">ยอดจัดไฟแนนซ์:</span>
+                <span class="summary-val" id="previewFinancedAmount">฿0</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">อัตราดอกเบี้ย:</span>
+                <span class="summary-val" id="previewInterestRate" style="color: #b45309;">-</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ค่างวด x จำนวนงวด:</span>
+                <span class="summary-val" id="previewMonthlySummary">-</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ยอดผ่อนรวมสุทธิ (ดาวน์+ค่างวด):</span>
+                <span class="summary-val summary-highlight" id="previewTotalPayable">฿0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- สถานะรถ -->
+          <div class="form-group" style="margin-top: 0.85rem;">
+            <label class="form-label">สถานะปัจจุบันของรถ <span class="req">*</span></label>
+            <select id="formStatus" class="form-control" required>
+              <option value="available">🟢 ว่าง </option>
+              <option value="rented">🔵 กำลังเช่า </option>
+              <option value="reserved">🟡 กำลังผ่อน </option>
+              <option value="check">🟣 รอตรวจเช็ค / ส่งคืน </option>
+              <option value="maintenance">🔴 ซ่อมบำรุง </option>
+              <option value="sold">⚪ ขายแล้ว </option>
+            </select>
           </div>
 
           <!-- SECTION 5: ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันสำคัญ -->
           <div class="form-section-title">
-            <span>👤</span> 5. ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันหมดอายุ พ.ร.บ.
+            <span>👤</span>ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันหมดอายุ พ.ร.บ.
           </div>
 
           <div class="form-grid-3">
@@ -697,41 +800,41 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">เลขบัตร ปชช. / Passport No.</label>
+              <label class="form-label">เลขบัตร ปชช.</label>
               <input type="text" id="formCustomerPassport" class="form-control" placeholder="เลขเอกสารยืนยันตัวตน">
             </div>
           </div>
 
           <div class="form-grid-3" style="margin-top: 0.85rem;">
             <div class="form-group">
-              <label class="form-label">วันที่เริ่มเช่า (Rental Start)</label>
+              <label class="form-label">วันที่เริ่มเช่า </label>
               <input type="date" id="formRentalStart" class="form-control">
             </div>
 
             <div class="form-group">
-              <label class="form-label">วันที่คืนรถ (Rental End)</label>
+              <label class="form-label">วันที่คืนรถ </label>
               <input type="date" id="formRentalEnd" class="form-control">
             </div>
 
             <div class="form-group">
-              <label class="form-label">วันหมดอายุภาษี / พ.ร.บ. (Tax Due)</label>
+              <label class="form-label">วันหมดอายุภาษี / พ.ร.บ. </label>
               <input type="date" id="formTaxExpiry" class="form-control">
             </div>
           </div>
 
           <!-- SECTION 6: อุปกรณ์แถมให้ & ตรวจเช็คสภาพ -->
           <div class="form-section-title">
-            <span>🪖</span> 6. อุปกรณ์แถมให้ &amp; ตรวจเช็คสภาพมอเตอร์ไซค์
+            <span>🪖</span>อุปกรณ์แถมให้ &amp; ตรวจเช็คสภาพมอเตอร์ไซค์
           </div>
 
           <div class="checklist-grid">
             <label class="check-item">
               <input type="checkbox" id="accHelmet" checked>
-              <span>หมวกกันน็อค 2 ใบ (ความสะอาดพร้อมใช้งาน)</span>
+              <span>หมวกกันน็อค 2 ใบ </span>
             </label>
             <label class="check-item">
               <input type="checkbox" id="accPhoneMount" checked>
-              <span>ที่จับโทรศัพท์มือถือกันสะเทือน (Phone Mount)</span>
+              <span>ที่จับโทรศัพท์มือถือกันสะเทือน </span>
             </label>
             <label class="check-item">
               <input type="checkbox" id="accSmartKey" checked>
@@ -739,7 +842,7 @@
             </label>
             <label class="check-item">
               <input type="checkbox" id="accTopBox">
-              <span>กล่องใส่ของท้ายรถ (Top Box)</span>
+              <span>กล่องใส่ของท้ายรถ </span>
             </label>
             <label class="check-item">
               <input type="checkbox" id="chkOil" checked>
@@ -751,7 +854,7 @@
             </label>
             <label class="check-item">
               <input type="checkbox" id="chkTyres" checked>
-              <span>ตรวจดอกยางและลมยางมาตรฐาน (หน้า 29 / หลัง 33 psi)</span>
+              <span>ตรวจดอกยางและลมยางมาตรฐาน</span>
             </label>
             <label class="check-item">
               <input type="checkbox" id="chkClean" checked>
@@ -760,33 +863,33 @@
           </div>
 
           <div class="form-group" style="margin-top: 1.25rem;">
-            <label class="form-label">หมายเหตุเพิ่มเติม (Notes / Service Records)</label>
+            <label class="form-label">หมายเหตุเพิ่มเติม </label>
             <textarea id="formRemarks" class="form-control" rows="2"
               placeholder="เช่น เพิ่งเปลี่ยนถ่ายน้ำมันเครื่องสังเคราะห์แท้ 100%, มีรอยขนแมวเล็กน้อยที่บังโคลนหน้า..."></textarea>
           </div>
 
           <!-- SECTION 7: ข้อมูล GPS ติดตามรถ (GPSDD Tracking) -->
           <div class="form-section-title" style="margin-top: 1.5rem;">
-            <span>🛰️</span> 7. ข้อมูล GPS ติดตามรถ (GPSDD Tracking &amp; Device)
+            <span>🛰️</span>ข้อมูล GPS ติดตามรถ &amp;
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">เลข IMEI / Device ID ของกล่อง GPSDD</label>
+              <label class="form-label">เลข IMEI / Device ID </label>
               <div style="display: flex; gap: 0.5rem;">
                 <input type="text" id="formGpsImei" class="form-control"
                   placeholder="เช่น 868019284019284 (เลข 10-15 หลัก)" style="font-family: monospace;">
                 <button type="button" class="header-btn btn-glass"
                   style="white-space: nowrap; padding: 0.4rem 0.75rem; color: var(--navy-900);"
-                  onclick="copyInputVal('formGpsImei')" title="คัดลอกเลข IMEI">📋 ก็อป</button>
+                  onclick="copyInputVal('formGpsImei')" title="คัดลอกเลข IMEI">📋 คัดลอก</button>
               </div>
               <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-                💡 ดูเลข IMEI 15 หลักบนกล่อง GPS หรือหลังเครื่อง / ในแอป ใช้ระบุคันและล็อกอิน
+                💡 ดูเลข IMEI
               </span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">ลิงก์ติดตามรถสด (GPSDD Tracking URL / Share Link)</label>
+              <label class="form-label">ลิงก์ติดตามรถสด </label>
               <div style="display: flex; gap: 0.5rem;">
                 <input type="url" id="formGpsUrl" class="form-control"
                   placeholder="เช่น https://www.gpsdd.com หรือลิงก์แชร์จากแอป">
@@ -794,8 +897,7 @@
                   onclick="testGpsUrl()" title="ทดสอบเปิดลิงก์">🔗 ทดสอบ</button>
               </div>
               <span style="font-size: 0.72rem; color: var(--cyan-600); margin-top: 2px;">
-                💡 วิธีเอาลิงก์แชร์: ในแอป GPSDD กดรูปรถ &rarr; "แชร์ตำแหน่ง" &rarr; คัดลอกลิงก์มาวาง หรือใส่เว็บ
-                https://www.gpsdd.com
+                &rarr; &rarr;
               </span>
             </div>
           </div>
@@ -805,7 +907,7 @@
         <div class="modal-footer">
           <button type="button" class="header-btn btn-glass" data-close-modal="carFormModal">ยกเลิก</button>
           <button type="submit" class="header-btn btn-gold" id="btnSubmitCar">
-            💾 บันทึกข้อมูลมอเตอร์ไซค์
+            บันทึกข้อมูล
           </button>
         </div>
       </form>
@@ -829,10 +931,10 @@
 
       <div class="modal-footer">
         <button type="button" class="header-btn btn-glass" onclick="window.print()">
-          🖨️ พิมพ์ใบสัญญาเช่า / สต็อคการ์ด (Print)
+          พิมพ์ใบสัญญาเช่า
         </button>
         <button type="button" class="header-btn btn-cyan" id="btnEditFromDetail">
-          ✏️ แก้ไขข้อมูล
+          แก้ไขข้อมูล
         </button>
         <button type="button" class="header-btn btn-gold" data-close-modal="carDetailModal">
           ปิดหน้าต่าง
@@ -859,29 +961,29 @@
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
             <h4 style="color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-              <span>☁️</span> ซิงค์ข้อมูลคลาวด์ Firebase แบบเรียลไทม์
+              <span>☁️</span> ซิงค์ข้อมูล
             </h4>
             <span id="dataModalFirebaseBadge" class="gold-authorized-pill" style="font-size: 0.72rem;">ออฟไลน์</span>
           </div>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            แชร์สต็อครถให้พนักงานทุกคนเข้าถึงและเห็นข้อมูลตรงกันทันที ไม่ว่าจะเปิดจากคอมพิวเตอร์ แท็บเล็ต หรือมือถือ
+
           </p>
           <button type="button" class="header-btn btn-cyan" id="btnQuickOpenFirebaseSettings">
-            ⚙️ เปิดหน้าต่างตั้งค่า Firebase Cloud Sync
+            ⚙️ เปิดหน้าต่างตั้งค่า
           </button>
         </div>
 
         <div style="margin-bottom: 1.5rem;">
-          <h4 style="margin-bottom: 0.5rem; color: var(--navy-900);">1. ส่งออกรายงาน (Export)</h4>
+          <h4 style="margin-bottom: 0.5rem; color: var(--navy-900);">Export</h4>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            ส่งออกข้อมูลรถมอเตอร์ไซค์ทั้งหมดเป็นไฟล์ Excel CSV (รองรับภาษาไทย) หรือไฟล์ JSON สำรองฐานข้อมูล
+
           </p>
           <div style="display: flex; gap: 0.75rem;">
             <button type="button" class="header-btn btn-gold" id="btnExportCsv">
-              📥 ส่งออก Excel (CSV)
+              Excel (CSV)
             </button>
             <button type="button" class="header-btn btn-cyan" id="btnExportJson">
-              💾 สำรองข้อมูล (JSON Backup)
+              สำรองข้อมูล
             </button>
           </div>
         </div>
@@ -889,9 +991,9 @@
         <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 1.25rem 0;">
 
         <div style="margin-bottom: 1.5rem;">
-          <h4 style="margin-bottom: 0.5rem; color: var(--navy-900);">2. นำเข้าข้อมูลสำรอง (Restore JSON)</h4>
+          <h4 style="margin-bottom: 0.5rem; color: var(--navy-900);"> นำเข้าข้อมูลสำรอง </h4>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            กู้คืนข้อมูลสต็อคมอเตอร์ไซค์จากไฟล์ JSON ที่เคยดาวน์โหลดไว้
+
           </p>
           <input type="file" id="importJsonInput" accept=".json" style="display: none;">
           <button type="button" class="header-btn btn-glass"
@@ -903,13 +1005,13 @@
         <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 1.25rem 0;">
 
         <div>
-          <h4 style="margin-bottom: 0.5rem; color: #ef4444;">3. รีเซ็ตข้อมูลฟลีทตัวอย่าง (Reset Demo Fleet)</h4>
+          <h4 style="margin-bottom: 0.5rem; color: #ef4444;">รีเซ็ตข้อมูลฟลีทตัวอย่าง</h4>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            โหลดชุดข้อมูลมอเตอร์ไซค์ Honda ยอดนิยม (Forza, PCX, ADV, Giorno+, NX500, Wave) ทั้งขายและเช่าใหม่อีกครั้ง
+
           </p>
           <button type="button" class="header-btn"
             style="background: #fee2e2; color: #991b1b; border: 1px solid #f87171;" id="btnResetDemoData">
-            ⚠️ โหลดข้อมูลมอเตอร์ไซค์ตัวอย่างใหม่ (Reset)
+            ⚠️ โหลดข้อมูล
           </button>
         </div>
       </div>
@@ -926,7 +1028,7 @@
       <div class="modal-header">
         <div class="modal-title-wrap">
           <span style="font-size: 1.3rem;">☁️</span>
-          <span class="modal-title">ตั้งค่าการซิงค์ข้อมูลคลาวด์เรียลไทม์ (Firebase Cloud Sync)</span>
+          <span class="modal-title">(Firebase Cloud Sync)</span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="firebaseModal">&times;</button>
       </div>
@@ -1066,7 +1168,7 @@
         <details class="fb-guide-box">
           <summary
             style="font-weight: 700; color: var(--navy-900); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-            <span>📖</span> วิธีสร้างและตั้งค่า Firebase ฟรี (ทำครั้งเดียวใช้งานได้ตลอด)
+            <span>📖</span>
           </summary>
           <div style="margin-top: 1rem;">
             <div class="fb-guide-step">
