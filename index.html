@@ -66,9 +66,14 @@
       <div class="header-actions">
         <!-- Branch / Shop Location -->
         <div class="branch-select-box" title="เลือกสาขา / จุดบริการ">
-          <span>🏪</span>
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+            <path d="M2 7h20" />
+          </svg>
           <select id="headerBranchSelect">
-            <option value="ALL">สาขา</option>
+            <option value="ALL">สาขาทั้งหมด</option>
             <option value="วีระมอเตอร์">วีระมอเตอร์</option>
           </select>
         </div>
@@ -77,17 +82,27 @@
         <button id="btnOpenFirebaseModal" class="header-btn btn-firebase-status status-offline"
           title="ตั้งค่าและสถานะ Firebase Realtime Cloud Sync">
           <span class="firebase-pulse-dot"></span>
-          <span id="firebaseStatusText">☁️ Firebase: รอเชื่อมต่อ</span>
+          <span id="firebaseStatusText"><svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+            </svg> Firebase: รอเชื่อมต่อ</span>
         </button>
 
         <!-- Add Motorcycle Button -->
         <button id="btnOpenAddModal" class="header-btn btn-gold" title="คีย์ข้อมูลมอเตอร์ไซค์คันใหม่เข้าสต็อค">
-          <span style="font-size: 1.1rem; font-weight: 800;">+</span> คีย์รับรถเข้าสต็อค
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" x2="12" y1="5" y2="19" />
+            <line x1="5" x2="19" y1="12" y2="12" />
+          </svg> คีย์รับรถเข้าสต็อค
         </button>
 
         <!-- Export & Backup Button -->
         <button id="btnOpenDataModal" class="header-btn btn-glass" title="นำเข้า / ส่งออก ข้อมูล">
-          <span>📊</span> จัดการข้อมูล / รายงาน
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" x2="18" y1="20" y2="10" />
+            <line x1="12" x2="12" y1="20" y2="4" />
+            <line x1="6" x2="6" y1="20" y2="14" />
+          </svg> จัดการข้อมูล / รายงาน
         </button>
       </div>
     </div>
@@ -99,47 +114,75 @@
     <!-- KPI STATS CARDS -->
     <section class="kpi-grid">
       <div class="kpi-card kpi-primary">
-        <div class="kpi-icon-wrap icon-primary">🏍️</div>
+        <div class="kpi-icon-wrap icon-primary">
+          <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="5" cy="16" r="3" />
+            <circle cx="19" cy="16" r="3" />
+            <path d="M12 17h-2.5l-2-7h5.5l2 4h4" />
+            <path d="M15 6h2l2 4" />
+          </svg>
+        </div>
         <div class="kpi-content">
           <span class="kpi-title">รถมอเตอร์ไซค์ทั้งหมด</span>
           <span class="kpi-value" id="kpiTotalUnits">0</span>
-          <span class="kpi-sub">&amp; </span>
+          <span class="kpi-sub">สต็อคพร้อมหมุนเวียน</span>
         </div>
       </div>
 
       <div class="kpi-card kpi-available">
-        <div class="kpi-icon-wrap icon-available">🟢</div>
+        <div class="kpi-icon-wrap icon-available">
+          <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
         <div class="kpi-content">
-          <span class="kpi-title">ว่างพร้อมบริการ </span>
+          <span class="kpi-title">ว่างพร้อมบริการ</span>
           <span class="kpi-value" id="kpiAvailableUnits">0</span>
-          <span class="kpi-sub"></span>
+          <span class="kpi-sub">พร้อมส่งมอบทันที</span>
         </div>
       </div>
 
       <div class="kpi-card kpi-rented">
-        <div class="kpi-icon-wrap icon-rented">🛵</div>
+        <div class="kpi-icon-wrap icon-rented">
+          <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="7.5" cy="15.5" r="4.5" />
+            <path d="m11 12 8-8h3v3l-2 2v2l-2 2z" />
+          </svg>
+        </div>
         <div class="kpi-content">
-          <span class="kpi-title">กำลังเช่า </span>
+          <span class="kpi-title">กำลังปล่อยเช่า</span>
           <span class="kpi-value" id="kpiRentedUnits">0</span>
-          <span class="kpi-sub"></span>
+          <span class="kpi-sub">อยู่ระหว่างสัญญา</span>
         </div>
       </div>
 
       <div class="kpi-card kpi-revenue">
-        <div class="kpi-icon-wrap icon-revenue">💰</div>
+        <div class="kpi-icon-wrap icon-revenue">
+          <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="20" height="14" x="2" y="5" rx="2" />
+            <line x1="2" x2="22" y1="10" y2="10" />
+            <circle cx="16" cy="15" r="1.5" />
+          </svg>
+        </div>
         <div class="kpi-content">
           <span class="kpi-title">ยอดเช่ารวม / วัน</span>
           <span class="kpi-value" id="kpiRentalRevenue">฿0 /วัน</span>
-          <span class="kpi-sub"></span>
+          <span class="kpi-sub">รายได้หมุนเวียนต่อวัน</span>
         </div>
       </div>
 
       <div class="kpi-card kpi-service">
-        <div class="kpi-icon-wrap icon-service">🔧</div>
+        <div class="kpi-icon-wrap icon-service">
+          <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+        </div>
         <div class="kpi-content">
           <span class="kpi-title">ตรวจเช็ค / ถ่ายน้ำมันเครื่อง</span>
           <span class="kpi-value" id="kpiServiceUnits">0</span>
-          <span class="kpi-sub"> </span>
+          <span class="kpi-sub">รอบบำรุงรักษา</span>
         </div>
       </div>
     </section>
@@ -147,15 +190,28 @@
     <!-- BUSINESS MODE TABS (ALL / RENT ONLY / SALE ONLY) -->
     <section class="mode-nav-tabs">
       <button class="mode-tab-btn active" data-mode="ALL" id="tabModeAll">
-        <span>🏍️ รถทั้งหมดในร้าน</span>
+        <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+        <span>รถทั้งหมด</span>
         <span class="tab-count" id="countTabAll">0</span>
       </button>
       <button class="mode-tab-btn" data-mode="RENT" id="tabModeRent">
-        <span>🛵 สำหรับเช่า </span>
+        <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="7.5" cy="15.5" r="4.5" />
+          <path d="m11 12 8-8h3v3l-2 2v2l-2 2z" />
+        </svg>
+        <span>รถเช่า</span>
         <span class="tab-count" id="countTabRent">0</span>
       </button>
       <button class="mode-tab-btn" data-mode="SALE" id="tabModeSale">
-        <span>🏷️ สำหรับขาย </span>
+        <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+          <circle cx="7" cy="7" r="1.5" />
+        </svg>
+        <span>รถขาย</span>
         <span class="tab-count" id="countTabSale">0</span>
       </button>
     </section>
@@ -164,29 +220,55 @@
     <section class="toolbar-card">
       <div class="toolbar-header">
         <div class="toolbar-title">
-          <span>🔍 ค้นหา</span>
+          <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <span>ค้นหา &amp; คัดกรองรถ</span>
           <span class="toolbar-badge" id="filteredCountBadge">แสดง 0 คัน</span>
         </div>
 
         <!-- View Switcher -->
         <div class="view-mode-group">
           <button id="viewGridBtn" class="view-btn active" title="มุมมองโชว์รูมการ์ด (Grid View)">
-            <span>🖼️</span> การ์ดรถ
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="7" height="7" x="3" y="3" rx="1" />
+              <rect width="7" height="7" x="14" y="3" rx="1" />
+              <rect width="7" height="7" x="14" y="14" rx="1" />
+              <rect width="7" height="7" x="3" y="14" rx="1" />
+            </svg>
+            <span>การ์ดรถ</span>
           </button>
           <button id="viewTableBtn" class="view-btn" title="มุมมองตารางรายการ (Table View)">
-            <span>📋</span> ตารางข้อมูล
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3v18" />
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M3 15h18" />
+            </svg>
+            <span>ตารางข้อมูล</span>
           </button>
           <button id="viewKanbanBtn" class="view-btn" title="มุมมองสถานะแบบไปป์ไลน์ (Kanban View)">
-            <span>📊</span> สถานะไปป์ไลน์
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="6" height="14" x="3" y="3" rx="1" />
+              <rect width="6" height="18" x="9" y="3" rx="1" />
+              <rect width="6" height="10" x="15" y="3" rx="1" />
+            </svg>
+            <span>สถานะไปป์ไลน์</span>
           </button>
         </div>
       </div>
 
-      <!-- Controls Row -->
+      <!-- Controls Row (Keep positions intact) -->
       <div class="filter-controls-row">
         <!-- Search Input -->
         <div class="search-box-wrap">
-          <span class="search-icon">🔎</span>
+          <span class="search-icon">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </span>
           <input type="text" id="searchInput" class="search-input"
             placeholder="ค้นหา ทะเบียน, รุ่นรถ, เลขคอรถ, เลข IMEI GPSDD, ชื่อผู้เช่า/ผู้ซื้อ, เบอร์โทร...">
         </div>
@@ -208,12 +290,12 @@
         <!-- Filter: Status -->
         <select id="filterStatus" class="filter-select">
           <option value="ALL">ทุกสถานะ</option>
-          <option value="available">🟢 ว่าง</option>
-          <option value="rented">🔵 กำลังปล่อยเช่า </option>
-          <option value="reserved">🟡 กำลังผ่อน </option>
-          <option value="check">🟣 รอตรวจเช็ค / ส่งคืน </option>
-          <option value="maintenance">🔴 ซ่อมบำรุง / ถ่ายน้ำมันเครื่อง</option>
-          <option value="sold">⚪ ขายแล้ว </option>
+          <option value="available">&#x25CF; ว่างพร้อมบริการ</option>
+          <option value="rented">&#x25CF; กำลังปล่อยเช่า</option>
+          <option value="reserved">&#x25CF; กำลังผ่อน / จอง</option>
+          <option value="check">&#x25CF; ไม่พบรถ</option>
+          <option value="maintenance">&#x25CF; ซ่อมบำรุง / ถ่ายน้ำมัน</option>
+          <option value="sold">&#x25CF; ขายแล้ว</option>
         </select>
 
         <!-- Filter: CC -->
@@ -240,7 +322,11 @@
 
         <!-- Reset Button -->
         <button id="btnResetFilters" class="btn-reset-filter" title="ล้างค่าการค้นหา">
-          🔄 ล้างตัวกรอง
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          <span>ล้างตัวกรอง</span>
         </button>
       </div>
     </section>
@@ -254,9 +340,18 @@
       </div>
       <div id="gridEmptyState" class="empty-state"
         style="display: none; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🛵</div>
-        <h3>ไม่พบมอเตอร์ไซค์ที่ตรงกับเงื่อนไขการค้นหา</h3>
-        <p>ลองปรับคำค้นหา หรือกด "ล้างตัวกรอง" เพื่อแสดงรถทั้งหมด</p>
+        <div class="empty-state-icon"
+          style="width: 72px; height: 72px; margin: 0 auto 1.25rem; border-radius: 50%; background: linear-gradient(135deg, #eef5ff, #e0f2fe); display: flex; align-items: center; justify-content: center; color: var(--cyan-500); border: 1px solid rgba(0, 153, 229, 0.2); box-shadow: 0 8px 24px rgba(0, 153, 229, 0.12);">
+          <svg class="ui-icon ui-icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="5" cy="16" r="3" />
+            <circle cx="19" cy="16" r="3" />
+            <path d="M12 17h-2.5l-2-7h5.5l2 4h4" />
+            <path d="M15 6h2l2 4" />
+          </svg>
+        </div>
+        <h3 style="font-family: var(--font-heading); color: var(--navy-900); font-size: 1.2rem; margin-bottom: 0.5rem;">
+          ไม่พบมอเตอร์ไซค์ที่ตรงกับเงื่อนไขการค้นหา</h3>
+        <p style="font-size: 0.88rem;">ลองปรับคำค้นหา หรือกด "ล้างตัวกรอง" เพื่อแสดงรถทั้งหมด</p>
       </div>
     </section>
 
@@ -292,7 +387,8 @@
         <!-- Col: Available -->
         <div class="kanban-col col-available">
           <div class="kanban-col-header">
-            <span class="kanban-col-title">🟢 พร้อมบริการ</span>
+            <span class="kanban-col-title"><span class="status-dot"
+                style="background:#10b981; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px;"></span>พร้อมบริการ</span>
             <span id="kanbanCountAvailable" class="kanban-count">0</span>
           </div>
           <div id="kanbanListAvailable" class="kanban-card-list"></div>
@@ -301,7 +397,8 @@
         <!-- Col: On Rent -->
         <div class="kanban-col col-rented">
           <div class="kanban-col-header">
-            <span class="kanban-col-title">🔵 กำลังเช่าอยู่</span>
+            <span class="kanban-col-title"><span class="status-dot"
+                style="background:#0284c7; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px;"></span>กำลังเช่าอยู่</span>
             <span id="kanbanCountRented" class="kanban-count">0</span>
           </div>
           <div id="kanbanListRented" class="kanban-card-list"></div>
@@ -310,7 +407,9 @@
         <!-- Col: Reserved -->
         <div class="kanban-col col-reserved">
           <div class="kanban-col-header">
-            <span class="kanban-col-title">🟡 ติดจอง</span>
+            <span class="kanban-col-title"><span class="status-dot"
+                style="background:#f59e0b; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px;"></span>กำลังผ่อน
+              / ติดจอง</span>
             <span id="kanbanCountReserved" class="kanban-count">0</span>
           </div>
           <div id="kanbanListReserved" class="kanban-card-list"></div>
@@ -319,7 +418,8 @@
         <!-- Col: Return/Check -->
         <div class="kanban-col col-check">
           <div class="kanban-col-header">
-            <span class="kanban-col-title">🟣 รอตรวจเช็ค/ส่งคืน</span>
+            <span class="kanban-col-title"><span class="status-dot"
+                style="background:#8b5cf6; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px;"></span>ไม่พบรถ</span>
             <span id="kanbanCountCheck" class="kanban-count">0</span>
           </div>
           <div id="kanbanListCheck" class="kanban-card-list"></div>
@@ -328,7 +428,8 @@
         <!-- Col: Maintenance -->
         <div class="kanban-col col-maintenance">
           <div class="kanban-col-header">
-            <span class="kanban-col-title">🔴 ซ่อม/เปลี่ยนน้ำมัน</span>
+            <span class="kanban-col-title"><span class="status-dot"
+                style="background:#ef4444; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px;"></span>ซ่อม/เปลี่ยนน้ำมัน</span>
             <span id="kanbanCountMaintenance" class="kanban-count">0</span>
           </div>
           <div id="kanbanListMaintenance" class="kanban-card-list"></div>
@@ -343,8 +444,13 @@
     <div class="modal-dialog">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span style="font-size: 1.3rem;">🏍️</span>
-          <span id="carModalTitle" class="modal-title">เพิ่มรถ </span>
+          <svg class="ui-icon ui-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="5" cy="16" r="3" />
+            <circle cx="19" cy="16" r="3" />
+            <path d="M12 17h-2.5l-2-7h5.5l2 4h4" />
+            <path d="M15 6h2l2 4" />
+          </svg>
+          <span id="carModalTitle" class="modal-title">เพิ่มข้อมูลรถเข้าสต็อค</span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="carFormModal">&times;</button>
       </div>
@@ -355,16 +461,21 @@
 
           <!-- SECTION 1: วัตถุประสงค์และข้อมูลพื้นฐาน -->
           <div class="form-section-title">
-            <span>⚙️</span> ข้อมูลมอเตอร์ไซค์
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            <span>ข้อมูลมอเตอร์ไซค์</span>
           </div>
 
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">วัตถุประสงค์ของคันนี้ <span class="req">*</span></label>
               <select id="formPurpose" class="form-control" required>
-                <option value="both" selected>🛵🏷️ ทั้งขายและเช่า &amp; </option>
-                <option value="rent">🛵 เช่า </option>
-                <option value="sale">🏷️ ขาย </option>
+                <option value="both" selected>ทั้งขายและเช่า</option>
+                <option value="rent">สำหรับเช่า</option>
+                <option value="sale">สำหรับขาย</option>
               </select>
             </div>
 
@@ -449,11 +560,21 @@
 
           <!-- SECTION 2: รูปภาพรถมอเตอร์ไซค์ (ใส่รูปเองได้สะดวกที่สุด) -->
           <div class="form-section-title">
-            <span>📷</span> รูปภาพรถมอเตอร์ไซค์
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span>รูปภาพรถมอเตอร์ไซค์</span>
           </div>
 
           <div class="photo-manager-box" id="photoDropZone">
-            <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">📸</div>
+            <div
+              style="width: 52px; height: 52px; margin: 0 auto 0.65rem; border-radius: 50%; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: var(--cyan-500);">
+              <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </div>
             <p style="font-size: 0.95rem; font-weight: 700; color: var(--navy-900); margin-bottom: 0.25rem;">
               อัปโหลดรูปภาพรถ
             </p>
@@ -465,11 +586,16 @@
             <div style="display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap;">
               <button type="button" class="header-btn btn-cyan"
                 onclick="document.getElementById('formPhotoUpload').click();">
-                📁 เลือกรูปภาพจากเครื่อง / แกลเลอรี่มือถือ
+                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg> เลือกรูปภาพจากเครื่อง
               </button>
               <button type="button" class="header-btn btn-glass" style="color: var(--navy-900); border-color: #cbd5e1;"
                 onclick="promptImageUrl()">
-                🔗 วางลิงก์รูป
+                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg> วางลิงก์รูป
               </button>
             </div>
 
@@ -482,7 +608,14 @@
 
           <!-- SECTION 3: ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่ -->
           <div class="form-section-title">
-            <span>🔢</span> ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่ &amp;
+            <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <line x1="7" y1="8" x2="17" y2="8" />
+              <line x1="7" y1="12" x2="17" y2="12" />
+              <line x1="7" y1="16" x2="13" y2="16" />
+            </svg>
+            ทะเบียน เลขคอรถ และตำแหน่งที่รถอยู่
           </div>
 
           <div class="form-grid-3">
@@ -624,21 +757,36 @@
               <datalist id="branchDatalist">
                 <option value="วีระมอเตอร์">
               </datalist>
-              <span style="font-size: 0.72rem; color: var(--cyan-500); margin-top: 2px;">
-                💡 เพิ่มสาขาใหม่
+              <span
+                style="font-size: 0.72rem; color: var(--cyan-600); margin-top: 2px; display: inline-flex; align-items: center; gap: 3px;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg> พิมพ์เพื่อเพิ่มสาขาใหม่ได้ทันที
               </span>
             </div>
           </div>
 
           <!-- SECTION 4: ราคาเช่าและราคาขาย / ผ่อนชำระ -->
           <div class="form-section-title">
-            <span>💰</span>อัตราค่าเช่า, ราคาจำหน่าย และข้อมูลผ่อนชำระ (Pricing &amp; Financing)
+            <svg class="ui-icon ui-icon-md" style="color: var(--gold-600);" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            อัตราค่าเช่า, ราคาจำหน่าย และข้อมูลผ่อนชำระ (Pricing &amp; Financing)
           </div>
 
           <!-- 4.1 ข้อมูลการเช่า -->
           <div
-            style="font-size: 0.78rem; font-weight: 700; color: var(--cyan-600); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem;">
-            <span>🛵</span> อัตราค่าเช่า
+            style="font-size: 0.78rem; font-weight: 700; color: var(--cyan-600); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.45rem;">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="5.5" cy="17.5" r="3.5" />
+              <circle cx="18.5" cy="17.5" r="3.5" />
+              <path d="M15 6h-5l-3 6.5h11z" />
+              <path d="M9 17.5h6" />
+            </svg>
+            อัตราค่าเช่า
           </div>
           <div class="form-grid-3">
             <div class="form-group">
@@ -664,10 +812,18 @@
           <div class="finance-input-card">
             <div class="finance-card-header">
               <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <span style="font-size: 1.15rem;">🏷️</span>
+                <svg class="ui-icon ui-icon-md" style="color: var(--gold-600);" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
                 <span style="font-size: 0.88rem; font-weight: 700; color: var(--navy-900);">ราคาจำหน่าย และ แผนผ่อนชำระ
                   (Easy Finance)</span>
-                <span class="badge-free-edit">✏️ </span>
+                <span class="badge-free-edit"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg> ปรับแต่งได้</span>
               </div>
             </div>
 
@@ -737,7 +893,9 @@
                     style="color: #059669; font-size: 1rem;" placeholder="ราคางวดละ" min="0" step="any">
                   <button type="button" class="btn-calc-auto" onclick="calculateSuggestedInstallment()"
                     title="คลิกเพื่อให้ระบบช่วยคำนวณค่างวดแนะนำให้อัตโนมัติ (สามารถแก้ไขตัวเลขเองต่อได้)">
-                    ⚡ คำนวณ
+                    <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg> คำนวณ
                   </button>
                 </div>
                 <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
@@ -774,18 +932,23 @@
           <div class="form-group" style="margin-top: 0.85rem;">
             <label class="form-label">สถานะปัจจุบันของรถ <span class="req">*</span></label>
             <select id="formStatus" class="form-control" required>
-              <option value="available">🟢 ว่าง </option>
-              <option value="rented">🔵 กำลังเช่า </option>
-              <option value="reserved">🟡 กำลังผ่อน </option>
-              <option value="check">🟣 รอตรวจเช็ค / ส่งคืน </option>
-              <option value="maintenance">🔴 ซ่อมบำรุง </option>
-              <option value="sold">⚪ ขายแล้ว </option>
+              <option value="available">● ว่างพร้อมบริการ</option>
+              <option value="rented">● กำลังเช่า</option>
+              <option value="reserved">● กำลังผ่อน (Easy Finance)</option>
+              <option value="check">● ไม่พบรถ</option>
+              <option value="maintenance">● ซ่อมบำรุง / ถ่ายน้ำมัน</option>
+              <option value="sold">● ขายแล้ว</option>
             </select>
           </div>
 
           <!-- SECTION 5: ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันสำคัญ -->
           <div class="form-section-title">
-            <span>👤</span>ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันหมดอายุ พ.ร.บ.
+            <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            ข้อมูลผู้เช่า/ผู้ซื้อปัจจุบัน และวันหมดอายุ พ.ร.บ.
           </div>
 
           <div class="form-grid-3">
@@ -824,7 +987,11 @@
 
           <!-- SECTION 6: อุปกรณ์แถมให้ & ตรวจเช็คสภาพ -->
           <div class="form-section-title">
-            <span>🪖</span>อุปกรณ์แถมให้ &amp; ตรวจเช็คสภาพมอเตอร์ไซค์
+            <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            อุปกรณ์แถมให้ &amp; ตรวจเช็คสภาพมอเตอร์ไซค์
           </div>
 
           <div class="checklist-grid">
@@ -870,7 +1037,13 @@
 
           <!-- SECTION 7: ข้อมูล GPS ติดตามรถ (GPSDD Tracking) -->
           <div class="form-section-title" style="margin-top: 1.5rem;">
-            <span>🛰️</span>ข้อมูล GPS ติดตามรถ &amp;
+            <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
+              <circle cx="12" cy="12" r="2" />
+              <path
+                d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+            </svg>
+            ข้อมูล GPS ติดตามรถ (GPSDD)
           </div>
 
           <div class="form-grid-2">
@@ -881,10 +1054,15 @@
                   placeholder="เช่น 868019284019284 (เลข 10-15 หลัก)" style="font-family: monospace;">
                 <button type="button" class="header-btn btn-glass"
                   style="white-space: nowrap; padding: 0.4rem 0.75rem; color: var(--navy-900);"
-                  onclick="copyInputVal('formGpsImei')" title="คัดลอกเลข IMEI">📋 คัดลอก</button>
+                  onclick="copyInputVal('formGpsImei')" title="คัดลอกเลข IMEI">
+                  <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg> คัดลอก
+                </button>
               </div>
               <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-                💡 ดูเลข IMEI
+                เลข IMEI สำหรับล็อกอินระบบติดตาม
               </span>
             </div>
 
@@ -894,10 +1072,16 @@
                 <input type="url" id="formGpsUrl" class="form-control"
                   placeholder="เช่น https://www.gpsdd.com หรือลิงก์แชร์จากแอป">
                 <button type="button" class="header-btn btn-cyan" style="white-space: nowrap; padding: 0.4rem 0.75rem;"
-                  onclick="testGpsUrl()" title="ทดสอบเปิดลิงก์">🔗 ทดสอบ</button>
+                  onclick="testGpsUrl()" title="ทดสอบเปิดลิงก์">
+                  <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg> ทดสอบ
+                </button>
               </div>
               <span style="font-size: 0.72rem; color: var(--cyan-600); margin-top: 2px;">
-                &rarr; &rarr;
+                เปิดดูพิกัดแผนที่ผ่านเบราว์เซอร์
               </span>
             </div>
           </div>
@@ -919,7 +1103,14 @@
     <div class="modal-dialog" style="max-width: 960px;">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span style="font-size: 1.3rem;">📋</span>
+          <svg class="ui-icon ui-icon-lg" style="color: var(--cyan-400);" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
           <span class="modal-title" id="detailModalTitle">ข้อมูลมอเตอร์ไซค์และสัญญาเช่า</span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="carDetailModal">&times;</button>
@@ -948,7 +1139,12 @@
     <div class="modal-dialog" style="max-width: 600px;">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span style="font-size: 1.3rem;">📊</span>
+          <svg class="ui-icon ui-icon-lg" style="color: var(--gold-400);" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+          </svg>
           <span class="modal-title">จัดการข้อมูลสต็อครถมอเตอร์ไซค์</span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="dataModal">&times;</button>
@@ -961,7 +1157,10 @@
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
             <h4 style="color: var(--navy-900); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-              <span>☁️</span> ซิงค์ข้อมูล
+              <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+              </svg> ซิงค์ข้อมูลคลาวด์ Firebase
             </h4>
             <span id="dataModalFirebaseBadge" class="gold-authorized-pill" style="font-size: 0.72rem;">ออฟไลน์</span>
           </div>
@@ -969,7 +1168,11 @@
 
           </p>
           <button type="button" class="header-btn btn-cyan" id="btnQuickOpenFirebaseSettings">
-            ⚙️ เปิดหน้าต่างตั้งค่า
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg> เปิดหน้าต่างตั้งค่า
           </button>
         </div>
 
@@ -998,7 +1201,9 @@
           <input type="file" id="importJsonInput" accept=".json" style="display: none;">
           <button type="button" class="header-btn btn-glass"
             onclick="document.getElementById('importJsonInput').click();">
-            📂 นำเข้าไฟล์ JSON
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg> นำเข้าไฟล์ JSON
           </button>
         </div>
 
@@ -1011,7 +1216,11 @@
           </p>
           <button type="button" class="header-btn"
             style="background: #fee2e2; color: #991b1b; border: 1px solid #f87171;" id="btnResetDemoData">
-            ⚠️ โหลดข้อมูล
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg> โหลดข้อมูล
           </button>
         </div>
       </div>
@@ -1027,8 +1236,11 @@
     <div class="modal-dialog" style="max-width: 680px;">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span style="font-size: 1.3rem;">☁️</span>
-          <span class="modal-title">(Firebase Cloud Sync)</span>
+          <svg class="ui-icon ui-icon-lg" style="color: var(--cyan-400);" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+          </svg>
+          <span class="modal-title">ระบบซิงค์ข้อมูลคลาวด์สด (Firebase Cloud Sync)</span>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="firebaseModal">&times;</button>
       </div>
@@ -1060,7 +1272,10 @@
           style="background: #ecfdf5; border: 1px solid #10b981; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: none;">
           <div
             style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #065f46; font-size: 0.88rem;">
-            <span>🔒</span>
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
             <span>กำหนดค่า API Key ถาวรในไฟล์ js/firebase-config.js เรียบร้อยแล้ว</span>
           </div>
           <p style="font-size: 0.78rem; color: #047857; margin-top: 0.25rem; margin-bottom: 0;">
@@ -1112,8 +1327,11 @@
               Firebase Config (คัดลอกจาก Firebase Console):
             </label>
             <button type="button" class="copy-btn" id="btnPasteConfigFromClipboard" title="วางจากคลิปบอร์ด"
-              style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">
-              📋 วางข้อความ (Paste)
+              style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              </svg> วางข้อความ (Paste)
             </button>
           </div>
           <textarea id="fbConfigTextarea" class="form-control" rows="6" placeholder='const firebaseConfig = {
@@ -1125,21 +1343,30 @@
   appId: "1:123456789:web:abcdef"
 };' style="font-family: monospace; font-size: 0.8rem; line-height: 1.4;"></textarea>
           <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.35rem;">
-            💡 สามารถวางโค้ดแบบ JavaScript ที่คัดลอกจาก Firebase Console หรือแบบ JSON ได้ทันที ระบบจะดึงค่าอัตโนมัติ
+            สามารถวางโค้ด JavaScript ที่คัดลอกจาก Firebase Console หรือแบบ JSON ได้ทันที ระบบจะดึงค่าอัตโนมัติ
           </span>
         </div>
 
         <!-- Action Buttons -->
         <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
           <button type="button" class="header-btn btn-cyan" id="btnTestFbConnection">
-            ⚡ ทดสอบการเชื่อมต่อ
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg> ทดสอบการเชื่อมต่อ
           </button>
           <button type="button" class="header-btn btn-gold" id="btnSaveFbConfig">
-            💾 บันทึกและเริ่มซิงค์สด
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg> บันทึกและเริ่มซิงค์สด
           </button>
           <button type="button" class="header-btn btn-glass"
             style="color: var(--navy-900); border-color: var(--border-light);" id="btnClearFbConfig">
-            🗑️ ล้างการตั้งค่า
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg> ล้างการตั้งค่า
           </button>
         </div>
 
@@ -1147,7 +1374,11 @@
         <div
           style="background: var(--cyan-50); border: 1px solid var(--cyan-100); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
           <h5 style="color: var(--navy-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-            <span>🔄</span> จัดการข้อมูลระหว่างเครื่องนี้กับคลาวด์
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg> จัดการข้อมูลระหว่างเครื่องนี้กับคลาวด์
           </h5>
           <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
             หากเพิ่งเชื่อมต่อ Firebase เป็นครั้งแรก ให้กด <strong>"ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที"</strong>
@@ -1155,11 +1386,19 @@
           </p>
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
             <button type="button" class="header-btn btn-gold" id="btnUploadLocalToFb">
-              ☁️ ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                <polyline points="16 16 12 12 8 16" />
+                <line x1="12" y1="12" x2="12" y2="21" />
+              </svg> ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที
             </button>
             <button type="button" class="header-btn btn-glass" style="color: var(--navy-900);"
               id="btnDownloadFbToLocal">
-              📥 ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg> ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้
             </button>
           </div>
         </div>
@@ -1168,7 +1407,10 @@
         <details class="fb-guide-box">
           <summary
             style="font-weight: 700; color: var(--navy-900); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-            <span>📖</span>
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg> คู่มือวิธีตั้งค่า Firebase ฟรีแบบง่าย (3 ขั้นตอน)
           </summary>
           <div style="margin-top: 1rem;">
             <div class="fb-guide-step">
@@ -1203,7 +1445,11 @@
                   allow read, write: if true;
                   }
                   }
-                  }<button type="button" class="copy-code-btn" onclick="copyFirestoreRules()">📋 คัดลอก</button></div>
+                  }<button type="button" class="copy-code-btn" onclick="copyFirestoreRules()"><svg
+                      class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg> คัดลอก</button></div>
                 กดปุ่ม <strong>Publish</strong> เป็นอันเสร็จสิ้น!
               </div>
             </div>

@@ -244,14 +244,14 @@ const DEFAULT_MOTO_FLEET = [
     id: "MOTO-2025-006",
     brand: "Honda",
     model: "Wave 125i ล้อแม็ก",
-    category: "รถครอบครัว (Family/Moped)",
+    category: "รถครอบครัว ",
     cc: "125 cc",
     year: "2024",
     purpose: "both",
     licensePlate: "5กม-1122 พัทยา",
     vin: "MLHJA5401TB066491",
     engineNo: "JA54E-7821034",
-    exteriorColor: "เทาด้านเบาะแดง (Matte Gray/Red)",
+    exteriorColor: "เทาด้านเบาะแดง ",
     mileage: 6200,
     branch: "สาขาพัทยา",
     rentDaily: 250,
@@ -710,14 +710,33 @@ function updateKpiStats() {
   document.getElementById('kpiServiceUnits').textContent = serviceCount.toLocaleString();
 }
 
+// UI Vector Icon Helpers (Replacing Emojis)
+const UI_ICONS = {
+  moto: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M12 17h-2.5l-2-7h5.5l2 4h4"/><path d="M15 6h2l2 4"/></svg>`,
+  key: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m11 12 8-8h3v3l-2 2v2l-2 2z"/></svg>`,
+  tag: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r="1.5"/></svg>`,
+  sparkle: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>`,
+  camera: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>`,
+  zap: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  user: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  phone: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+  pin: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  copy: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+  edit: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
+  eye: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  trash: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
+  arrowRight: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  cloud: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`
+};
+
 // Status Helper Definitions
 const STATUS_CONFIG = {
-  available: { label: "ว่าง", class: "status-available", icon: "🟢" },
-  rented: { label: "กำลังเช่า", class: "status-rented", icon: "🔵" },
-  reserved: { label: "กำลังผ่อน", class: "status-reserved", icon: "🟡" },
-  check: { label: "รอตรวจส่งคืน", class: "status-check", icon: "🟣" },
-  maintenance: { label: "ซ่อมบำรุง/ถ่ายน้ำมัน", class: "status-maintenance", icon: "🔴" },
-  sold: { label: "ขายแล้ว", class: "status-sold", icon: "⚪" }
+  available: { label: "ว่างพร้อมบริการ", class: "status-available" },
+  rented: { label: "กำลังเช่า", class: "status-rented" },
+  reserved: { label: "กำลังผ่อน / จอง", class: "status-reserved" },
+  check: { label: "ไม่พบรถ", class: "status-check" },
+  maintenance: { label: "ซ่อม/ถ่ายน้ำมัน", class: "status-maintenance" },
+  sold: { label: "ขายแล้ว", class: "status-sold" }
 };
 
 function formatPrice(num) {
@@ -725,9 +744,9 @@ function formatPrice(num) {
 }
 
 function getPurposeBadge(purpose) {
-  if (purpose === 'rent') return `<span class="purpose-badge purpose-rent">🛵 สำหรับเช่า</span>`;
-  if (purpose === 'sale') return `<span class="purpose-badge purpose-sale">🏷️ สำหรับขาย</span>`;
-  return `<span class="purpose-badge purpose-both">🛵🏷️ ขายและเช่า</span>`;
+  if (purpose === 'rent') return `<span class="purpose-badge purpose-rent">${UI_ICONS.key} สำหรับเช่า</span>`;
+  if (purpose === 'sale') return `<span class="purpose-badge purpose-sale">${UI_ICONS.tag} สำหรับขาย</span>`;
+  return `<span class="purpose-badge purpose-both">${UI_ICONS.sparkle} ขายและเช่า</span>`;
 }
 
 // ==================== VIEW 1: GRID VIEW RENDERER ====================
@@ -766,18 +785,18 @@ function renderGridView(motos) {
           <button class="card-gps-float-btn ${moto.gpsImei || moto.gpsUrl ? '' : 'no-gps'}"
                   onclick="openGpsTracking('${moto.id}', event)"
                   title="${moto.gpsImei || moto.gpsUrl ? 'คลิกเพื่อดูตำแหน่ง GPSDD ของคันนี้บนแผนที่' : 'ยังไม่ได้เชื่อมต่อ GPSDD คลิกเพื่อตั้งค่า'}">
-            ${moto.gpsImei || moto.gpsUrl ? '<span class="gps-pulse-dot"></span> <span>📍 GPSDD</span>' : '<span>🛰️ เพิ่ม GPS</span>'}
+            ${moto.gpsImei || moto.gpsUrl ? `<span class="gps-pulse-dot"></span> <span>${UI_ICONS.pin} GPSDD</span>` : `<span>+ เพิ่ม GPS</span>`}
           </button>
 
           <!-- License Plate Badge -->
           <div class="plate-badge">
-            <span>🛵</span>
+            ${UI_ICONS.moto}
             <span>${moto.licensePlate}</span>
-            ${moto.province ? `<span style="font-weight: 500; font-size: 0.72rem; color: #cbd5e1; margin-left: 2px;">${moto.province}</span>` : ''}
+            ${moto.province ? `<span style="font-weight: 500; font-size: 0.72rem; color: #64748b; margin-left: 2px;">${moto.province}</span>` : ''}
           </div>
 
           <div class="photo-count-badge">
-            <span>📷 ${photoCount} รูป</span>
+            ${UI_ICONS.camera} <span>${photoCount} รูป</span>
           </div>
         </div>
 
@@ -795,7 +814,7 @@ function renderGridView(motos) {
             ${moto.purpose !== 'sale' ? `
               <div class="price-item">
                 <span class="price-item-label">ค่าเช่ารายวัน</span>
-                <span class="price-rent-val">${formatPrice(moto.rentDaily)}<span style="font-size: 0.7rem; font-weight: normal; color: var(--text-muted);">/วัน</span></span>
+                <span class="price-rent-val">${formatPrice(moto.rentDaily)}<span style="font-size: 0.72rem; font-weight: normal; color: var(--text-muted);">/วัน</span></span>
               </div>
             ` : ''}
 
@@ -809,7 +828,7 @@ function renderGridView(motos) {
             ${moto.purpose === 'rent' ? `
               <div class="price-item" style="text-align: right;">
                 <span class="price-item-label">เงินประกันมัดจำ</span>
-                <span style="font-size: 1rem; font-weight: 700; color: var(--navy-800);">${formatPrice(moto.deposit)}</span>
+                <span style="font-size: 1rem; font-weight: 800; color: var(--navy-800);">${formatPrice(moto.deposit)}</span>
               </div>
             ` : ''}
           </div>
@@ -818,7 +837,7 @@ function renderGridView(motos) {
           ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount || moto.installmentTerm) ? `
             <div class="card-installment-badge">
               <div class="inst-badge-head">
-                <span class="inst-badge-icon">⚡</span>
+                <span class="inst-badge-icon">${UI_ICONS.zap}</span>
                 <span class="inst-badge-title">ผ่อนชำระ (Easy Finance)</span>
               </div>
               <div class="inst-badge-body">
@@ -838,7 +857,7 @@ function renderGridView(motos) {
             </div>
           ` : ''}
 
-          <!-- Specs Info Grid -->
+          <!-- Specs Info Grid (Preserve exact 2x2 layout) -->
           <div class="spec-tags-grid">
             <div class="spec-item">
               <span class="spec-label">เลขคอ / ตัวถัง</span>
@@ -859,10 +878,12 @@ function renderGridView(motos) {
           </div>
 
           ${moto.customer ? `
-            <div style="background: var(--cyan-50); padding: 0.45rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.75rem; margin-bottom: 0.85rem; border: 1px solid rgba(0, 153, 229, 0.25);">
-              <span style="color: var(--cyan-500); font-weight: 700;">👤 ผู้เช่า/ผู้ซื้อ:</span> <strong>${moto.customer}</strong>
-              <div style="font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between;">
-                <span>📞 ${moto.customerPhone || '-'}</span>
+            <div style="background: var(--navy-50); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.76rem; margin-bottom: 0.85rem; border: 1px solid rgba(0, 153, 229, 0.25);">
+              <div style="display: flex; align-items: center; gap: 0.35rem; color: var(--navy-900); font-weight: 700;">
+                <span style="color: var(--cyan-600);">${UI_ICONS.user}</span> ผู้เช่า/ผู้ซื้อ: <strong>${moto.customer}</strong>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 2px;">
+                <span style="display: flex; align-items: center; gap: 0.25rem;">${UI_ICONS.phone} ${moto.customerPhone || '-'}</span>
                 ${moto.rentalEnd ? `<span>คืนรถ: ${moto.rentalEnd}</span>` : ''}
               </div>
             </div>
@@ -872,26 +893,26 @@ function renderGridView(motos) {
           <div class="card-footer">
             <!-- Quick Status Change -->
             <select class="card-quick-status" onchange="quickUpdateStatus('${moto.id}', this.value)" title="เปลี่ยนสถานะรถด่วน">
-              <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง</option>
-              <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า</option>
-              <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน</option>
-              <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน</option>
-              <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน</option>
-              <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว</option>
+              <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
+              <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
+              <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน</option>
+              <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
+              <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
+              <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
             </select>
 
             <div class="card-action-btns">
               <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD ทันที">
-                🛰️
+                ${UI_ICONS.pin}
               </button>
               <button class="btn-card-icon" onclick="copyPlate('${moto.licensePlate}')" title="คัดลอกป้ายทะเบียน">
-                📋
+                ${UI_ICONS.copy}
               </button>
               <button class="btn-card-icon" onclick="openCarModal('${moto.id}')" title="แก้ไขข้อมูล">
-                ✏️
+                ${UI_ICONS.edit}
               </button>
               <button class="btn-card-detail" onclick="openCarDetail('${moto.id}')">
-                ดูข้อมูล &rarr;
+                <span>ดูข้อมูล</span> ${UI_ICONS.arrowRight}
               </button>
             </div>
           </div>
@@ -925,10 +946,12 @@ function renderTableView(motos) {
           <div class="table-car-sub">${moto.category} &bull; ${moto.cc}</div>
         </td>
         <td>
-          <div style="font-weight: 700; color: #111827; font-size: 0.85rem;">🛵 ${moto.licensePlate}</div>
+          <div style="font-weight: 700; color: #111827; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem;">
+            ${UI_ICONS.moto} <span>${moto.licensePlate}</span>
+          </div>
           <div class="vin-code" style="margin-top: 3px;">
             ${moto.vin}
-            <button class="copy-btn" onclick="copyPlate('${moto.vin}')" title="คัดลอกเลขคอ">📄</button>
+            <button class="copy-btn" onclick="copyPlate('${moto.vin}')" title="คัดลอกเลขคอ">${UI_ICONS.copy}</button>
           </div>
           ${moto.gpsImei ? `
             <div style="margin-top: 4px;">
@@ -965,8 +988,8 @@ function renderTableView(motos) {
         </td>
         <td>
           ${moto.customer ? `
-            <div style="font-weight: 600; color: var(--navy-900);">👤 ${moto.customer}</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted);">📞 ${moto.customerPhone || '-'}</div>
+            <div style="font-weight: 600; color: var(--navy-900); display: flex; align-items: center; gap: 0.25rem;">${UI_ICONS.user} ${moto.customer}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; margin-top: 2px;">${UI_ICONS.phone} ${moto.customerPhone || '-'}</div>
           ` : `
             <span style="color: var(--text-light); font-size: 0.75rem;">(ว่างพร้อมบริการ)</span>
           `}
@@ -974,16 +997,16 @@ function renderTableView(motos) {
         <td style="text-align: center;">
           <div style="display: flex; gap: 0.35rem; justify-content: center;">
             <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD">
-              🛰️
+              ${UI_ICONS.pin}
             </button>
             <button class="btn-card-icon" onclick="openCarDetail('${moto.id}')" title="ดูสัญญา & พิมพ์ใบตรวจ">
-              👁️
+              ${UI_ICONS.eye}
             </button>
             <button class="btn-card-icon" onclick="openCarModal('${moto.id}')" title="แก้ไขข้อมูล">
-              ✏️
+              ${UI_ICONS.edit}
             </button>
             <button class="btn-card-icon" style="color: #ef4444;" onclick="deleteMoto('${moto.id}')" title="ลบข้อมูล">
-              🗑️
+              ${UI_ICONS.trash}
             </button>
           </div>
         </td>
@@ -1012,24 +1035,26 @@ function renderKanbanView(motos) {
           return `
             <div class="kanban-card" onclick="openCarDetail('${moto.id}')">
               <div class="kanban-card-top">
-                <span>🛵 ${moto.licensePlate}</span>
+                <span style="display: flex; align-items: center; gap: 0.3rem;">${UI_ICONS.moto} <span>${moto.licensePlate}</span></span>
                 <span style="display: flex; gap: 0.35rem; align-items: center;">
                   ${moto.gpsImei || moto.gpsUrl ? `
-                    <span class="kanban-gps-badge" onclick="openGpsTracking('${moto.id}', event)" title="ดูตำแหน่ง GPSDD">🛰️ GPS</span>
+                    <span class="kanban-gps-badge" onclick="openGpsTracking('${moto.id}', event)" title="ดูตำแหน่ง GPSDD">${UI_ICONS.pin} GPS</span>
                   ` : ''}
-                  <span>${moto.cc}</span>
+                  <span style="font-weight: 600; color: var(--text-muted);">${moto.cc}</span>
                 </span>
               </div>
               <div style="display: flex; gap: 0.6rem; align-items: center;">
-                <img src="${coverPhoto}" style="width: 50px; height: 38px; border-radius: 4px; object-fit: cover;">
+                <img src="${coverPhoto}" style="width: 50px; height: 38px; border-radius: 6px; object-fit: cover;">
                 <div>
                   <div class="kanban-car-name">${moto.brand} ${moto.model}</div>
                   <div style="font-size: 0.72rem; color: var(--text-muted);">${moto.exteriorColor}</div>
                 </div>
               </div>
               <div class="kanban-card-footer">
-                <span style="font-weight: 700; color: var(--cyan-500); font-size: 0.82rem;">${formatPrice(moto.rentDaily)}/วัน</span>
-                <span style="font-size: 0.72rem; color: var(--navy-900); font-weight: 600;">คลิกดู &rarr;</span>
+                <span style="font-weight: 800; color: var(--cyan-500); font-size: 0.84rem; font-family: var(--font-number);">${formatPrice(moto.rentDaily)}/วัน</span>
+                <span style="font-size: 0.74rem; color: var(--navy-900); font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                  คลิกดู ${UI_ICONS.arrowRight}
+                </span>
               </div>
             </div>
           `;
@@ -1560,7 +1585,7 @@ function openCarDetail(motoId) {
         ` : ''}
         ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount) ? `
           <div class="detail-installment-tag">
-            <span style="color: #b45309; font-weight: 700;">⚡ ผ่อนชำระ:</span>
+            <span style="color: #b45309; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">${UI_ICONS.zap} ผ่อนชำระ:</span>
             <span>ดาวน์: <strong>${(moto.downPayment !== undefined && Number(moto.downPayment) === 0) ? 'ฟรีดาวน์' : formatPrice(moto.downPayment || 0)}</strong></span>
             <span>&bull;</span>
             <span>ผ่อน: <strong style="color: #15803d;">${formatPrice(moto.installmentAmount || 0)}/งวด</strong></span>
@@ -1578,10 +1603,10 @@ function openCarDetail(motoId) {
       
       <div class="detail-hero-floating-actions">
         <button type="button" class="hero-float-btn" id="btnToggleHeroFit" onclick="toggleHeroFit()" title="สลับโหมด พอดีรูปภาพ (Fit) / เต็มกรอบ (Fill)">
-          <span id="fitBtnIcon">↔️</span> <span id="fitBtnLabel">โหมด: พอดีรูป (Fit)</span>
+          <span id="fitBtnIcon"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18 6-6-6-6"/><path d="m9 6-6 6 6 6"/></svg></span> <span id="fitBtnLabel">โหมด: พอดีรูป (Fit)</span>
         </button>
         <button type="button" class="hero-float-btn" onclick="openLightbox(document.getElementById('detailMainHeroImg').src)" title="ขยายดูรูปขนาดเต็มจอ">
-          🔍 ดูรูปเต็มจอ
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> ดูรูปเต็มจอ
         </button>
       </div>
     </div>
@@ -1600,19 +1625,19 @@ function openCarDetail(motoId) {
     <!-- Quick Status Changer Inside Detail -->
     <div style="background: var(--navy-50); border: 1px solid var(--border-light); padding: 0.85rem 1.25rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-weight: 700; color: var(--navy-900);">🔄 เปลี่ยนสถานะรถคันนี้:</span>
+        <span style="font-weight: 700; color: var(--navy-900);">เปลี่ยนสถานะรถคันนี้:</span>
         <select class="form-control" style="width: auto; font-weight: 600;" onchange="quickUpdateStatus('${moto.id}', this.value); openCarDetail('${moto.id}');">
-          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>🟢 ว่าง </option>
-          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>🔵 กำลังเช่า</option>
-          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>🟡 กำลังผ่อน</option>
-          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>🟣 รอตรวจส่งคืน</option>
-          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>🔴 ซ่อม/ถ่ายน้ำมัน </option>
-          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>⚪ ขายแล้ว </option>
+          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
+          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
+          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน / จอง</option>
+          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
+          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
+          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
         </select>
       </div>
       <div>
-        <button class="header-btn btn-glass" style="color: var(--navy-900); border-color: var(--navy-700);" onclick="copySummaryForLine('${moto.id}')">
-          📋 คัดลอกสรุปสเปก & เรทเช่าส่ง LINE
+        <button class="header-btn btn-glass" style="color: var(--navy-900); border-color: var(--navy-700); display: inline-flex; align-items: center; gap: 0.35rem;" onclick="copySummaryForLine('${moto.id}')">
+          ${UI_ICONS.copy} คัดลอกสรุปสเปก &amp; เรทเช่าส่ง LINE
         </button>
       </div>
     </div>
@@ -1621,22 +1646,23 @@ function openCarDetail(motoId) {
     <div class="form-grid-2">
       <!-- Technical & Identification -->
       <div style="background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1rem;">
-        <h4 style="color: var(--navy-900); margin-bottom: 0.75rem; border-bottom: 2px solid var(--cyan-500); padding-bottom: 0.35rem;">
-          🔢 ข้อมูลรถและทะเบียน
+        <h4 style="color: var(--navy-900); margin-bottom: 0.75rem; border-bottom: 2px solid var(--cyan-500); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>
+          ข้อมูลรถและทะเบียน
         </h4>
         <table class="detail-specs-table">
-          <tr><td class="label-col">ป้ายทะเบียน</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.licensePlate}</strong> ${moto.province ? `<span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.35rem; color: var(--navy-800); border: 1px solid #cbd5e1;">${moto.province}</span>` : ''} <button class="copy-btn" onclick="copyPlate('${moto.licensePlate} ${moto.province || ''}')">📋</button></td></tr>
+          <tr><td class="label-col">ป้ายทะเบียน</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.licensePlate}</strong> ${moto.province ? `<span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.35rem; color: var(--navy-800); border: 1px solid #cbd5e1;">${moto.province}</span>` : ''} <button class="copy-btn" onclick="copyPlate('${moto.licensePlate} ${moto.province || ''}')">${UI_ICONS.copy}</button></td></tr>
           <tr><td class="label-col">จังหวัด (ตามป้าย)</td><td class="value-col">${moto.province || '-'}</td></tr>
           <tr><td class="label-col">เลขคอ / ตัวถัง</td><td class="value-col"><strong style="font-family: monospace;">${moto.vin}</strong></td></tr>
           <tr><td class="label-col">เลขเครื่องยนต์</td><td class="value-col">${moto.engineNo || '-'}</td></tr>
           <tr><td class="label-col">สีตัวรถ</td><td class="value-col">${moto.exteriorColor}</td></tr>
           <tr><td class="label-col">ขนาดความจุ CC</td><td class="value-col">${moto.cc} (ปี ${moto.year})</td></tr>
           <tr><td class="label-col">เลขไมล์ปัจจุบัน</td><td class="value-col">${(moto.mileage || 0).toLocaleString()} km</td></tr>
-          <tr><td class="label-col">วันหมดอายุ พ.ร.บ. / ภาษี</td><td class="value-col" style="color: #d97706; font-weight: 700;">📅 ${moto.taxExpiry || '-'}</td></tr>
-          <tr><td class="label-col">เชื้อเพลิง (Fuel)</td><td class="value-col">⛽ ${moto.fuel || 'เบนซิน 95'}</td></tr>
+          <tr><td class="label-col">วันหมดอายุ พ.ร.บ. / ภาษี</td><td class="value-col" style="color: #d97706; font-weight: 700;">${moto.taxExpiry || '-'}</td></tr>
+          <tr><td class="label-col">เชื้อเพลิง (Fuel)</td><td class="value-col">${moto.fuel || 'เบนซิน 95'}</td></tr>
           <tr><td class="label-col">สาขา / จุดจอด</td><td class="value-col">${moto.branch}</td></tr>
           <tr><td class="label-col">ระบบ GPSDD</td><td class="value-col">
-            ${moto.gpsImei ? `<strong style="color: var(--cyan-600); font-family: monospace;">🛰️ IMEI: ${moto.gpsImei}</strong> <button class="copy-btn" onclick="copyPlate('${moto.gpsImei}')" title="คัดลอก IMEI">📋</button>` : '<span style="color: var(--text-light);">(ยังไม่ได้ระบุ GPS)</span>'}
+            ${moto.gpsImei ? `<strong style="color: var(--cyan-600); font-family: monospace;">IMEI: ${moto.gpsImei}</strong> <button class="copy-btn" onclick="copyPlate('${moto.gpsImei}')" title="คัดลอก IMEI">${UI_ICONS.copy}</button>` : '<span style="color: var(--text-light);">(ยังไม่ได้ระบุ GPS)</span>'}
           </td></tr>
         </table>
       </div>
@@ -1644,7 +1670,10 @@ function openCarDetail(motoId) {
       <!-- Rental & Commercial Rates -->
       <div style="background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1rem;">
         <h4 style="color: var(--navy-900); margin-bottom: 0.75rem; border-bottom: 2px solid var(--gold-500); padding-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
-          <span>💰 อัตราค่าเช่า &amp; ราคาขาย / ผ่อนชำระ</span>
+          <span style="display: flex; align-items: center; gap: 0.4rem;">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+            อัตราค่าเช่า &amp; ราคาขาย / ผ่อนชำระ
+          </span>
           <span style="font-size: 0.72rem; color: #b45309; font-weight: 600; background: #fefce8; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fef08a;">Easy Finance</span>
         </h4>
         <table class="detail-specs-table">
@@ -1669,7 +1698,7 @@ function openCarDetail(motoId) {
     <div class="gps-detail-panel">
       <div class="gps-panel-header">
         <div class="gps-panel-title">
-          <span style="font-size: 1.3rem;">🛰️</span>
+          <svg class="ui-icon ui-icon-md" style="color: var(--cyan-400);" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
           <span>ระบบติดตามพิกัดตำแหน่ง GPSDD (Live Fleet Tracking)</span>
         </div>
         <div>
@@ -1695,7 +1724,7 @@ function openCarDetail(motoId) {
           <span style="color: var(--cyan-300); display: block; font-size: 0.7rem;">เลข IMEI / Device ID:</span>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <strong style="font-family: monospace; font-size: 0.95rem; color: #fde047;">${moto.gpsImei || '(ยังไม่ได้ระบุ IMEI)'}</strong>
-            ${moto.gpsImei ? `<button class="copy-btn" onclick="copyPlate('${moto.gpsImei}')" title="คัดลอก IMEI" style="background: rgba(255,255,255,0.15); color: #fff;">📋</button>` : ''}
+            ${moto.gpsImei ? `<button class="copy-btn" onclick="copyPlate('${moto.gpsImei}')" title="คัดลอก IMEI" style="background: rgba(255,255,255,0.15); color: #fff;">${UI_ICONS.copy}</button>` : ''}
           </div>
         </div>
         <div>
@@ -1706,20 +1735,20 @@ function openCarDetail(motoId) {
 
       <div class="gps-actions-row">
         <button class="btn-gps-main" onclick="openGpsTracking('${moto.id}', event)">
-          <span>🌐</span> เปิดดูตำแหน่งรถคันนี้บน GPSDD ทันที &rarr;
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> เปิดดูตำแหน่งรถคันนี้บน GPSDD ทันที &rarr;
         </button>
         ${moto.gpsImei ? `
           <button class="header-btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.3);" onclick="copyPlate('${moto.gpsImei}')">
-            📋 คัดลอกเลข IMEI (${moto.gpsImei})
+            ${UI_ICONS.copy} คัดลอกเลข IMEI (${moto.gpsImei})
           </button>
         ` : ''}
         <button class="header-btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.3);" onclick="closeModal('carDetailModal'); openCarModal('${moto.id}');">
-          ⚙️ แก้ไขข้อมูล GPS
+          ${UI_ICONS.edit} แก้ไขข้อมูล GPS
         </button>
       </div>
 
       <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;">
-        <span>💡</span>
+        <svg class="ui-icon ui-icon-xs" style="color: var(--cyan-400); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         <span>คำแนะนำ: เมื่อคลิกดูตำแหน่ง ระบบจะเปิดหน้า GPSDD พร้อมคัดลอกเลข IMEI ให้อัตโนมัติ เพื่อนำไปกดวาง (Ctrl+V) ล็อกอินดูรถคันนี้ได้ทันที</span>
       </div>
     </div>
@@ -1727,29 +1756,34 @@ function openCarDetail(motoId) {
     <!-- Accessories & Inspection -->
     <div style="margin-top: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
       <div style="background: var(--bg-alt); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
-        <h5 style="color: var(--navy-900); margin-bottom: 0.5rem;">🪖 อุปกรณ์ที่ให้ประจำรถ</h5>
+        <h5 style="color: var(--navy-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+          <svg class="ui-icon ui-icon-sm" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> อุปกรณ์ที่ให้ประจำรถ
+        </h5>
         <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem;">
-          <div>${moto.accessories?.helmet ? '✅' : '❌'} หมวกกันน็อค 2 ใบ</div>
-          <div>${moto.accessories?.phoneMount ? '✅' : '❌'} ที่จับมือถือกันสะเทือน</div>
-          <div>${moto.accessories?.smartKey ? '✅' : '❌'} กุญแจรีโมท Honda Smart Key</div>
-          <div>${moto.accessories?.topBox ? '✅' : '❌'} กล่องใส่ของท้ายรถ (Top Box)</div>
+          <div>${moto.accessories?.helmet ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} หมวกกันน็อค 2 ใบ</div>
+          <div>${moto.accessories?.phoneMount ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} ที่จับมือถือกันสะเทือน</div>
+          <div>${moto.accessories?.smartKey ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} กุญแจรีโมท Honda Smart Key</div>
+          <div>${moto.accessories?.topBox ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} กล่องใส่ของท้ายรถ (Top Box)</div>
         </div>
       </div>
 
       <div style="background: var(--bg-alt); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
-        <h5 style="color: var(--navy-900); margin-bottom: 0.5rem;">🔧 การตรวจสภาพก่อนส่งมอบ</h5>
+        <h5 style="color: var(--navy-900); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+          <svg class="ui-icon ui-icon-sm" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> การตรวจสภาพก่อนส่งมอบ
+        </h5>
         <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem;">
-          <div>${moto.inspection?.oil ? '✅' : '❌'} ระดับน้ำมันเครื่องและน้ำยาหล่อเย็น</div>
-          <div>${moto.inspection?.brakes ? '✅' : '❌'} ระบบเบรกหน้า-หลัง</div>
-          <div>${moto.inspection?.tyres ? '✅' : '❌'} ดอกยางและลมยางมาตรฐาน</div>
-          <div>${moto.inspection?.clean ? '✅' : '❌'} ล้างทำความสะอาด ขัดสีเรียบร้อย</div>
+          <div>${moto.inspection?.oil ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} ระดับน้ำมันเครื่องและน้ำยาหล่อเย็น</div>
+          <div>${moto.inspection?.brakes ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} ระบบเบรกหน้า-หลัง</div>
+          <div>${moto.inspection?.tyres ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} ดอกยางและลมยางมาตรฐาน</div>
+          <div>${moto.inspection?.clean ? '<span style="color: #059669; font-weight: 700; margin-right: 4px;">✓</span>' : '<span style="color: #94a3b8; margin-right: 4px;">-</span>'} ล้างทำความสะอาด ขัดสีเรียบร้อย</div>
         </div>
       </div>
     </div>
 
     ${moto.remarks ? `
-      <div style="margin-top: 1rem; padding: 0.85rem; background: #fffbeb; border-left: 4px solid var(--gold-500); border-radius: 4px; font-size: 0.85rem;">
-        <strong>📝 หมายเหตุ / บันทึกประวัติ:</strong> ${moto.remarks}
+      <div style="margin-top: 1rem; padding: 0.85rem; background: #fffbeb; border-left: 4px solid var(--gold-500); border-radius: 4px; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 0.4rem;">
+        <svg class="ui-icon ui-icon-xs" style="color: var(--gold-600); flex-shrink: 0; margin-top: 3px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <div><strong>หมายเหตุ / บันทึกประวัติ:</strong> ${moto.remarks}</div>
       </div>
     ` : ''}
   `;
@@ -1806,7 +1840,7 @@ function copySummaryForLine(motoId) {
   const moto = fleet.find(c => c.id === motoId);
   if (!moto) return;
 
-  const summary = `🛵 ข้อมูลรถมอเตอร์ไซค์ HONDA
+  const summary = `[ข้อมูลรถมอเตอร์ไซค์] HONDA
 รุ่น: ${moto.brand} ${moto.model} (${moto.cc})
 ทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}
 สี: ${moto.exteriorColor}
@@ -1948,14 +1982,14 @@ function toggleHeroFit() {
     img.classList.remove('fit-contain');
     img.classList.add('fit-cover');
     if (label) label.textContent = 'โหมด: เต็มกรอบ (Fill)';
-    if (icon) icon.textContent = '↕️';
+    if (icon) icon.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="8 3 12 7 16 3"/><polyline points="8 21 12 17 16 21"/><line x1="12" y1="7" x2="12" y2="17"/></svg>';
     showToast('เปลี่ยนเป็นโหมดเต็มกรอบ (Fill)', 'info');
   } else {
     currentHeroFitMode = 'contain';
     img.classList.remove('fit-cover');
     img.classList.add('fit-contain');
     if (label) label.textContent = 'โหมด: พอดีรูป (Fit)';
-    if (icon) icon.textContent = '↔️';
+    if (icon) icon.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 8 7 12 3 16"/><polyline points="21 8 17 12 21 16"/><line x1="7" y1="12" x2="17" y2="12"/></svg>';
     showToast('เปลี่ยนเป็นโหมดพอดีรูป (เห็นเต็มรูปไม่ถูกตัด)', 'info');
   }
 }
@@ -2024,11 +2058,15 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
 
-  const icon = type === 'success' ? '✅' :
-    type === 'warning' ? '⚠️' :
-      type === 'gold' ? '⭐' : 'ℹ️';
+  const icon = type === 'success'
+    ? `<svg class="ui-icon ui-icon-sm" style="color: #10b981; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>`
+    : type === 'warning'
+      ? `<svg class="ui-icon ui-icon-sm" style="color: #f59e0b; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+      : type === 'gold'
+        ? `<svg class="ui-icon ui-icon-sm" style="color: #eab308; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+        : `<svg class="ui-icon ui-icon-sm" style="color: #06b6d4; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
 
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  toast.innerHTML = `<span style="display: inline-flex; align-items: center;">${icon}</span> <span>${message}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -2058,20 +2096,20 @@ function openGpsTracking(motoId, event) {
 
     if (moto.gpsImei && moto.gpsImei.trim()) {
       navigator.clipboard.writeText(moto.gpsImei.trim()).then(() => {
-        showToast(`🛰️ เปิด GPSDD คัน [${moto.licensePlate}] แล้ว (คัดลอก IMEI: ${moto.gpsImei} ให้อัตโนมัติ)`, 'gold');
+        showToast(`เปิด GPSDD คัน [${moto.licensePlate}] แล้ว (คัดลอก IMEI: ${moto.gpsImei} ให้อัตโนมัติ)`, 'gold');
       }).catch(() => {
-        showToast(`🛰️ เปิดลิงก์ GPS คัน [${moto.licensePlate}] เรียบร้อย`, 'success');
+        showToast(`เปิดลิงก์ GPS คัน [${moto.licensePlate}] เรียบร้อย`, 'success');
       });
     } else {
-      showToast(`🛰️ กำลังเปิดหน้าติดตาม GPS คัน [${moto.licensePlate}]...`, 'success');
+      showToast(`กำลังเปิดหน้าติดตาม GPS คัน [${moto.licensePlate}]...`, 'success');
     }
   } else if (moto.gpsImei && moto.gpsImei.trim()) {
     // Has IMEI but no direct URL - copy IMEI and open default GPSDD web portal
     const imei = moto.gpsImei.trim();
     navigator.clipboard.writeText(imei).then(() => {
-      showToast(`🛰️ คัดลอกเลข IMEI (${imei}) แล้ว! กำลังเปิดเว็บ www.gpsdd.com ให้คุณกดวาง (Ctrl+V) ล็อกอินได้ทันที`, 'gold');
+      showToast(`คัดลอกเลข IMEI (${imei}) แล้ว! กำลังเปิดเว็บ www.gpsdd.com ให้คุณกดวาง (Ctrl+V) ล็อกอินได้ทันที`, 'gold');
     }).catch(() => {
-      showToast(`🛰️ กำลังเปิดเว็บ www.gpsdd.com (IMEI: ${imei})`, 'info');
+      showToast(`กำลังเปิดเว็บ www.gpsdd.com (IMEI: ${imei})`, 'info');
     });
     window.open('https://www.gpsdd.com', '_blank');
   } else {
@@ -2148,22 +2186,22 @@ function updateFirebaseStatusUI(state) {
 
   if (state.status === 'connected') {
     statusBtn.classList.add('status-connected');
-    statusText.textContent = `☁️ Firebase: ซิงค์สด (${state.remoteFleetCount || 0} คัน)`;
+    statusText.innerHTML = `${UI_ICONS.cloud} Firebase: ซิงค์สด (${state.remoteFleetCount || 0} คัน)`;
     if (modalPill) {
       modalPill.classList.add('online');
-      modalText.textContent = `🟢 เชื่อมต่อเรียลไทม์แล้ว (${state.dbType === 'firestore' ? 'Cloud Firestore' : 'Realtime DB'})`;
+      modalText.textContent = `เชื่อมต่อเรียลไทม์แล้ว (${state.dbType === 'firestore' ? 'Cloud Firestore' : 'Realtime DB'})`;
     }
     if (dataModalBadge) {
-      dataModalBadge.textContent = '🟢 ซิงค์สดเรียลไทม์';
+      dataModalBadge.textContent = 'ซิงค์สดเรียลไทม์';
       dataModalBadge.style.color = '#10b981';
       dataModalBadge.style.borderColor = '#10b981';
     }
   } else if (state.status === 'connecting') {
     statusBtn.classList.add('status-connecting');
-    statusText.textContent = '☁️ Firebase: กำลังเชื่อมต่อ...';
+    statusText.innerHTML = `${UI_ICONS.cloud} Firebase: กำลังเชื่อมต่อ...`;
     if (modalPill) {
       modalPill.classList.add('connecting');
-      modalText.textContent = '🟡 กำลังเชื่อมต่อระบบคลาวด์...';
+      modalText.textContent = 'กำลังเชื่อมต่อระบบคลาวด์...';
     }
     if (dataModalBadge) {
       dataModalBadge.textContent = 'กำลังเชื่อมต่อ...';
@@ -2172,30 +2210,30 @@ function updateFirebaseStatusUI(state) {
     }
   } else if (state.status === 'syncing') {
     statusBtn.classList.add('status-syncing');
-    statusText.textContent = '☁️ Firebase: กำลังซิงค์...';
+    statusText.innerHTML = `${UI_ICONS.cloud} Firebase: กำลังซิงค์...`;
     if (modalPill) {
       modalPill.classList.add('connecting');
-      modalText.textContent = '🔄 กำลังส่งข้อมูลไปยังคลาวด์...';
+      modalText.textContent = 'กำลังส่งข้อมูลไปยังคลาวด์...';
     }
   } else if (state.status === 'error') {
     statusBtn.classList.add('status-error');
-    statusText.textContent = '☁️ Firebase: เกิดข้อผิดพลาด';
+    statusText.innerHTML = `${UI_ICONS.cloud} Firebase: ข้อผิดพลาด`;
     if (modalPill) {
       modalPill.classList.add('error');
-      modalText.textContent = state.errorMessage ? `🔴 ข้อผิดพลาด: ${state.errorMessage}` : '🔴 เกิดข้อผิดพลาดในการเชื่อมต่อ';
+      modalText.textContent = state.errorMessage ? `ข้อผิดพลาด: ${state.errorMessage}` : 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
     }
     if (dataModalBadge) {
-      dataModalBadge.textContent = '🔴 เชื่อมต่อไม่สำเร็จ';
+      dataModalBadge.textContent = 'เชื่อมต่อไม่สำเร็จ';
       dataModalBadge.style.color = '#ef4444';
       dataModalBadge.style.borderColor = '#ef4444';
     }
   } else {
     // Unconfigured / offline
     statusBtn.classList.add('status-offline');
-    statusText.textContent = '☁️ Firebase: คลิกเพื่อตั้งค่าซิงค์';
+    statusText.innerHTML = `${UI_ICONS.cloud} Firebase: คลิกตั้งค่าซิงค์`;
     if (modalPill) {
       modalPill.classList.add('offline');
-      modalText.textContent = '⚪ ยังไม่ได้ตั้งค่า Firebase (ใช้ข้อมูลในเครื่อง)';
+      modalText.textContent = 'ยังไม่ได้ตั้งค่า Firebase (ใช้ข้อมูลในเครื่อง)';
     }
     if (dataModalBadge) {
       dataModalBadge.textContent = 'ยังไม่ได้ตั้งค่า';
@@ -2231,7 +2269,7 @@ function handleRemoteFleetUpdated(remoteFleet, meta) {
 
     if (meta && meta.isRemote) {
       playSyncChime();
-      showToast('🔄 ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถจากผู้ใช้อื่น', 'info');
+      showToast('ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถจากผู้ใช้อื่น', 'info');
     }
   }
 }
@@ -2339,11 +2377,11 @@ function setupFirebaseEvents() {
       };
 
       saveBtn.disabled = true;
-      saveBtn.textContent = '⏳ กำลังบันทึกและเชื่อมต่อ...';
+      saveBtn.innerHTML = 'กำลังบันทึกและเชื่อมต่อ...';
 
       const ok = await FirebaseSync.saveConfigAndRestart(parsedConfig, settings);
       saveBtn.disabled = false;
-      saveBtn.textContent = '💾 บันทึกและเริ่มซิงค์สด';
+      saveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> บันทึกและเริ่มซิงค์สด';
 
       if (ok) {
         showToast('บันทึกและเริ่มการซิงค์ข้อมูล Firebase เรียบร้อยแล้ว!', 'success');
@@ -2369,7 +2407,7 @@ function setupFirebaseEvents() {
       const colName = document.getElementById('fbCollectionName').value.trim() || 'motorcycle_fleet';
 
       testBtn.disabled = true;
-      testBtn.textContent = '⏳ กำลังทดสอบ...';
+      testBtn.innerHTML = 'กำลังทดสอบ...';
 
       const result = await FirebaseSync.testConnection(parsedConfig, {
         dbType: selectedDbType,
@@ -2377,13 +2415,13 @@ function setupFirebaseEvents() {
       });
 
       testBtn.disabled = false;
-      testBtn.textContent = '⚡ ทดสอบการเชื่อมต่อ';
+      testBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> ทดสอบการเชื่อมต่อ';
 
       if (result.success) {
-        alert('✅ ' + result.message);
+        alert(result.message);
         showToast('ทดสอบการเชื่อมต่อ Firebase สำเร็จสมบูรณ์', 'success');
       } else {
-        alert('❌ การทดสอบล้มเหลว:\n' + result.message);
+        alert('การทดสอบล้มเหลว:\n' + result.message);
         showToast('การทดสอบล้มเหลว: ' + result.message, 'warning');
       }
     });
@@ -2398,11 +2436,11 @@ function setupFirebaseEvents() {
       }
 
       uploadBtn.disabled = true;
-      uploadBtn.textContent = '⏳ กำลังอัปโหลดข้อมูล...';
+      uploadBtn.innerHTML = 'กำลังอัปโหลดข้อมูล...';
 
       const res = await FirebaseSync.uploadAll(fleet);
       uploadBtn.disabled = false;
-      uploadBtn.textContent = '☁️ ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที';
+      uploadBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg> ส่งข้อมูลสต็อคในเครื่องขึ้น Firebase ทันที';
 
       if (res.success) {
         showToast(`อัปโหลดสต็อครถขึ้น Firebase สำเร็จทั้งหมด ${res.count} คัน`, 'gold');
@@ -2422,11 +2460,11 @@ function setupFirebaseEvents() {
       }
 
       downloadBtn.disabled = true;
-      downloadBtn.textContent = '⏳ กำลังดึงข้อมูล...';
+      downloadBtn.innerHTML = 'กำลังดึงข้อมูล...';
 
       const res = await FirebaseSync.downloadAll();
       downloadBtn.disabled = false;
-      downloadBtn.textContent = '📥 ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้';
+      downloadBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้';
 
       if (res.success) {
         if (res.data && res.data.length > 0) {
