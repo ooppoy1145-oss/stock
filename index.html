@@ -5,30 +5,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <meta name="theme-color" content="#061224">
-  <title>Wira Easy Finance &amp; Rental Fleet System | ระบบจัดการสต็อครถ ขาย-เช่า มอเตอร์ไซค์</title>
+  <title>Wira Easy Finance | ระบบจัดการ ขาย-เช่า มอเตอร์ไซค์</title>
   <meta name="description"
     content="ระบบจัดการสต็อครถมอเตอร์ไซค์ ครบทั้งระบบขายสด-ผ่อน และระบบเช่ารถมอเตอร์ไซค์ คีย์ข้อมูลครบ ป้ายทะเบียน สถานะรถ แกลเลอรี่รูปภาพ และพิมพ์ใบสัญญาเช่า A4">
+
+  <!-- Google Fonts: IBM Plex Sans Thai (Official/Formal Thai), Inter (Modern Latin UI), Sarabun (Docs) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/images/honda_wing_logo.svg" type="image/svg+xml">
 </head>
 
 <body>
 
-  <!-- ==================== PRINT HEADER ==================== -->
-  <div class="print-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <h1 style="font-size: 16pt; margin: 0; color: #0a1b38;">"Wira Easy Finance" &amp; RENTAL FLEET</h1>
-        <p style="margin: 3px 0 0; font-size: 9.5pt; color: #555;">ใบตรวจรับสภาพรถจักรยานยนต์ &amp; สัญญาเช่า /
-          สต็อคการ์ด (OFFICIAL INSPECTION &amp; AGREEMENT)</p>
-      </div>
-      <div style="text-align: right;">
-        <span style="font-weight: bold; font-size: 11pt; border: 2px solid #000; padding: 4px 10px;"
-          id="printDocType">MOTORCYCLE STOCK &amp; RENTAL SHEET</span>
-        <p style="margin: 4px 0 0; font-size: 8.5pt;">วันที่พิมพ์: <span id="printDate"></span></p>
-      </div>
-    </div>
-  </div>
+  <!-- ==================== DEDICATED PRINT CONTAINER (SHOWN ONLY ON PRINT) ==================== -->
+  <div id="printContractContainer" class="print-contract-output" style="display: none;"></div>
 
   <!-- ==================== TOP ENTERPRISE HEADER ==================== -->
   <header class="honda-header">
@@ -94,6 +87,16 @@
             <line x1="12" x2="12" y1="5" y2="19" />
             <line x1="5" x2="19" y1="12" y2="12" />
           </svg> คีย์รับรถเข้าสต็อค
+        </button>
+
+        <!-- Print Contract & Sheet Button -->
+        <button id="btnOpenContractModal" class="header-btn btn-cyan" onclick="openContractModal()"
+          title="พิมพ์สัญญาเช่ารถ / สัญญาผ่อนรถ / ใบตรวจรับรถ">
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect width="12" height="8" x="6" y="14" />
+          </svg> พิมพ์สัญญา / เอกสาร
         </button>
 
         <!-- Export & Backup Button -->
@@ -1121,13 +1124,26 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="header-btn btn-glass" onclick="window.print()">
-          พิมพ์ใบสัญญาเช่า
+        <button type="button" class="header-btn btn-cyan" onclick="openContractModal(currentDetailMoto?.id, 'rent')"
+          title="เปิดหน้าพิมพ์สัญญาเช่ารถคันนี้">
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect width="12" height="8" x="6" y="14" />
+          </svg> พิมพ์สัญญาเช่า
         </button>
-        <button type="button" class="header-btn btn-cyan" id="btnEditFromDetail">
+        <button type="button" class="header-btn btn-gold"
+          onclick="openContractModal(currentDetailMoto?.id, 'installment')" title="เปิดหน้าพิมพ์สัญญาผ่อนรถคันนี้">
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect width="12" height="8" x="6" y="14" />
+          </svg> พิมพ์สัญญาผ่อนรถ
+        </button>
+        <button type="button" class="header-btn btn-glass" id="btnEditFromDetail">
           แก้ไขข้อมูล
         </button>
-        <button type="button" class="header-btn btn-gold" data-close-modal="carDetailModal">
+        <button type="button" class="header-btn btn-glass" data-close-modal="carDetailModal">
           ปิดหน้าต่าง
         </button>
       </div>
@@ -1463,6 +1479,420 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: CONTRACT & INSPECTION PRINT ENGINE ==================== -->
+  <div id="contractPrintModal" class="modal-backdrop">
+    <div class="modal-dialog modal-contract-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg class="ui-icon ui-icon-lg" style="color: var(--cyan-400);" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect width="12" height="8" x="6" y="14" />
+          </svg>
+          <span class="modal-title" id="contractModalTitle">พิมพ์สัญญาเช่ารถ / สัญญาผ่อนรถ &amp; ใบตรวจรับรถ</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" class="header-btn btn-gold" id="btnTopPrintContract" onclick="triggerContractPrint()">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect width="12" height="8" x="6" y="14" />
+            </svg> สั่งพิมพ์เอกสาร A4 (Print)
+          </button>
+          <button type="button" class="modal-close-btn" data-close-modal="contractPrintModal">&times;</button>
+        </div>
+      </div>
+
+      <!-- Mobile View Segmented Switcher (Visible on mobile <= 1024px) -->
+      <div class="contract-mobile-tab-bar" id="contractMobileTabBar">
+        <button type="button" class="contract-m-tab active" id="btnContractTabConfig" onclick="switchContractMobileTab('config')">
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <span>1. เลือกรถ &amp; ตั้งค่า</span>
+        </button>
+        <button type="button" class="contract-m-tab" id="btnContractTabPreview" onclick="switchContractMobileTab('preview')">
+          <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          <span>2. ดูตัวอย่างสัญญา A4</span>
+        </button>
+      </div>
+
+      <div class="modal-body modal-contract-body">
+        <!-- LEFT: CONTRACT CONTROLS & FIELD SELECTION PANE -->
+        <div class="contract-controls-pane">
+
+          <!-- Contract Type Selection -->
+          <div class="contract-config-group">
+            <label class="control-section-label">1. เลือกประเภทเอกสารสัญญา</label>
+            <div class="contract-type-toggle">
+              <button type="button" class="type-btn active" id="btnTypeRent" onclick="setContractType('rent')">
+                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span>สัญญาเช่ารถ</span>
+              </button>
+              <button type="button" class="type-btn" id="btnTypeInstallment" onclick="setContractType('installment')">
+                <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="20" height="14" x="2" y="5" rx="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
+                  <circle cx="16" cy="15" r="1.5" />
+                </svg>
+                <span>สัญญาผ่อนรถ / เช่าซื้อ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Car Selection with Real-time Search -->
+          <div class="contract-config-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <label class="control-section-label" for="contractCarSearchInput" style="margin: 0;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                2.เลือกรถมอเตอร์ไซค์
+              </label>
+              <span id="contractCarCountBadge"
+                style="font-size: 0.72rem; color: var(--cyan-600); font-weight: 600;">ทั้งหมด 0 คัน</span>
+            </div>
+
+            <!-- Search Input with Clear Button -->
+            <div class="contract-car-search-box">
+              <svg class="search-icon ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input type="text" id="contractCarSearchInput" class="form-control-sm contract-search-input"
+                placeholder="พิมพ์ค้นหา: ป้ายทะเบียน, รุ่นรถ, ยี่ห้อ, สาขา..."
+                oninput="filterContractCarList(this.value)">
+              <button type="button" class="search-clear-btn" id="btnContractCarSearchClear"
+                onclick="clearContractCarSearch()" title="ล้างการค้นหา">&times;</button>
+            </div>
+
+            <!-- Quick Filter Status Pills -->
+            <div class="contract-car-filter-pills">
+              <button type="button" class="car-pill-btn active" data-filter="ALL"
+                onclick="filterContractCarByStatus('ALL', this)">ทั้งหมด</button>
+              <button type="button" class="car-pill-btn" data-filter="available"
+                onclick="filterContractCarByStatus('available', this)">ว่าง</button>
+              <button type="button" class="car-pill-btn" data-filter="rented"
+                onclick="filterContractCarByStatus('rented', this)">กำลังเช่า</button>
+              <button type="button" class="car-pill-btn" data-filter="reserved"
+                onclick="filterContractCarByStatus('reserved', this)">กำลังผ่อน</button>
+            </div>
+
+            <!-- Scrollable Searchable Car Selection List -->
+            <div id="contractCarListContainer" class="contract-car-list-container">
+              <!-- Rendered dynamically via JavaScript -->
+            </div>
+
+            <!-- Hidden select kept for state compatibility -->
+            <select id="contractCarSelect" style="display: none;" onchange="onContractCarChanged(this.value)"></select>
+          </div>
+
+          <!-- Custom Fields & Sections Selector (เลือกได้ว่าจะมีอะไรบ้าง) -->
+          <div class="contract-config-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label class="control-section-label" style="margin: 0;">3. ข้อมูลที่ต้องการให้แสดงในสัญญา
+                (เลือกได้)</label>
+              <span style="font-size: 0.72rem; color: var(--cyan-600); cursor: pointer; text-decoration: underline;"
+                onclick="toggleAllContractFields(true)">เลือกทั้งหมด</span>
+            </div>
+            <div class="contract-field-toggles">
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowCustomer" checked onchange="updateContractPreview()">
+                <span>ข้อมูลผู้เช่า / ผู้ซื้อ (Customer)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowGuarantor" onchange="updateContractPreview()">
+                <span>ข้อมูลผู้ค้ำประกัน (Guarantor)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowFinance" checked onchange="updateContractPreview()">
+                <span>เงื่อนไขทางการเงิน (ค่าเช่า/ดาวน์/งวด)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowAccessories" checked onchange="updateContractPreview()">
+                <span>รายการอุปกรณ์ประจำรถ (หมวก/กุญแจ)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowInspection" checked onchange="updateContractPreview()">
+                <span>ใบตรวจรับสภาพรถก่อนส่งมอบ (Checklist)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowTerms" checked onchange="updateContractPreview()">
+                <span>ข้อกำหนด &amp; เงื่อนไขสัญญา (Terms)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowPhoto" checked onchange="updateContractPreview()">
+                <span>รูปถ่ายมอเตอร์ไซค์ในสัญญา</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowWitness" checked onchange="updateContractPreview()">
+                <span>ช่องลงลายมือชื่อพยาน / เจ้าหน้าที่</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Editable Contract Details Form -->
+          <div class="contract-config-group">
+            <label class="control-section-label">4. กรอก / ปรับแต่งข้อมูลสัญญา</label>
+
+            <div class="contract-form-subgrid">
+              <div class="form-group-sm">
+                <label>เลขที่สัญญา</label>
+                <input type="text" id="contractDocNo" class="form-control-sm" oninput="updateContractPreview()">
+              </div>
+              <div class="form-group-sm">
+                <label>วันที่ทำสัญญา</label>
+                <input type="date" id="contractDate" class="form-control-sm" oninput="updateContractPreview()">
+              </div>
+            </div>
+
+            <div class="form-group-sm" style="margin-top: 0.35rem;">
+              <label>สาขา / สถานที่ทำสัญญา</label>
+              <input type="text" id="contractBranch" class="form-control-sm" oninput="updateContractPreview()">
+            </div>
+
+            <!-- Customer Details Inputs -->
+            <div id="secInputCustomer" class="subform-card" style="margin-top: 0.5rem;">
+              <div class="subform-card-title">ข้อมูลผู้เช่า / ผู้ซื้อ</div>
+              <div class="form-group-sm">
+                <label>ชื่อ-นามสกุล</label>
+                <input type="text" id="contractCustName" class="form-control-sm" placeholder="เช่น นายสมชาย ใจดี"
+                  oninput="updateContractPreview()">
+              </div>
+              <div class="contract-form-subgrid">
+                <div class="form-group-sm">
+                  <label>เลขบัตร ปชช. / Passport</label>
+                  <input type="text" id="contractCustId" class="form-control-sm" placeholder="เลขบัตร 13 หลัก"
+                    oninput="updateContractPreview()">
+                </div>
+                <div class="form-group-sm">
+                  <label>เบอร์โทรติดต่อ</label>
+                  <input type="text" id="contractCustPhone" class="form-control-sm" placeholder="08X-XXX-XXXX"
+                    oninput="updateContractPreview()">
+                </div>
+              </div>
+              <div class="form-group-sm" style="margin-top: 0.35rem;">
+                <label>ที่อยู่ตามบัตร / ที่พัก</label>
+                <input type="text" id="contractCustAddress" class="form-control-sm"
+                  placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด" oninput="updateContractPreview()">
+              </div>
+            </div>
+
+            <!-- Guarantor Details Inputs (for installment or when toggled) -->
+            <div id="secInputGuarantor" class="subform-card" style="display: none; margin-top: 0.5rem;">
+              <div class="subform-card-title">ข้อมูลผู้ค้ำประกัน (Guarantor)</div>
+              <div class="contract-form-subgrid">
+                <div class="form-group-sm">
+                  <label>ชื่อ-นามสกุล ผู้ค้ำ</label>
+                  <input type="text" id="contractGuarName" class="form-control-sm" placeholder="เช่น นางสมศรี ใจดี"
+                    oninput="updateContractPreview()">
+                </div>
+                <div class="form-group-sm">
+                  <label>ความสัมพันธ์</label>
+                  <input type="text" id="contractGuarRelation" class="form-control-sm"
+                    placeholder="เช่น บิดา / มารดา / ญาติ" oninput="updateContractPreview()">
+                </div>
+              </div>
+              <div class="contract-form-subgrid">
+                <div class="form-group-sm">
+                  <label>เลขบัตร ปชช. ผู้ค้ำ</label>
+                  <input type="text" id="contractGuarId" class="form-control-sm" placeholder="เลขบัตร 13 หลัก"
+                    oninput="updateContractPreview()">
+                </div>
+                <div class="form-group-sm">
+                  <label>เบอร์โทรผู้ค้ำ</label>
+                  <input type="text" id="contractGuarPhone" class="form-control-sm" placeholder="08X-XXX-XXXX"
+                    oninput="updateContractPreview()">
+                </div>
+              </div>
+              <div class="form-group-sm" style="margin-top: 0.35rem;">
+                <label>ที่อยู่ผู้ค้ำประกัน</label>
+                <input type="text" id="contractGuarAddress" class="form-control-sm" placeholder="ที่อยู่ผู้ค้ำประกัน"
+                  oninput="updateContractPreview()">
+              </div>
+            </div>
+
+            <!-- Financial Inputs -->
+            <div id="secInputFinance" class="subform-card" style="margin-top: 0.5rem;">
+              <div class="subform-card-title" id="titleFinanceInput">รายละเอียดเงื่อนไขการเงิน</div>
+
+              <!-- Rent Fields -->
+              <div id="fieldsRentFinance">
+                <div class="contract-form-subgrid">
+                  <div class="form-group-sm">
+                    <label>ค่าเช่า (บาท/วัน)</label>
+                    <input type="number" id="contractRentDaily" class="form-control-sm"
+                      oninput="updateContractPreview()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>ค่าเช่า (บาท/เดือน)</label>
+                    <input type="number" id="contractRentMonthly" class="form-control-sm"
+                      oninput="updateContractPreview()">
+                  </div>
+                </div>
+                <div class="contract-form-subgrid">
+                  <div class="form-group-sm">
+                    <label>เงินประกันมัดจำ (บาท)</label>
+                    <input type="number" id="contractDeposit" class="form-control-sm" oninput="updateContractPreview()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>เวลาส่งคืนรถ</label>
+                    <input type="time" id="contractReturnTime" class="form-control-sm" value="18:00"
+                      oninput="updateContractPreview()">
+                  </div>
+                </div>
+                <div class="contract-form-subgrid">
+                  <div class="form-group-sm">
+                    <label>วันเริ่มเช่า</label>
+                    <input type="date" id="contractRentalStart" class="form-control-sm"
+                      oninput="updateContractPreview()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>วันสิ้นสุดเช่า</label>
+                    <input type="date" id="contractRentalEnd" class="form-control-sm" oninput="updateContractPreview()">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Installment Fields -->
+              <div id="fieldsInstallmentFinance" style="display: none;">
+                <div class="contract-form-subgrid">
+                  <div class="form-group-sm">
+                    <label>ราคาขายสด (บาท)</label>
+                    <input type="number" id="contractPrice" class="form-control-sm" oninput="updateContractPreview()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>เงินดาวน์ (บาท)</label>
+                    <input type="number" id="contractDownPayment" class="form-control-sm" placeholder="0 = ฟรีดาวน์"
+                      oninput="updateContractPreview()">
+                  </div>
+                </div>
+                <div class="contract-form-subgrid">
+                  <div class="form-group-sm">
+                    <label>ค่างวดผ่อน (บาท/งวด)</label>
+                    <input type="number" id="contractInstallmentAmount" class="form-control-sm"
+                      oninput="updateContractPreview()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>จำนวนงวด (งวด)</label>
+                    <input type="number" id="contractInstallmentTerm" class="form-control-sm"
+                      oninput="updateContractPreview()">
+                  </div>
+                </div>
+                <div class="form-group-sm" style="margin-top: 0.35rem;">
+                  <label>กำหนดชำระทุกวันที่</label>
+                  <input type="text" id="contractDueDay" class="form-control-sm" value="ทุกวันที่ 5 ของเดือน"
+                    oninput="updateContractPreview()">
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes & Remarks -->
+            <div class="form-group-sm" style="margin-top: 0.5rem;">
+              <label>ข้อตกลงพิเศษ / หมายเหตุเพิ่มเติม</label>
+              <textarea id="contractCustomNotes" class="form-control-sm" rows="2"
+                placeholder="ระบุข้อตกลงพิเศษเพิ่มเติม (ถ้ามี)" oninput="updateContractPreview()"></textarea>
+            </div>
+
+            <div style="margin-top: 0.75rem;">
+              <button type="button" class="header-btn btn-glass"
+                style="width: 100%; font-size: 0.78rem; padding: 0.45rem; justify-content: center;"
+                onclick="saveContractCustomerToFleet()">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg> บันทึกข้อมูลลูกค้าลงระบบสต็อค
+              </button>
+            </div>
+
+            <!-- Mobile Quick Jump Button to Preview -->
+            <div class="contract-mobile-jump-box">
+              <button type="button" class="header-btn btn-cyan" style="width: 100%; justify-content: center; height: 44px; font-weight: 700; margin-top: 0.65rem;" onclick="switchContractMobileTab('preview')">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                ดูตัวอย่างเอกสารสัญญา A4 &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: LIVE A4 PREVIEW PANE -->
+        <div class="contract-preview-wrapper">
+          <div class="preview-toolbar">
+            <div class="preview-toolbar-left">
+              <span class="preview-badge">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                ตัวอย่างสัญญา A4
+              </span>
+            </div>
+            <div class="preview-toolbar-actions">
+              <button type="button" class="preview-tool-btn" id="zoomFitBtn" onclick="autoFitMobileContractZoom()" title="ปรับขนาดให้พอดีหน้าจอ">พอดีจอ</button>
+              <button type="button" class="preview-tool-btn" id="zoom50Btn" onclick="setPreviewZoom(0.5)">50%</button>
+              <button type="button" class="preview-tool-btn" id="zoom70Btn" onclick="setPreviewZoom(0.7)">70%</button>
+              <button type="button" class="preview-tool-btn active" id="zoom100Btn" onclick="setPreviewZoom(1.0)">100%</button>
+              <button type="button" class="header-btn btn-gold" style="font-size: 0.8rem; padding: 0.35rem 0.85rem;"
+                onclick="triggerContractPrint()">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect width="12" height="8" x="6" y="14" />
+                </svg> สั่งพิมพ์ (Print A4)
+              </button>
+            </div>
+          </div>
+
+          <!-- A4 Sheet Container -->
+          <div class="preview-scroll-container">
+            <div id="liveA4Sheet" class="contract-a4-sheet">
+              <!-- Rendered dynamically via JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+          <svg class="ui-icon ui-icon-xs" style="color: var(--cyan-500);" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          เมื่อกดสั่งพิมพ์ ระบบจะสั่งพิมพ์เฉพาะเอกสารของคันที่เลือกนี้เท่านั้น (ไม่ปนกับคันอื่นในสต็อค)
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="header-btn btn-glass" data-close-modal="contractPrintModal">ปิดหน้าต่าง</button>
+          <button type="button" class="header-btn btn-gold" onclick="triggerContractPrint()">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect width="12" height="8" x="6" y="14" />
+            </svg> สั่งพิมพ์เอกสาร A4
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== LIGHTBOX MODAL: FULLSCREEN IMAGE VIEWER ==================== -->
   <div id="imageLightboxModal" class="modal-backdrop image-lightbox-backdrop" onclick="closeLightbox(event)">
     <button type="button" class="lightbox-close-btn" onclick="closeLightbox()" title="ปิดรูปขยาย (ESC)">&times;</button>
@@ -1473,20 +1903,6 @@
 
   <!-- ==================== TOAST CONTAINER ==================== -->
   <div id="toastContainer" class="toast-container"></div>
-
-  <!-- Print signatures block -->
-  <div class="print-footer-signatures">
-    <div style="text-align: center; width: 220px;">
-      <div style="border-bottom: 1px solid #000; height: 35px;"></div>
-      <p style="margin-top: 6px; font-size: 8.5pt;">(ลายมือชื่อผู้เช่า / ผู้ซื้อ)</p>
-      <p style="font-size: 7.5pt; color: #666;">Customer / Renter Signature</p>
-    </div>
-    <div style="text-align: center; width: 220px;">
-      <div style="border-bottom: 1px solid #000; height: 35px;"></div>
-      <p style="margin-top: 6px; font-size: 8.5pt;">(เจ้าหน้าที่ผู้ส่งมอบรถ / ผู้จัดการ)</p>
-      <p style="font-size: 7.5pt; color: #666;">Authorized Shop Officer</p>
-    </div>
-  </div>
 
   <!-- Firebase SDK Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>

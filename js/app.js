@@ -295,6 +295,8 @@ let activeMode = 'ALL'; // 'ALL' | 'RENT' | 'SALE'
 let currentView = 'grid'; // 'grid' | 'table' | 'kanban'
 let formPhotos = [];
 let isInitialCloudLoading = false;
+let currentDetailMoto = null;
+window.currentDetailMoto = null;
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
@@ -459,6 +461,11 @@ function setupEventListeners() {
   document.getElementById('btnOpenAddModal').addEventListener('click', () => openCarModal(null));
   document.getElementById('btnOpenDataModal').addEventListener('click', () => openModal('dataModal'));
   document.getElementById('btnOpenFirebaseModal').addEventListener('click', () => openFirebaseModal());
+
+  const contractPrintBtn = document.getElementById('btnOpenContractModal');
+  if (contractPrintBtn) {
+    contractPrintBtn.addEventListener('click', () => openContractModal());
+  }
 
   const quickFbBtn = document.getElementById('btnQuickOpenFirebaseSettings');
   if (quickFbBtn) {
@@ -726,6 +733,7 @@ const UI_ICONS = {
   eye: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
   trash: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
   arrowRight: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  print: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>`,
   cloud: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`
 };
 
@@ -905,6 +913,9 @@ function renderGridView(motos) {
               <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD ทันที">
                 ${UI_ICONS.pin}
               </button>
+              <button class="btn-card-icon" onclick="openContractModal('${moto.id}')" title="พิมพ์สัญญา (เช่า / ผ่อน)">
+                ${UI_ICONS.print}
+              </button>
               <button class="btn-card-icon" onclick="copyPlate('${moto.licensePlate}')" title="คัดลอกป้ายทะเบียน">
                 ${UI_ICONS.copy}
               </button>
@@ -998,6 +1009,9 @@ function renderTableView(motos) {
           <div style="display: flex; gap: 0.35rem; justify-content: center;">
             <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD">
               ${UI_ICONS.pin}
+            </button>
+            <button class="btn-card-icon" onclick="openContractModal('${moto.id}')" title="พิมพ์สัญญา (เช่า / ผ่อน)">
+              ${UI_ICONS.print}
             </button>
             <button class="btn-card-icon" onclick="openCarDetail('${moto.id}')" title="ดูสัญญา & พิมพ์ใบตรวจ">
               ${UI_ICONS.eye}
@@ -2530,5 +2544,805 @@ service cloud.firestore {
     alert(rules);
   });
 };
+
+// ==========================================================================
+// CONTRACT & INSPECTION PRINT ENGINE (A4 SINGLE VEHICLE ONLY)
+// ==========================================================================
+let activeContractType = 'rent'; // 'rent' | 'installment'
+let currentContractMotoId = null;
+let contractPreviewZoom = 1.0;
+
+function formatThaiDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const thMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  return `${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+let contractCarSearchKeyword = '';
+let contractCarStatusFilter = 'ALL';
+
+function openContractModal(motoId = null, type = null) {
+  try {
+    if (!fleet || fleet.length === 0) {
+      if (typeof DEFAULT_MOTO_FLEET !== 'undefined' && DEFAULT_MOTO_FLEET.length > 0) {
+        fleet = JSON.parse(JSON.stringify(DEFAULT_MOTO_FLEET));
+      } else {
+        showToast('ยังไม่มีข้อมูลรถในระบบสต็อค', 'warning');
+        return;
+      }
+    }
+
+    // 1. Resolve selected motorcycle safely
+    const detailId = (typeof currentDetailMoto !== 'undefined' && currentDetailMoto) ? currentDetailMoto.id : null;
+    if (motoId && fleet.some(c => c.id === motoId)) {
+      currentContractMotoId = motoId;
+    } else if (detailId && fleet.some(c => c.id === detailId)) {
+      currentContractMotoId = detailId;
+    } else if (!currentContractMotoId || !fleet.some(c => c.id === currentContractMotoId)) {
+      currentContractMotoId = fleet[0].id;
+    }
+
+    // 2. Reset car search keyword and status filter
+    contractCarSearchKeyword = '';
+    contractCarStatusFilter = 'ALL';
+    const searchInput = document.getElementById('contractCarSearchInput');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('btnContractCarSearchClear');
+    if (clearBtn) clearBtn.style.display = 'none';
+    document.querySelectorAll('.car-pill-btn').forEach((b, idx) => {
+      b.classList.toggle('active', idx === 0);
+    });
+
+    // 3. Render Searchable Car Cards List
+    renderContractCarList();
+
+    // 4. Populate hidden Car Select Dropdown
+    const selectEl = document.getElementById('contractCarSelect');
+    if (selectEl) {
+      selectEl.innerHTML = fleet.map(m => {
+        const statusInfo = STATUS_CONFIG[m.status] || STATUS_CONFIG.available;
+        return `<option value="${m.id}" ${m.id === currentContractMotoId ? 'selected' : ''}>[${m.licensePlate}${m.province ? ' ' + m.province : ''}] ${m.brand} ${m.model} (${m.branch}) - ${statusInfo.label}</option>`;
+      }).join('');
+      selectEl.value = currentContractMotoId;
+    }
+
+    // 5. Resolve Contract Type
+    const moto = fleet.find(c => c.id === currentContractMotoId) || fleet[0];
+    if (type) {
+      activeContractType = type;
+    } else if (moto && moto.purpose === 'sale') {
+      activeContractType = 'installment';
+    } else {
+      activeContractType = 'rent';
+    }
+
+    // 6. Fill form inputs
+    populateContractForm(moto);
+
+    // 7. Update UI Mode
+    setContractType(activeContractType, false);
+
+    // 8. Generate Live A4 Preview
+    updateContractPreview();
+
+    // 9. Open Modal
+    openModal('contractPrintModal');
+  } catch (err) {
+    console.error('Error opening contract modal:', err);
+    showToast('เกิดข้อผิดพลาดในการเปิดหน้าสัญญา: ' + err.message, 'warning');
+  }
+}
+
+function renderContractCarList() {
+  const container = document.getElementById('contractCarListContainer');
+  const countBadge = document.getElementById('contractCarCountBadge');
+  if (!container) return;
+
+  const search = (contractCarSearchKeyword || '').trim().toLowerCase();
+  const statusFilter = contractCarStatusFilter || 'ALL';
+
+  const filtered = fleet.filter(moto => {
+    // Status filter
+    if (statusFilter !== 'ALL' && moto.status !== statusFilter) return false;
+
+    // Search query
+    if (search) {
+      const matchPlate = (moto.licensePlate || '').toLowerCase().includes(search);
+      const matchProv = (moto.province || '').toLowerCase().includes(search);
+      const matchModel = (moto.model || '').toLowerCase().includes(search);
+      const matchBrand = (moto.brand || '').toLowerCase().includes(search);
+      const matchBranch = (moto.branch || '').toLowerCase().includes(search);
+      const matchColor = (moto.exteriorColor || '').toLowerCase().includes(search);
+      const matchCust = (moto.customer || '').toLowerCase().includes(search);
+      const matchVin = (moto.vin || '').toLowerCase().includes(search);
+      if (!matchPlate && !matchProv && !matchModel && !matchBrand && !matchBranch && !matchColor && !matchCust && !matchVin) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `แสดง ${filtered.length} จากทั้งหมด ${fleet.length} คัน`;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="contract-car-empty">
+        <svg class="ui-icon ui-icon-md" style="color: var(--text-muted); margin-bottom: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <div>ไม่พบรถมอเตอร์ไซค์ที่ตรงกับ "${contractCarSearchKeyword}"</div>
+        <button type="button" class="car-pill-btn" style="margin-top: 6px;" onclick="clearContractCarSearch()">ล้างการค้นหา</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(moto => {
+    const isSelected = moto.id === currentContractMotoId;
+    const statusInfo = STATUS_CONFIG[moto.status] || STATUS_CONFIG.available;
+    const coverPhoto = (moto.photos && moto.photos.length > 0) ? moto.photos[0] : 'assets/images/forza_350.jpg';
+
+    return `
+      <div class="contract-car-item ${isSelected ? 'selected' : ''}" 
+           onclick="selectContractCar('${moto.id}')"
+           title="คลิกเพื่อเลือกรถคันนี้มาทำสัญญา">
+        <img src="${coverPhoto}" class="car-item-thumb" alt="${moto.model}">
+        <div class="car-item-info">
+          <div class="car-item-top">
+            <span class="car-item-plate">${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}</span>
+            <span class="status-pill ${statusInfo.class}" style="font-size: 0.65rem; padding: 1px 6px;">
+              <span class="status-dot"></span>${statusInfo.label}
+            </span>
+          </div>
+          <div class="car-item-title">${moto.brand} ${moto.model} <span style="color: var(--cyan-600); font-weight: normal;">${moto.cc}</span></div>
+          <div class="car-item-sub">
+            <span>📍 ${moto.branch}</span>
+            ${moto.rentDaily ? `<span>&bull; ค่าเช่า ฿${Number(moto.rentDaily).toLocaleString()}/วัน</span>` : ''}
+            ${moto.price ? `<span>&bull; ขาย ฿${Number(moto.price).toLocaleString()}</span>` : ''}
+          </div>
+        </div>
+        <div class="car-item-check">${isSelected ? '&#10003;' : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectContractCar(carId) {
+  currentContractMotoId = carId;
+  const selectEl = document.getElementById('contractCarSelect');
+  if (selectEl) selectEl.value = carId;
+
+  const moto = fleet.find(c => c.id === carId);
+  if (moto) {
+    populateContractForm(moto);
+    updateContractPreview();
+    renderContractCarList();
+    showToast(`เลือกทำสัญญา: ${moto.brand} ${moto.model} [${moto.licensePlate}]`, 'info');
+  }
+}
+
+function filterContractCarList(query) {
+  contractCarSearchKeyword = query || '';
+  const clearBtn = document.getElementById('btnContractCarSearchClear');
+  if (clearBtn) {
+    clearBtn.style.display = contractCarSearchKeyword ? 'block' : 'none';
+  }
+  renderContractCarList();
+}
+
+function clearContractCarSearch() {
+  contractCarSearchKeyword = '';
+  const input = document.getElementById('contractCarSearchInput');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('btnContractCarSearchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderContractCarList();
+}
+
+function filterContractCarByStatus(status, btnEl) {
+  contractCarStatusFilter = status;
+  document.querySelectorAll('.car-pill-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderContractCarList();
+}
+
+function populateContractForm(moto) {
+  if (!moto) return;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const nextWeekStr = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+  // Doc No
+  const prefix = activeContractType === 'installment' ? 'HP' : 'RC';
+  const docNoInput = document.getElementById('contractDocNo');
+  if (docNoInput) {
+    docNoInput.value = `${prefix}-${Date.now().toString().slice(-6)}`;
+  }
+
+  // Date & Branch
+  const dateInput = document.getElementById('contractDate');
+  if (dateInput) dateInput.value = todayStr;
+
+  const branchInput = document.getElementById('contractBranch');
+  if (branchInput) branchInput.value = moto.branch || 'สาขาหลัก (วีระมอเตอร์)';
+
+  // Customer
+  const custNameInput = document.getElementById('contractCustName');
+  if (custNameInput) custNameInput.value = moto.customer || '';
+
+  const custIdInput = document.getElementById('contractCustId');
+  if (custIdInput) custIdInput.value = moto.customerPassport || '';
+
+  const custPhoneInput = document.getElementById('contractCustPhone');
+  if (custPhoneInput) custPhoneInput.value = moto.customerPhone || '';
+
+  const custAddrInput = document.getElementById('contractCustAddress');
+  if (custAddrInput) custAddrInput.value = moto.customerAddress || '';
+
+  // Guarantor
+  const guarNameInput = document.getElementById('contractGuarName');
+  if (guarNameInput) guarNameInput.value = moto.guarantorName || '';
+
+  const guarRelInput = document.getElementById('contractGuarRelation');
+  if (guarRelInput) guarRelInput.value = moto.guarantorRelation || '';
+
+  const guarIdInput = document.getElementById('contractGuarId');
+  if (guarIdInput) guarIdInput.value = moto.guarantorId || '';
+
+  const guarPhoneInput = document.getElementById('contractGuarPhone');
+  if (guarPhoneInput) guarPhoneInput.value = moto.guarantorPhone || '';
+
+  const guarAddrInput = document.getElementById('contractGuarAddress');
+  if (guarAddrInput) guarAddrInput.value = moto.guarantorAddress || '';
+
+  // Rent fields
+  const rentDailyInput = document.getElementById('contractRentDaily');
+  if (rentDailyInput) rentDailyInput.value = moto.rentDaily || 0;
+
+  const rentMonthlyInput = document.getElementById('contractRentMonthly');
+  if (rentMonthlyInput) rentMonthlyInput.value = moto.rentMonthly || (moto.rentDaily ? moto.rentDaily * 20 : 0);
+
+  const depositInput = document.getElementById('contractDeposit');
+  if (depositInput) depositInput.value = (moto.deposit !== undefined && moto.deposit !== '') ? moto.deposit : 1000;
+
+  const rentStartInput = document.getElementById('contractRentalStart');
+  if (rentStartInput) rentStartInput.value = moto.rentalStart || todayStr;
+
+  const rentEndInput = document.getElementById('contractRentalEnd');
+  if (rentEndInput) rentEndInput.value = moto.rentalEnd || nextWeekStr;
+
+  // Installment fields
+  const priceInput = document.getElementById('contractPrice');
+  if (priceInput) priceInput.value = moto.price || 0;
+
+  const downInput = document.getElementById('contractDownPayment');
+  if (downInput) downInput.value = (moto.downPayment !== undefined && moto.downPayment !== '') ? moto.downPayment : 0;
+
+  const instAmountInput = document.getElementById('contractInstallmentAmount');
+  if (instAmountInput) instAmountInput.value = moto.installmentAmount || 0;
+
+  const instTermInput = document.getElementById('contractInstallmentTerm');
+  if (instTermInput) instTermInput.value = moto.installmentTerm || 12;
+
+  const dueDayInput = document.getElementById('contractDueDay');
+  if (dueDayInput) dueDayInput.value = moto.dueDay || 'ทุกวันที่ 5 ของเดือน';
+
+  const notesInput = document.getElementById('contractCustomNotes');
+  if (notesInput) notesInput.value = moto.remarks || '';
+}
+
+function setContractType(type, triggerUpdate = true) {
+  activeContractType = type;
+  const btnRent = document.getElementById('btnTypeRent');
+  const btnInst = document.getElementById('btnTypeInstallment');
+  const secGuar = document.getElementById('secInputGuarantor');
+  const chkGuar = document.getElementById('chkShowGuarantor');
+  const rentFields = document.getElementById('fieldsRentFinance');
+  const instFields = document.getElementById('fieldsInstallmentFinance');
+  const titleFin = document.getElementById('titleFinanceInput');
+  const titleModal = document.getElementById('contractModalTitle');
+  const docNoInput = document.getElementById('contractDocNo');
+
+  if (type === 'rent') {
+    btnRent?.classList.add('active');
+    btnInst?.classList.remove('active');
+    if (rentFields) rentFields.style.display = 'block';
+    if (instFields) instFields.style.display = 'none';
+    if (titleFin) titleFin.textContent = 'รายละเอียดอัตราค่าเช่า & ประกัน';
+    if (titleModal) titleModal.textContent = 'พิมพ์สัญญาเช่ารถจักรยานยนต์ & ใบตรวจรับรถ (A4)';
+
+    if (docNoInput && docNoInput.value.startsWith('HP-')) {
+      docNoInput.value = docNoInput.value.replace('HP-', 'RC-');
+    }
+  } else {
+    btnInst?.classList.add('active');
+    btnRent?.classList.remove('active');
+    if (rentFields) rentFields.style.display = 'none';
+    if (instFields) instFields.style.display = 'block';
+    if (titleFin) titleFin.textContent = 'รายละเอียดการผ่อนชำระ & เงินดาวน์';
+    if (titleModal) titleModal.textContent = 'พิมพ์สัญญาซื้อขายผ่อนชำระ / เช่าซื้อรถมอเตอร์ไซค์ (A4)';
+
+    // Auto show and check guarantor for installment
+    if (chkGuar) chkGuar.checked = true;
+    if (secGuar) secGuar.style.display = 'block';
+
+    if (docNoInput && docNoInput.value.startsWith('RC-')) {
+      docNoInput.value = docNoInput.value.replace('RC-', 'HP-');
+    }
+  }
+
+  // Toggle guarantor visibility based on checkbox
+  if (chkGuar && secGuar) {
+    secGuar.style.display = chkGuar.checked ? 'block' : 'none';
+  }
+
+  if (triggerUpdate) {
+    updateContractPreview();
+  }
+}
+
+function onContractCarChanged(carId) {
+  selectContractCar(carId);
+}
+
+function toggleAllContractFields(val) {
+  ['chkShowCustomer', 'chkShowGuarantor', 'chkShowFinance', 'chkShowAccessories', 'chkShowInspection', 'chkShowTerms', 'chkShowPhoto', 'chkShowWitness'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = val;
+  });
+  const secGuar = document.getElementById('secInputGuarantor');
+  if (secGuar) secGuar.style.display = val ? 'block' : 'none';
+  updateContractPreview();
+}
+
+function setPreviewZoom(zoom) {
+  contractPreviewZoom = zoom;
+  const sheet = document.getElementById('liveA4Sheet');
+  if (sheet) {
+    sheet.style.transform = `scale(${zoom})`;
+  }
+  ['zoom70Btn', 'zoom85Btn', 'zoom100Btn'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.classList.remove('active');
+  });
+  if (zoom === 0.7) document.getElementById('zoom70Btn')?.classList.add('active');
+  if (zoom === 0.85) document.getElementById('zoom85Btn')?.classList.add('active');
+  if (zoom === 1.0) document.getElementById('zoom100Btn')?.classList.add('active');
+}
+
+function updateContractPreview() {
+  const previewContainer = document.getElementById('liveA4Sheet');
+  if (!previewContainer) return;
+
+  const moto = fleet.find(c => c.id === currentContractMotoId) || fleet[0];
+  if (!moto) {
+    previewContainer.innerHTML = '<div style="padding: 2rem; text-align: center;">ไม่พบข้อมูลรถ</div>';
+    return;
+  }
+
+  const isRent = activeContractType === 'rent';
+
+  // Toggle flags
+  const showCust = document.getElementById('chkShowCustomer')?.checked;
+  const showGuar = document.getElementById('chkShowGuarantor')?.checked;
+  const showFin = document.getElementById('chkShowFinance')?.checked;
+  const showAcc = document.getElementById('chkShowAccessories')?.checked;
+  const showInsp = document.getElementById('chkShowInspection')?.checked;
+  const showTerms = document.getElementById('chkShowTerms')?.checked;
+  const showPhoto = document.getElementById('chkShowPhoto')?.checked;
+  const showWit = document.getElementById('chkShowWitness')?.checked;
+
+  // Toggle visibility of guarantor input section
+  const secGuar = document.getElementById('secInputGuarantor');
+  if (secGuar) secGuar.style.display = showGuar ? 'block' : 'none';
+
+  // Field values
+  const docNo = document.getElementById('contractDocNo')?.value || (isRent ? 'RC-0001' : 'HP-0001');
+  const contractDate = document.getElementById('contractDate')?.value || new Date().toISOString().slice(0, 10);
+  const branch = document.getElementById('contractBranch')?.value || moto.branch || 'สาขาหลัก (วีระมอเตอร์)';
+
+  const custName = document.getElementById('contractCustName')?.value || '................................................';
+  const custId = document.getElementById('contractCustId')?.value || '................................................';
+  const custPhone = document.getElementById('contractCustPhone')?.value || '................................................';
+  const custAddr = document.getElementById('contractCustAddress')?.value || '................................................';
+
+  const guarName = document.getElementById('contractGuarName')?.value || '................................................';
+  const guarRel = document.getElementById('contractGuarRelation')?.value || '........................';
+  const guarId = document.getElementById('contractGuarId')?.value || '................................................';
+  const guarPhone = document.getElementById('contractGuarPhone')?.value || '................................................';
+  const guarAddr = document.getElementById('contractGuarAddress')?.value || '................................................';
+
+  // Financial values
+  const rentDaily = Number(document.getElementById('contractRentDaily')?.value || moto.rentDaily || 0);
+  const rentMonthly = Number(document.getElementById('contractRentMonthly')?.value || moto.rentMonthly || 0);
+  const deposit = Number(document.getElementById('contractDeposit')?.value || moto.deposit || 0);
+  const returnTime = document.getElementById('contractReturnTime')?.value || '18:00';
+  const rentStart = document.getElementById('contractRentalStart')?.value || '';
+  const rentEnd = document.getElementById('contractRentalEnd')?.value || '';
+
+  const price = Number(document.getElementById('contractPrice')?.value || moto.price || 0);
+  const downPayment = Number(document.getElementById('contractDownPayment')?.value || moto.downPayment || 0);
+  const instAmount = Number(document.getElementById('contractInstallmentAmount')?.value || moto.installmentAmount || 0);
+  const instTerm = Number(document.getElementById('contractInstallmentTerm')?.value || moto.installmentTerm || 12);
+  const dueDay = document.getElementById('contractDueDay')?.value || 'ทุกวันที่ 5 ของเดือน';
+  const totalInstallmentSum = downPayment + (instAmount * instTerm);
+
+  const customNotes = document.getElementById('contractCustomNotes')?.value?.trim() || '';
+  const photoUrl = (moto.photos && moto.photos.length > 0) ? moto.photos[0] : 'assets/images/forza_350.jpg';
+
+  // Build A4 HTML
+  let html = `
+    <!-- 1. OFFICIAL DEALERSHIP HEADER -->
+    <div class="a4-doc-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h1 class="a4-company-name">Wira Easy Finance</h1>
+          <span style="font-size: 7.5pt; background: #0a1b38; color: #fff; padding: 1px 6px; border-radius: 2px; font-weight: bold;">OFFICIAL FLEET</span>
+        </div>
+        <p class="a4-company-sub">บริษัท วีระมอเตอร์ อีซี่ไฟแนนซ์ จำกัด &bull; ศูนย์รวมมอเตอร์ไซค์ จำหน่าย-ผ่อน-เช่า ครบวงจร</p>
+        <p class="a4-company-sub" style="color: #475569; font-size: 7.5pt;">
+          สถานที่ทำสัญญา: <strong>${branch}</strong> &bull; สายด่วนบริการลูกค้า: 064-427-6449
+        </p>
+      </div>
+      <div class="a4-doc-badge-col">
+        <div class="a4-doc-type-pill">
+          ${isRent ? 'สัญญาเช่ารถ &amp; ใบตรวจรับมอบสภาพ' : 'สัญญาซื้อขายผ่อนชำระ &amp; เช่าซื้อ'}
+        </div>
+        <div class="a4-doc-meta">เลขที่สัญญา: <strong style="font-family: monospace; font-size: 8.5pt; color: #000;">${docNo}</strong></div>
+        <div class="a4-doc-meta">วันที่ทำสัญญา: <strong>${formatThaiDate(contractDate)}</strong></div>
+      </div>
+    </div>
+
+    <!-- CONTRACT TITLE -->
+    <div class="a4-contract-title">
+      ${isRent
+      ? 'สัญญาเช่ารถจักรยานยนต์ และ บันทึกการตรวจรับมอบสภาพรถ '
+      : 'สัญญาซื้อขายผ่อนชำระรถจักรยานยนต์ '
+    }
+    </div>
+
+    <!-- 2. PARTIES SECTION -->
+    ${showCust ? `
+      <div class="a4-box a4-avoid-break">
+        <div class="a4-box-title">
+          <span>1. ข้อมูลคู่สัญญา </span>
+          <span style="font-size: 7.2pt; color: #64748b; font-weight: normal;">ทำขึ้น ณ ${branch}</span>
+        </div>
+        <table class="a4-table">
+          <tr>
+            <td class="lbl">${isRent ? 'ผู้ให้เช่า' : 'ผู้ขาย / ผู้ให้เช่าซื้อ '}</td>
+            <td colspan="3"><strong>บริษัท วีระมอเตอร์ อีซี่ไฟแนนซ์ จำกัด (Wira Easy Finance)</strong> สาขา: ${branch}</td>
+          </tr>
+          <tr>
+            <td class="lbl">${isRent ? 'ผู้เช่า ' : 'ผู้ซื้อ / ผู้เช่าซื้อ '}</td>
+            <td><strong>${custName}</strong></td>
+            <td class="lbl">เลขบัตร ปชช. / Passport</td>
+            <td><strong>${custId}</strong></td>
+          </tr>
+          <tr>
+            <td class="lbl">เบอร์โทรศัพท์ติดต่อ</td>
+            <td><strong>${custPhone}</strong></td>
+            <td class="lbl">ที่อยู่ตามบัตร / ที่พัก</td>
+            <td>${custAddr}</td>
+          </tr>
+          ${(showGuar && !isRent) || (showGuar && guarName !== '................................................') ? `
+            <tr>
+              <td class="lbl" style="color: #b45309;">ผู้ค้ำประกัน </td>
+              <td><strong>${guarName}</strong> (ความสัมพันธ์: ${guarRel})</td>
+              <td class="lbl">เลขบัตร ปชช. ผู้ค้ำ</td>
+              <td><strong>${guarId}</strong> (โทร: ${guarPhone})</td>
+            </tr>
+            <tr>
+              <td class="lbl" style="color: #b45309;">ที่อยู่ผู้ค้ำประกัน</td>
+              <td colspan="3">${guarAddr}</td>
+            </tr>
+          ` : ''}
+        </table>
+      </div>
+    ` : ''}
+
+    <!-- 3. VEHICLE SPECIFICATIONS TABLE -->
+    <div class="a4-box a4-avoid-break">
+      <div class="a4-box-title">
+        <span>2. รายละเอียดรถจักรยานยนต์ </span>
+        <span style="font-size: 7.5pt; font-weight: 700; color: #0284c7;">ป้ายทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <table class="a4-table" style="flex: 1; margin-top: 0;">
+          <tr>
+            <td class="lbl">ป้ายทะเบียน / จังหวัด</td>
+            <td><strong style="font-size: 9pt; color: #0a1b38;">${moto.licensePlate}</strong> ${moto.province ? `(${moto.province})` : ''}</td>
+            <td class="lbl">ยี่ห้อ - รุ่น (Model)</td>
+            <td><strong>${moto.brand} ${moto.model}</strong></td>
+          </tr>
+          <tr>
+            <td class="lbl">ขนาดเครื่องยนต์ (CC)</td>
+            <td>${moto.cc} (ปี ${moto.year})</td>
+            <td class="lbl">สีตัวรถ (Color)</td>
+            <td>${moto.exteriorColor}</td>
+          </tr>
+          <tr>
+            <td class="lbl">เลขคอ / ตัวถัง (VIN)</td>
+            <td><strong style="font-family: monospace;">${moto.vin}</strong></td>
+            <td class="lbl">เลขเครื่องยนต์</td>
+            <td><strong style="font-family: monospace;">${moto.engineNo || '-'}</strong></td>
+          </tr>
+          <tr>
+            <td class="lbl">เลขไมล์รับรถ (Mileage)</td>
+            <td><strong>${(moto.mileage || 0).toLocaleString()} km</strong></td>
+            <td class="lbl">เชื้อเพลิงที่ใช้ (Fuel)</td>
+            <td>${moto.fuel || 'เบนซิน 95'}</td>
+          </tr>
+          <tr>
+            <td class="lbl">วันหมดอายุภาษี / พ.ร.บ.</td>
+            <td>${moto.taxExpiry || '-'}</td>
+            <td class="lbl">ระบบติดตาม GPSDD</td>
+            <td>${moto.gpsImei ? `IMEI: <span style="font-family: monospace;">${moto.gpsImei}</span>` : 'ติดตั้งอุปกรณ์มาตรฐาน'}</td>
+          </tr>
+        </table>
+        ${showPhoto ? `
+          <div style="width: 88px; text-align: center; border: 1px solid #cbd5e1; padding: 3px; border-radius: 3px; background: #f8fafc; flex-shrink: 0;">
+            <img src="${photoUrl}" alt="${moto.model}" style="width: 80px; height: 60px; object-fit: contain; border-radius: 2px;">
+            <span style="font-size: 6.5pt; color: #64748b; display: block; margin-top: 2px;">ภาพถ่ายตัวรถ</span>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- 4. FINANCIAL TERMS SECTION -->
+    ${showFin ? `
+      <div class="a4-box a4-avoid-break">
+        <div class="a4-box-title">
+          <span>3. เงื่อนไขทางการเงินและการชำระเงิน </span>
+          <span style="font-size: 7.2pt; color: #15803d; font-weight: bold;">
+            ${isRent ? 'เงื่อนไขสัญญาเช่า' : 'เงื่อนไขเช่าซื้อ'}
+          </span>
+        </div>
+        ${isRent ? `
+          <table class="a4-table">
+            <tr>
+              <td class="lbl">อัตราค่าเช่ารายวัน</td>
+              <td><strong style="font-size: 9pt; color: #0284c7;">${rentDaily ? formatPrice(rentDaily) + ' /วัน' : '-'}</strong></td>
+              <td class="lbl">อัตราค่าเช่ารายเดือน</td>
+              <td><strong>${rentMonthly ? formatPrice(rentMonthly) + ' /เดือน' : '-'}</strong></td>
+            </tr>
+            <tr>
+              <td class="lbl">เงินประกันมัดจำความเสียหาย</td>
+              <td><strong style="color: #b45309;">${formatPrice(deposit)}</strong> (คืนเมื่อสิ้นสุดสัญญา)</td>
+              <td class="lbl">กำหนดเวลาส่งคืนรถ</td>
+              <td><strong>เวลา ${returnTime} น.</strong></td>
+            </tr>
+            <tr>
+              <td class="lbl">ระยะเวลาสัญญาเช่า</td>
+              <td colspan="3">
+                ตั้งแต่วันที่ <strong>${rentStart ? formatThaiDate(rentStart) : '-'}</strong> ถึงวันที่ <strong>${rentEnd ? formatThaiDate(rentEnd) : '-'}</strong>
+              </td>
+            </tr>
+          </table>
+        ` : `
+          <table class="a4-table">
+            <tr>
+              <td class="lbl">ราคาขายสด (MSRP)</td>
+              <td><strong style="font-size: 9pt;">${formatPrice(price)}</strong></td>
+              <td class="lbl">เงินดาวน์</td>
+              <td><strong style="color: #1d4ed8;">${downPayment === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(downPayment)}</strong></td>
+            </tr>
+            <tr>
+              <td class="lbl">ค่างวดผ่อนชำระต่องวด</td>
+              <td><strong style="font-size: 9.5pt; color: #15803d;">${formatPrice(instAmount)} /งวด</strong></td>
+              <td class="lbl">จำนวนงวดที่ต้องผ่อน</td>
+              <td><strong>${instTerm} งวด</strong> (${Math.round((instTerm / 12) * 10) / 10} ปี)</td>
+            </tr>
+            <tr>
+              <td class="lbl">ยอดรวมการผ่อนชำระทั้งสิ้น</td>
+              <td><strong>${formatPrice(totalInstallmentSum)}</strong> (เงินดาวน์ + ค่างวดทั้งหมด)</td>
+              <td class="lbl">กำหนดชำระค่างวด</td>
+              <td><strong>${dueDay}</strong> (เริ่มงวดแรก ${formatThaiDate(contractDate)})</td>
+            </tr>
+          </table>
+        `}
+      </div>
+    ` : ''}
+
+    <!-- 5. ACCESSORIES & INSPECTION CHECKLIST (2 COLUMNS) -->
+    ${(showAcc || showInsp) ? `
+      <div class="a4-grid-2 a4-avoid-break">
+        ${showAcc ? `
+          <div class="a4-box" style="margin-bottom: 0;">
+            <div class="a4-box-title">
+              <span>4. อุปกรณ์ประจำรถที่ส่งมอบ</span>
+            </div>
+            <div class="a4-checklist-grid">
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.accessories?.helmet ? '&#10003;' : '&nbsp;'}</span>
+                <span>หมวกกันน็อค 2 ใบ</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.accessories?.smartKey ? '&#10003;' : '&nbsp;'}</span>
+                <span>กุญแจรีโมท Smart Key / กุญแจรถ</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.accessories?.phoneMount ? '&#10003;' : '&nbsp;'}</span>
+                <span>ที่จับมือถือกันสะเทือน</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.accessories?.topBox ? '&#10003;' : '&nbsp;'}</span>
+                <span>กล่องใส่ของท้ายรถ (Top Box)</span>
+              </div>
+            </div>
+          </div>
+        ` : '<div></div>'}
+
+        ${showInsp ? `
+          <div class="a4-box" style="margin-bottom: 0;">
+            <div class="a4-box-title">
+              <span>5. ใบตรวจสภาพรถก่อนส่งมอบ</span>
+            </div>
+            <div class="a4-checklist-grid">
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.inspection?.oil ? '&#10003;' : '&nbsp;'}</span>
+                <span>ระดับน้ำมันเครื่อง/น้ำยาหล่อเย็น</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.inspection?.brakes ? '&#10003;' : '&nbsp;'}</span>
+                <span>ระบบเบรกหน้า-หลัง &amp; ไฟสัญญาณ</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.inspection?.tyres ? '&#10003;' : '&nbsp;'}</span>
+                <span>ดอกยางและแรงดันลมยางมาตรฐาน</span>
+              </div>
+              <div class="a4-check-item">
+                <span class="a4-check-box">${moto.inspection?.clean ? '&#10003;' : '&nbsp;'}</span>
+                <span>สภาพภายนอกสะอาด ไม่มีรอยเฉี่ยวชน</span>
+              </div>
+            </div>
+          </div>
+        ` : '<div></div>'}
+      </div>
+    ` : ''}
+
+    <!-- 6. TERMS & CONDITIONS -->
+    ${showTerms ? `
+      <div class="a4-terms-box a4-avoid-break">
+        <strong>ข้อกำหนดและเงื่อนไขของสัญญา (${isRent ? 'ข้อตกลงการเช่า' : 'ข้อตกลงการผ่อนชำระ'}):</strong>
+        <ol class="a4-terms-ol">
+          ${isRent ? `
+            <li>ผู้เช่าต้องมีใบอนุญาตขับขี่รถจักรยานยนต์ที่ถูกต้องตามกฎหมาย และห้ามมิให้นำรถไปให้บุคคลอื่นเช่าช่วง จำนำ หรือดัดแปลงสภาพโดยเด็ดขาด</li>
+            <li>ห้ามนำรถคันนี้ไปใช้ในการกระทำความผิดทางกฎหมาย การขนส่งสิ่งผิดกฎหมาย หรือการแข่งขันความเร็ว หากฝ่าฝืนผู้เช่ายินยอมรับผิดทั้งทางแพ่งและอาญาแต่เพียงผู้เดียว</li>
+            <li>ผู้เช่ามีหน้าที่เติมน้ำมันเชื้อเพลิงตามชนิดที่กำหนด (${moto.fuel || 'เบนซิน 95'}) และส่งมอบรถคืนในระดับน้ำมันเท่ากับวันที่รับรถ พร้อมดูแลรักษารถให้อยู่ในสภาพเรียบร้อย</li>
+            <li>กรณีเกิดอุบัติเหตุ เฉี่ยวชน บุบสลาย หรือสูญหาย ผู้เช่าต้องแจ้งผู้ให้เช่าทันที และยินยอมรับผิดชอบชดใช้ค่าซ่อมแซม ค่าอะไหล่แท้ และค่าขาดประโยชน์ตามจริง</li>
+            <li>กรณีส่งคืนรถล่าช้าเกินกำหนดเวลาโดยไม่แจ้งล่วงหน้า คิดค่าเช่ารายวันเพิ่มตามจริง และหากล่าช้าเกิน 24 ชม. ผู้ให้เช่ามีสิทธิดำเนินคดีตามกฎหมายยักยอกทรัพย์ทันที</li>
+          ` : `
+            <li>กรรมสิทธิ์ในรถจักรยานยนต์ยังคงเป็นของผู้ขาย/ผู้ให้เช่าซื้อ จนกว่าผู้ซื้อจะได้ชำระเงินดาวน์ ค่างวด ค่าภาษี และค่าธรรมเนียมตามสัญญานี้ครบถ้วนแล้วทุกประการ</li>
+            <li>ผู้ซื้อตกลงชำระค่างวดตรงตามเวลาที่กำหนด หากผิดนัดชำระค่างวดเกิน 5 วัน นับจากวันที่นัดชำระ  ผู้ขายมีสิทธิบอกเลิกสัญญา เข้าครอบครองยึดรถคืน และเรียกค่าเสียหายได้ทันที</li>
+            <li>ผู้ซื้อตกลงไม่นำรถไปขายต่อ จำนำ ให้เช่าช่วง หรือโอนสิทธิ์ให้บุคคลภายนอก เว้นแต่จะได้รับความยินยอมเป็นลายลักษณ์อักษรจากผู้ขาย</li>
+            <li>ผู้ซื้อมีหน้าที่จัดทำประกันภัย พ.ร.บ. คุ้มครองผู้ประสบภัยจากรถ และต่อภาษีประจำปีตลอดอายุสัญญา พร้อมทั้งบำรุงรักษารถให้อยู่ในสภาพใช้งานได้อย่างปลอดภัยเสมอ</li>
+            <li>ผู้ค้ำประกัน (ถ้ามี) ตกลงยินยอมผูกพันตนรับผิดชอบร่วมกับผู้ซื้อในฐานะลูกหนี้ร่วมอย่างไม่มีเงื่อนไข จนกว่าหนี้ตามสัญญาฉบับนี้จะได้รับการชำระเสร็จสิ้น</li>
+          `}
+        </ol>
+      </div>
+    ` : ''}
+
+    <!-- 7. CUSTOM NOTES -->
+    ${customNotes ? `
+      <div class="a4-box a4-avoid-break" style="background: #fffbeb; border-color: #fde68a;">
+        <div style="font-size: 7.8pt;"><strong>บันทึกข้อตกลงพิเศษเพิ่มเติม:</strong> ${customNotes}</div>
+      </div>
+    ` : ''}
+
+    <!-- 8. SIGNATURES BLOCK -->
+    ${showWit ? `
+      <div class="a4-avoid-break" style="margin-top: 10px;">
+        <div style="font-size: 7.5pt; text-align: center; color: #475569; margin-bottom: 6px;">
+          คู่สัญญาได้อ่านและเข้าใจข้อความในสัญญานี้โดยละเอียดตลอดแล้ว เห็นว่าถูกต้องตรงตามเจตนา จึงได้ลงลายมือชื่อไว้เป็นสำคัญต่อหน้าพยาน
+        </div>
+        <div class="a4-signatures-row">
+          <div class="a4-sig-col">
+            <div class="a4-sig-line"></div>
+            <div>ลงชื่อ ....................................................</div>
+            <div style="font-weight: 700; margin-top: 2px;">( ${isRent ? 'ผู้ให้เช่า / ตัวแทนโชว์รูม' : 'ผู้ขาย / ผู้ให้เช่าซื้อ'} )</div>
+            <div style="font-size: 6.8pt; color: #64748b;"></div>
+          </div>
+
+          <div class="a4-sig-col">
+            <div class="a4-sig-line"></div>
+            <div>ลงชื่อ ....................................................</div>
+            <div style="font-weight: 700; margin-top: 2px;">( ${custName !== '................................................' ? custName : (isRent ? 'ผู้เช่ารถจักรยานยนต์' : 'ผู้ซื้อ / ผู้เช่าซื้อ')} )</div>
+            <div style="font-size: 6.8pt; color: #64748b;">${isRent ? 'Customer / Lessee' : ''}</div>
+          </div>
+
+          ${(showGuar && !isRent) || (showGuar && guarName !== '................................................') ? `
+            <div class="a4-sig-col">
+              <div class="a4-sig-line"></div>
+              <div>ลงชื่อ ....................................................</div>
+              <div style="font-weight: 700; margin-top: 2px;">( ${guarName !== '................................................' ? guarName : 'ผู้ค้ำประกัน'} )</div>
+              <div style="font-size: 6.8pt; color: #64748b;"></div>
+            </div>
+          ` : ''}
+
+          <div class="a4-sig-col">
+            <div class="a4-sig-line"></div>
+            <div>ลงชื่อ ....................................................</div>
+            <div style="font-weight: 700; margin-top: 2px;">( พยาน / เจ้าหน้าที่ส่งมอบ )</div>
+            <div style="font-size: 6.8pt; color: #64748b;"> </div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  previewContainer.innerHTML = html;
+}
+
+function triggerContractPrint() {
+  updateContractPreview();
+
+  const printOutput = document.getElementById('printContractContainer');
+  const liveSheet = document.getElementById('liveA4Sheet');
+
+  if (printOutput && liveSheet) {
+    printOutput.innerHTML = liveSheet.innerHTML;
+  }
+
+  // Trigger browser print
+  window.print();
+}
+
+function saveContractCustomerToFleet() {
+  const moto = fleet.find(c => c.id === currentContractMotoId);
+  if (!moto) return;
+
+  const custName = document.getElementById('contractCustName')?.value?.trim() || '';
+  const custId = document.getElementById('contractCustId')?.value?.trim() || '';
+  const custPhone = document.getElementById('contractCustPhone')?.value?.trim() || '';
+  const custAddr = document.getElementById('contractCustAddress')?.value?.trim() || '';
+  const rentStart = document.getElementById('contractRentalStart')?.value || '';
+  const rentEnd = document.getElementById('contractRentalEnd')?.value || '';
+  const remarks = document.getElementById('contractCustomNotes')?.value?.trim() || '';
+
+  moto.customer = custName;
+  moto.customerPassport = custId;
+  moto.customerPhone = custPhone;
+  moto.customerAddress = custAddr;
+  if (rentStart) moto.rentalStart = rentStart;
+  if (rentEnd) moto.rentalEnd = rentEnd;
+  if (remarks) moto.remarks = remarks;
+
+  // Auto-advance status if customer assigned
+  if (custName && (moto.status === 'available' || !moto.status)) {
+    moto.status = activeContractType === 'installment' ? 'reserved' : 'rented';
+  }
+
+  saveFleet();
+  renderAll();
+
+  // Cloud sync
+  if (window.FirebaseSync) {
+    FirebaseSync.uploadAll(fleet);
+  }
+
+  showToast(`บันทึกข้อมูลลูกค้าลงรถ [${moto.licensePlate}] เรียบร้อยแล้ว`, 'success');
+}
+
+// Global window bindings for contract system
+window.openContractModal = openContractModal;
+window.renderContractCarList = renderContractCarList;
+window.selectContractCar = selectContractCar;
+window.filterContractCarList = filterContractCarList;
+window.clearContractCarSearch = clearContractCarSearch;
+window.filterContractCarByStatus = filterContractCarByStatus;
+window.setContractType = setContractType;
+window.onContractCarChanged = onContractCarChanged;
+window.toggleAllContractFields = toggleAllContractFields;
+window.setPreviewZoom = setPreviewZoom;
+window.updateContractPreview = updateContractPreview;
+window.triggerContractPrint = triggerContractPrint;
+window.saveContractCustomerToFleet = saveContractCustomerToFleet;
+
+
 
 
