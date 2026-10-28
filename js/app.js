@@ -3493,16 +3493,16 @@ function updateContractPreview() {
   const guarPhoneRaw = document.getElementById('contractGuarPhone')?.value?.trim() || '';
   const guarAddrRaw = document.getElementById('contractGuarAddress')?.value?.trim() || '';
 
-  const custName = custNameRaw || '................................................................';
-  const custId = custIdRaw || '........................................';
-  const custPhone = custPhoneRaw || '........................................';
-  const custAddr = custAddrRaw || '................................................................................................';
+  const custName = custNameRaw || '';
+  const custId = custIdRaw || '';
+  const custPhone = custPhoneRaw || '';
+  const custAddr = custAddrRaw || '';
 
-  const guarName = guarNameRaw || '................................................';
-  const guarRel = guarRelRaw || '........................';
-  const guarId = guarIdRaw || '........................................';
-  const guarPhone = guarPhoneRaw || '........................................';
-  const guarAddr = guarAddrRaw || '................................................................................................';
+  const guarName = guarNameRaw || '';
+  const guarRel = guarRelRaw || '';
+  const guarId = guarIdRaw || '';
+  const guarPhone = guarPhoneRaw || '';
+  const guarAddr = guarAddrRaw || '';
 
   // Financial values
   const rentDaily = Number(document.getElementById('contractRentDaily')?.value || moto.rentDaily || 0);
@@ -3822,7 +3822,7 @@ function updateContractPreview() {
           <div class="a4-sig-col">
             <div class="a4-sig-line"></div>
             <div>ลงชื่อ ....................................................</div>
-            <div style="font-weight: 700; margin-top: 2px;">( ${isRent ? 'ผู้ให้เช่า / ตัวแทนโชว์รูม' : 'ผู้ขาย / ผู้ให้เช่าซื้อ'} )</div>
+            <div style="font-weight: 700; margin-top: 2px;">( ${isRent ? 'ผู้ให้เช่า' : 'ผู้ขาย'} )</div>
             <div style="font-size: 6.8pt; color: #64748b;"></div>
           </div>
 
@@ -3830,7 +3830,7 @@ function updateContractPreview() {
             <div class="a4-sig-line"></div>
             <div>ลงชื่อ ....................................................</div>
             <div style="font-weight: 700; margin-top: 2px;">( ${custNameRaw ? custNameRaw : (isRent ? 'ผู้เช่ารถจักรยานยนต์' : 'ผู้ซื้อ / ผู้เช่าซื้อ')} )</div>
-            <div style="font-size: 6.8pt; color: #64748b;">${isRent ? 'Customer / Lessee' : ''}</div>
+            <div style="font-size: 6.8pt; color: #64748b;">${isRent ? '' : ''}</div>
           </div>
 
           ${showGuar ? `
@@ -3845,7 +3845,7 @@ function updateContractPreview() {
           <div class="a4-sig-col">
             <div class="a4-sig-line"></div>
             <div>ลงชื่อ ....................................................</div>
-            <div style="font-weight: 700; margin-top: 2px;">( พยาน / เจ้าหน้าที่ส่งมอบ )</div>
+            <div style="font-weight: 700; margin-top: 2px;">( พยาน )</div>
             <div style="font-size: 6.8pt; color: #64748b;"> </div>
           </div>
         </div>
