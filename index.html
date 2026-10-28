@@ -12,7 +12,9 @@
   <!-- Google Fonts: IBM Plex Sans Thai (Official/Formal Thai), Inter (Modern Latin UI), Sarabun (Docs) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/images/honda_wing_logo.svg" type="image/svg+xml">
@@ -87,6 +89,23 @@
             <line x1="12" x2="12" y1="5" y2="19" />
             <line x1="5" x2="19" y1="12" y2="12" />
           </svg> คีย์รับรถเข้าสต็อค
+        </button>
+
+        <!-- Installment Calculator Button (Standalone Easy Finance Calculator) -->
+        <button id="btnOpenCalcModal" class="header-btn btn-emerald" onclick="openCalcModal()"
+          title="เครื่องคิดเลขคำนวณค่างวดผ่อนชำระ (Easy Finance)">
+          <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="16" height="20" x="4" y="2" rx="2" />
+            <line x1="8" x2="16" y1="6" y2="6" />
+            <line x1="16" x2="16" y1="14" y2="18" />
+            <path d="M16 10h.01" />
+            <path d="M12 10h.01" />
+            <path d="M8 10h.01" />
+            <path d="M12 14h.01" />
+            <path d="M8 14h.01" />
+            <path d="M12 18h.01" />
+            <path d="M8 18h.01" />
+          </svg> คำนวณค่างวดผ่อน
         </button>
 
         <!-- Print Contract & Sheet Button -->
@@ -1150,6 +1169,402 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: EASY FINANCE & RENTAL CALCULATOR ==================== -->
+  <div id="calcModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 740px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg class="ui-icon ui-icon-lg" style="color: #34d399;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <rect width="16" height="20" x="4" y="2" rx="2" />
+            <line x1="8" x2="16" y1="6" y2="6" />
+            <line x1="16" x2="16" y1="14" y2="18" />
+            <path d="M16 10h.01" />
+            <path d="M12 10h.01" />
+            <path d="M8 10h.01" />
+            <path d="M12 14h.01" />
+            <path d="M8 14h.01" />
+            <path d="M12 18h.01" />
+            <path d="M8 18h.01" />
+          </svg>
+          <span class="modal-title" id="calcModalHeaderTitle">เครื่องคิดเลขคำนวณค่างวด &amp; ค่าเช่ารถ</span>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="calcModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Mode Switcher: คำนวณผ่อน VS คำนวณเช่า -->
+        <div class="calc-mode-toggle">
+          <button type="button" class="calc-mode-btn active" id="btnCalcModeInstallment"
+            onclick="switchCalcMode('installment')">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+              <circle cx="16" cy="15" r="1.5" />
+            </svg>
+            <span>คำนวณผ่อน</span>
+          </button>
+          <button type="button" class="calc-mode-btn" id="btnCalcModeRent" onclick="switchCalcMode('rent')">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="7.5" cy="15.5" r="4.5" />
+              <path d="m11 12 8-8h3v3l-2 2v2l-2 2z" />
+            </svg>
+            <span>คำนวณเช่า</span>
+          </button>
+        </div>
+
+        <!-- Quick Select Bike from Fleet (Shared) -->
+        <div class="form-group" style="margin-bottom: 1.15rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin: 0; font-weight: 700; color: var(--navy-900);">
+              เลือกรถจากสต็อค
+            </label>
+            <button type="button" class="copy-btn" onclick="resetCalcToCustom()"
+              style="font-size: 0.76rem; color: var(--cyan-600); cursor: pointer; border: none; background: none; font-weight: 600;">
+              + กำหนดราคา
+            </button>
+          </div>
+          <select id="calcSelectMoto" class="form-control" onchange="onCalcSelectMotoChange(this.value)"
+            style="border-color: #cbd5e1; font-weight: 500;">
+            <option value="">-- กำหนดราคาเองอิสระ --</option>
+          </select>
+        </div>
+
+        <!-- ==================== PANE 1: คำนวณผ่อนชำระ (EASY FINANCE) ==================== -->
+        <div id="calcPaneInstallment">
+          <div class="finance-input-card" style="margin-top: 0;">
+            <div class="finance-card-header">
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg class="ui-icon ui-icon-md" style="color: var(--gold-600);" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  <span style="font-size: 0.9rem; font-weight: 700; color: var(--navy-900);"
+                    id="calcMotoDisplayTitle">แผนคำนวณผ่อนชำระ Easy Finance</span>
+                </div>
+                <span class="badge-free-edit">
+                  <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg> คำนวณสด Real-time
+                </span>
+              </div>
+            </div>
+
+            <!-- Row 1: ราคาขายสด & ราคาดาวน์ -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">ราคาขายสด (บาท) <span class="req">*</span></label>
+                <input type="number" id="calcPrice" class="form-control font-weight-bold"
+                  placeholder="เช่น 61900, 93400, 179000" min="0" step="any" oninput="onCalcPriceInput()">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ราคาดาวน์ (บาท)</label>
+                <input type="number" id="calcDownPayment" class="form-control font-weight-bold"
+                  placeholder="เช่น 0 (ฟรีดาวน์), 5000, 15000" min="0" step="any" oninput="onCalcDownInput()">
+
+                <!-- Quick Preset Chips for Down Payment -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">ดาวน์:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcDownPreset(0)">ฟรีดาวน์ ฿0</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcDownPercent(10)">ดาวน์ 10%</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcDownPercent(15)">ดาวน์ 15%</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcDownPercent(20)">ดาวน์ 20%</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcDownPercent(30)">ดาวน์ 30%</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: ผ่อนกี่งวด & ราคาผ่อนงวดละ -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">ผ่อนกี่งวด (เดือน)</label>
+                <input type="number" id="calcTerm" list="calcTermList" class="form-control font-weight-bold"
+                  placeholder="จำนวนงวด" min="1" max="120" step="any" value="36" oninput="onCalcTermInput()">
+                <datalist id="calcTermList">
+                  <option value="6">6 งวด (6 เดือน)</option>
+                  <option value="12">12 งวด (1 ปี)</option>
+                  <option value="18">18 งวด (1.5 ปี)</option>
+                  <option value="24">24 งวด (2 ปี)</option>
+                  <option value="30">30 งวด (2.5 ปี)</option>
+                  <option value="36">36 งวด (3 ปี)</option>
+                  <option value="48">48 งวด (4 ปี)</option>
+                  <option value="60">60 งวด (5 ปี)</option>
+                </datalist>
+
+                <!-- Quick Preset Chips for Terms -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">งวด:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(6)">6 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(12)">12 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(18)">18 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(24)">24 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(36)">36 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(48)">48 งวด</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcTermPreset(60)">60 งวด</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ผ่อนงวดละ (บาท/เดือน)</label>
+                <div style="display: flex; gap: 0.4rem;">
+                  <input type="number" id="calcMonthlyAmount" class="form-control font-weight-bold"
+                    style="color: #059669; font-size: 1.05rem;" placeholder="ราคางวดละ" min="0" step="any"
+                    oninput="updateCalcLiveSummary()">
+                  <button type="button" class="btn-calc-auto" onclick="calculateStandaloneInstallment()"
+                    title="คำนวณค่างวดแนะนำตามสูตรดอกเบี้ยมาตรฐาน">
+                    <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg> คำนวณ
+                  </button>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                  กดปุ่ม "คำนวณ" หรือพิมพ์ตัวเลขค่างวดที่ต้องการเองได้
+                </span>
+              </div>
+            </div>
+
+            <!-- Live Calculation Preview Summary Card -->
+            <div class="finance-summary-box" style="margin-top: 1rem;">
+              <div class="summary-col">
+                <span class="summary-lbl">ยอดจัดไฟแนนซ์:</span>
+                <span class="summary-val" id="calcPreviewFinanced">฿0</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">อัตราดอกเบี้ยรวม:</span>
+                <span class="summary-val" id="calcPreviewRate" style="color: #b45309;">-</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ค่างวด x จำนวนงวด:</span>
+                <span class="summary-val" id="calcPreviewMonthlySummary">-</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ยอดผ่อนรวมสุทธิ (ดาวน์+ค่างวด):</span>
+                <span class="summary-val summary-highlight" id="calcPreviewTotalPayable">฿0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Share & Actions for Installment -->
+          <div
+            style="background: var(--navy-50); border: 1px solid rgba(0, 153, 229, 0.2); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem;">
+            <div>
+              <div style="font-size: 0.82rem; font-weight: 700; color: var(--navy-900);">ส่งต่อใบเสนอราคาผ่อนชำระ</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">คัดลอกข้อความสรุปส่ง LINE
+                หรือเปิดพิมพ์สัญญาผ่อน</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="header-btn btn-cyan" onclick="copyFinanceQuote()"
+                style="padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg> คัดลอกส่ง LINE
+              </button>
+              <button type="button" class="header-btn btn-gold" onclick="proceedToContractFromCalc()"
+                style="padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect width="12" height="8" x="6" y="14" />
+                </svg> พิมพ์สัญญาผ่อน
+              </button>
+              <button type="button" class="header-btn btn-emerald" id="btnSaveCalcToMoto"
+                onclick="saveCalcToSelectedMoto()" style="display: none; padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg> บันทึกลงรถคันนี้
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== PANE 2: คำนวณค่าเช่ารถ (RENTAL CALCULATOR) ==================== -->
+        <div id="calcPaneRent" style="display: none;">
+          <div class="finance-input-card" style="margin-top: 0; border-color: rgba(2, 132, 199, 0.35);">
+            <div class="finance-card-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <svg class="ui-icon ui-icon-md" style="color: var(--cyan-600);" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor">
+                    <circle cx="7.5" cy="15.5" r="4.5" />
+                    <path d="m11 12 8-8h3v3l-2 2v2l-2 2z" />
+                  </svg>
+                  <span style="font-size: 0.9rem; font-weight: 700; color: var(--navy-900);"
+                    id="calcRentMotoDisplayTitle">แผนคำนวณค่าเช่ารถมอเตอร์ไซค์</span>
+                </div>
+                <span class="badge-free-edit"
+                  style="background: rgba(2, 132, 199, 0.12); color: #0284c7; border-color: rgba(2, 132, 199, 0.25);">
+                  <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg> เช่ารายวัน-รายเดือน
+                </span>
+              </div>
+            </div>
+
+            <!-- Row 1: ค่าเช่ารายวัน & ค่าเช่ารายเดือน -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">ค่าเช่ารายวัน (บาท/วัน) <span class="req">*</span></label>
+                <input type="number" id="calcRentDaily" class="form-control font-weight-bold"
+                  placeholder="เช่น 350, 500, 1200" min="0" step="any" oninput="onCalcRentInput()">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ค่าเช่ารายเดือน (บาท/เดือน)</label>
+                <input type="number" id="calcRentMonthly" class="form-control font-weight-bold"
+                  placeholder="เช่น 4500, 9000, 18000" min="0" step="any" oninput="onCalcRentInput()">
+              </div>
+            </div>
+
+            <!-- Row 2: ระยะเวลาเช่า (ระบุจำนวนวัน หรือระบุวันที่เริ่ม-คืน) -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">จำนวนวันที่เช่า (วัน) <span class="req">*</span></label>
+                <input type="number" id="calcRentDays" class="form-control font-weight-bold" placeholder="จำนวนวัน"
+                  min="1" max="365" step="1" value="3" oninput="onCalcRentDaysInput()">
+
+                <!-- Quick Preset Chips for Rental Days -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">ระยะเวลา:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(1)">1 วัน</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(2)">2 วัน</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(3)">3 วัน</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(7)">7 วัน (1
+                    สัปดาห์)</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(14)">14 วัน</button>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDaysPreset(30)">30 วัน (1
+                    เดือน)</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ช่วงวันที่เช่า (คำนวณวันอัตโนมัติ)</label>
+                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                  <input type="date" id="calcRentalStart" class="form-control"
+                    style="font-size: 0.78rem; padding: 0.4rem 0.45rem;" onchange="onCalcRentDatesChange()">
+                  <span style="font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0;">ถึง</span>
+                  <input type="date" id="calcRentalEnd" class="form-control"
+                    style="font-size: 0.78rem; padding: 0.4rem 0.45rem;" onchange="onCalcRentDatesChange()">
+                </div>
+                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                </span>
+              </div>
+            </div>
+
+            <!-- Row 3: เงินประกันมัดจำ & ส่วนลดโปรโมชั่น -->
+            <div class="form-grid-2" style="margin-top: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">เงินประกันมัดจำ (บาท)</label>
+                <input type="number" id="calcRentDeposit" class="form-control font-weight-bold"
+                  placeholder="เช่น 0, 1000, 3000, 5000" min="0" step="any" oninput="onCalcRentInput()">
+
+                <!-- Quick Preset Chips for Deposit -->
+                <div class="quick-chip-row">
+                  <span class="chip-label">มัดจำ:</span>
+                  <button type="button" class="quick-chip-btn" onclick="applyCalcRentDepositPreset(0)">ฟรีมัดจำ
+                    ฿0</button>
+                  <button type="button" class="quick-chip-btn"
+                    onclick="applyCalcRentDepositPreset(1000)">฿1,000</button>
+                  <button type="button" class="quick-chip-btn"
+                    onclick="applyCalcRentDepositPreset(2000)">฿2,000</button>
+                  <button type="button" class="quick-chip-btn"
+                    onclick="applyCalcRentDepositPreset(3000)">฿3,000</button>
+                  <button type="button" class="quick-chip-btn"
+                    onclick="applyCalcRentDepositPreset(5000)">฿5,000</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ส่วนลดพิเศษ / โปรโมชั่น (บาท)</label>
+                <input type="number" id="calcRentDiscount" class="form-control font-weight-bold"
+                  placeholder="เช่น 0, 100, 200, 500" min="0" step="any" value="0" oninput="onCalcRentInput()">
+                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                  ส่วนลดเช่าหลายวันหรือโปรโมชั่นประจำเดือน
+                </span>
+              </div>
+            </div>
+
+            <!-- Live Calculation Preview Summary Card for Rental -->
+            <div class="finance-summary-box" style="margin-top: 1rem;">
+              <div class="summary-col">
+                <span class="summary-lbl">ค่าเช่ารถรวม:</span>
+                <span class="summary-val" id="calcRentPreviewTotal" style="color: var(--cyan-600);">฿0</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">เงินประกันมัดจำ (ได้คืน):</span>
+                <span class="summary-val" id="calcRentPreviewDeposit">฿0</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ส่วนลดโปรโมชั่น:</span>
+                <span class="summary-val" id="calcRentPreviewDiscount" style="color: #ef4444;">-</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-col">
+                <span class="summary-lbl">ยอดชำระสุทธิวันรับรถ (รวมมัดจำ):</span>
+                <span class="summary-val summary-highlight" id="calcRentPreviewPayable">฿0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Share & Actions for Rental -->
+          <div
+            style="background: var(--navy-50); border: 1px solid rgba(0, 153, 229, 0.2); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem;">
+            <div>
+              <div style="font-size: 0.82rem; font-weight: 700; color: var(--navy-900);">ส่งต่อใบเสนอราคาเช่ารถ</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">คัดลอกข้อความสรุปส่ง LINE
+                หรือเปิดพิมพ์สัญญาเช่ารถ</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="header-btn btn-cyan" onclick="copyRentQuote()"
+                style="padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                </svg> คัดลอกส่ง LINE
+              </button>
+              <button type="button" class="header-btn btn-cyan" onclick="proceedToContractFromCalc()"
+                style="padding: 0.45rem 0.85rem; font-size: 0.8rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect width="12" height="8" x="6" y="14" />
+                </svg> พิมพ์สัญญาเช่ารถ
+              </button>
+              <button type="button" class="header-btn btn-emerald" id="btnSaveCalcRentToMoto"
+                onclick="saveCalcRentToSelectedMoto()"
+                style="display: none; padding: 0.45rem 0.85rem; font-size: 0.8rem;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg> บันทึกอัตราเช่าลงรถคันนี้
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="header-btn btn-glass" data-close-modal="calcModal">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
   <!-- ==================== MODAL: DATA MANAGEMENT & BACKUP ==================== -->
   <div id="dataModal" class="modal-backdrop">
     <div class="modal-dialog" style="max-width: 600px;">
@@ -1506,14 +1921,16 @@
 
       <!-- Mobile View Segmented Switcher (Visible on mobile <= 1024px) -->
       <div class="contract-mobile-tab-bar" id="contractMobileTabBar">
-        <button type="button" class="contract-m-tab active" id="btnContractTabConfig" onclick="switchContractMobileTab('config')">
+        <button type="button" class="contract-m-tab active" id="btnContractTabConfig"
+          onclick="switchContractMobileTab('config')">
           <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
           </svg>
           <span>1. เลือกรถ &amp; ตั้งค่า</span>
         </button>
-        <button type="button" class="contract-m-tab" id="btnContractTabPreview" onclick="switchContractMobileTab('preview')">
+        <button type="button" class="contract-m-tab" id="btnContractTabPreview"
+          onclick="switchContractMobileTab('preview')">
           <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
@@ -1611,11 +2028,11 @@
             <div class="contract-field-toggles">
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowCustomer" checked onchange="updateContractPreview()">
-                <span>ข้อมูลผู้เช่า / ผู้ซื้อ (Customer)</span>
+                <span>ข้อมูลผู้เช่า / ผู้ซื้อ </span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowGuarantor" onchange="updateContractPreview()">
-                <span>ข้อมูลผู้ค้ำประกัน (Guarantor)</span>
+                <span>ข้อมูลผู้ค้ำประกัน </span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowFinance" checked onchange="updateContractPreview()">
@@ -1627,11 +2044,11 @@
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowInspection" checked onchange="updateContractPreview()">
-                <span>ใบตรวจรับสภาพรถก่อนส่งมอบ (Checklist)</span>
+                <span>ใบตรวจรับสภาพรถก่อนส่งมอบ </span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowTerms" checked onchange="updateContractPreview()">
-                <span>ข้อกำหนด &amp; เงื่อนไขสัญญา (Terms)</span>
+                <span>ข้อกำหนด &amp; เงื่อนไขสัญญา </span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowPhoto" checked onchange="updateContractPreview()">
@@ -1668,26 +2085,26 @@
             <div id="secInputCustomer" class="subform-card" style="margin-top: 0.5rem;">
               <div class="subform-card-title">ข้อมูลผู้เช่า / ผู้ซื้อ</div>
               <div class="form-group-sm">
-                <label>ชื่อ-นามสกุล</label>
-                <input type="text" id="contractCustName" class="form-control-sm" placeholder="เช่น นายสมชาย ใจดี"
+                <label>ชื่อ-นามสกุล / บริษัทผู้เช่า</label>
+                <input type="text" id="contractCustName" class="form-control-sm" placeholder="เช่น นายสมชาย ใจดี หรือ บริษัท สแครชท์ เฟิร์สท จำกัด (สำนักงานใหญ่)"
                   oninput="updateContractPreview()">
               </div>
               <div class="contract-form-subgrid">
                 <div class="form-group-sm">
                   <label>เลขบัตร ปชช. / Passport</label>
-                  <input type="text" id="contractCustId" class="form-control-sm" placeholder="เลขบัตร 13 หลัก"
+                  <input type="text" id="contractCustId" class="form-control-sm" placeholder="เลขบัตร 13 หลัก / เลขนิติบุคคล"
                     oninput="updateContractPreview()">
                 </div>
                 <div class="form-group-sm">
                   <label>เบอร์โทรติดต่อ</label>
-                  <input type="text" id="contractCustPhone" class="form-control-sm" placeholder="08X-XXX-XXXX"
+                  <input type="text" id="contractCustPhone" class="form-control-sm" placeholder="เช่น 08X-XXX-XXXX หรือ 061-390-0446 061-390-0535"
                     oninput="updateContractPreview()">
                 </div>
               </div>
               <div class="form-group-sm" style="margin-top: 0.35rem;">
                 <label>ที่อยู่ตามบัตร / ที่พัก</label>
                 <input type="text" id="contractCustAddress" class="form-control-sm"
-                  placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด" oninput="updateContractPreview()">
+                  placeholder="บ้านเลขที่ ถนน อาคาร แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์" oninput="updateContractPreview()">
               </div>
             </div>
 
@@ -1821,7 +2238,9 @@
 
             <!-- Mobile Quick Jump Button to Preview -->
             <div class="contract-mobile-jump-box">
-              <button type="button" class="header-btn btn-cyan" style="width: 100%; justify-content: center; height: 44px; font-weight: 700; margin-top: 0.65rem;" onclick="switchContractMobileTab('preview')">
+              <button type="button" class="header-btn btn-cyan"
+                style="width: 100%; justify-content: center; height: 44px; font-weight: 700; margin-top: 0.65rem;"
+                onclick="switchContractMobileTab('preview')">
                 <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                   <circle cx="12" cy="12" r="3" />
@@ -1845,10 +2264,12 @@
               </span>
             </div>
             <div class="preview-toolbar-actions">
-              <button type="button" class="preview-tool-btn" id="zoomFitBtn" onclick="autoFitMobileContractZoom()" title="ปรับขนาดให้พอดีหน้าจอ">พอดีจอ</button>
+              <button type="button" class="preview-tool-btn" id="zoomFitBtn" onclick="autoFitMobileContractZoom()"
+                title="ปรับขนาดให้พอดีหน้าจอ">พอดีจอ</button>
               <button type="button" class="preview-tool-btn" id="zoom50Btn" onclick="setPreviewZoom(0.5)">50%</button>
               <button type="button" class="preview-tool-btn" id="zoom70Btn" onclick="setPreviewZoom(0.7)">70%</button>
-              <button type="button" class="preview-tool-btn active" id="zoom100Btn" onclick="setPreviewZoom(1.0)">100%</button>
+              <button type="button" class="preview-tool-btn active" id="zoom100Btn"
+                onclick="setPreviewZoom(1.0)">100%</button>
               <button type="button" class="header-btn btn-gold" style="font-size: 0.8rem; padding: 0.35rem 0.85rem;"
                 onclick="triggerContractPrint()">
                 <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

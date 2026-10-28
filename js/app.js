@@ -734,6 +734,7 @@ const UI_ICONS = {
   trash: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
   arrowRight: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
   print: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>`,
+  calc: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>`,
   cloud: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`
 };
 
@@ -899,33 +900,41 @@ function renderGridView(motos) {
 
           <!-- Footer Actions -->
           <div class="card-footer">
-            <!-- Quick Status Change -->
-            <select class="card-quick-status" onchange="quickUpdateStatus('${moto.id}', this.value)" title="เปลี่ยนสถานะรถด่วน">
-              <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
-              <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
-              <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน</option>
-              <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
-              <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
-              <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
-            </select>
+            <div class="card-footer-top">
+              <!-- Quick Status Change -->
+              <select class="card-quick-status" onchange="quickUpdateStatus('${moto.id}', this.value)" title="เปลี่ยนสถานะรถด่วน">
+                <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
+                <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
+                <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน</option>
+                <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
+                <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
+                <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
+              </select>
 
-            <div class="card-action-btns">
-              <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD ทันที">
-                ${UI_ICONS.pin}
-              </button>
-              <button class="btn-card-icon" onclick="openContractModal('${moto.id}')" title="พิมพ์สัญญา (เช่า / ผ่อน)">
-                ${UI_ICONS.print}
-              </button>
-              <button class="btn-card-icon" onclick="copyPlate('${moto.licensePlate}')" title="คัดลอกป้ายทะเบียน">
-                ${UI_ICONS.copy}
-              </button>
-              <button class="btn-card-icon" onclick="openCarModal('${moto.id}')" title="แก้ไขข้อมูล">
-                ${UI_ICONS.edit}
-              </button>
-              <button class="btn-card-detail" onclick="openCarDetail('${moto.id}')">
-                <span>ดูข้อมูล</span> ${UI_ICONS.arrowRight}
-              </button>
+              <div class="card-action-icons">
+                <button class="btn-card-icon btn-gps-icon" onclick="openGpsTracking('${moto.id}', event)" title="เปิดดูตำแหน่ง GPSDD ทันที">
+                  ${UI_ICONS.pin}
+                </button>
+                <button class="btn-card-icon" onclick="openCalcModal('${moto.id}')" title="คำนวณค่างวดผ่อนรถคันนี้ (Easy Finance)">
+                  ${UI_ICONS.calc}
+                </button>
+                <button class="btn-card-icon" onclick="openContractModal('${moto.id}')" title="พิมพ์สัญญา (เช่า / ผ่อน)">
+                  ${UI_ICONS.print}
+                </button>
+                <button class="btn-card-icon" onclick="copyPlate('${moto.licensePlate}')" title="คัดลอกป้ายทะเบียน">
+                  ${UI_ICONS.copy}
+                </button>
+                <button class="btn-card-icon" onclick="openCarModal('${moto.id}')" title="แก้ไขข้อมูล">
+                  ${UI_ICONS.edit}
+                </button>
+              </div>
             </div>
+
+            <!-- Primary View Details Button (Full Width & Clean) -->
+            <button class="btn-card-detail" onclick="openCarDetail('${moto.id}')" title="ดูรายละเอียดข้อมูลรถและสัญญา">
+              <span>ดูข้อมูลรถและสัญญา</span>
+              ${UI_ICONS.arrowRight}
+            </button>
           </div>
 
         </div>
@@ -1178,6 +1187,534 @@ function updateFinanceLiveSummary() {
       totalPayableEl.textContent = '฿0';
     }
   }
+}
+
+// ==================== STANDALONE EASY FINANCE & RENTAL CALCULATOR ====================
+let currentCalcMode = 'installment'; // 'installment' | 'rent'
+
+function switchCalcMode(mode) {
+  currentCalcMode = mode;
+  const btnInst = document.getElementById('btnCalcModeInstallment');
+  const btnRent = document.getElementById('btnCalcModeRent');
+  const paneInst = document.getElementById('calcPaneInstallment');
+  const paneRent = document.getElementById('calcPaneRent');
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  const saveInstBtn = document.getElementById('btnSaveCalcToMoto');
+  const saveRentBtn = document.getElementById('btnSaveCalcRentToMoto');
+
+  if (mode === 'installment') {
+    if (btnInst) btnInst.classList.add('active');
+    if (btnRent) btnRent.classList.remove('active');
+    if (paneInst) paneInst.style.display = 'block';
+    if (paneRent) paneRent.style.display = 'none';
+    if (saveInstBtn) saveInstBtn.style.display = motoId ? 'inline-flex' : 'none';
+    if (saveRentBtn) saveRentBtn.style.display = 'none';
+    calculateStandaloneInstallment(false);
+  } else {
+    if (btnRent) btnRent.classList.add('active');
+    if (btnInst) btnInst.classList.remove('active');
+    if (paneRent) paneRent.style.display = 'block';
+    if (paneInst) paneInst.style.display = 'none';
+    if (saveRentBtn) saveRentBtn.style.display = motoId ? 'inline-flex' : 'none';
+    if (saveInstBtn) saveInstBtn.style.display = 'none';
+    calculateRentalLive(false);
+  }
+}
+
+function openCalcModal(motoId = null, initialMode = null) {
+  // Populate motorcycle selector
+  const selectEl = document.getElementById('calcSelectMoto');
+  if (selectEl) {
+    selectEl.innerHTML = `
+      <option value="">-- กำหนดราคา --</option>
+      ${fleet.map(m => `
+        <option value="${m.id}" ${motoId === m.id ? 'selected' : ''}>
+          ${m.brand} ${m.model} [${m.licensePlate || 'ไม่มีทะเบียน'}] - ขาย: ${formatPrice(m.price || 0)} / เช่า: ${formatPrice(m.rentDaily || 0)}/วัน
+        </option>
+      `).join('')}
+    `;
+  }
+
+  const saveInstBtn = document.getElementById('btnSaveCalcToMoto');
+  const saveRentBtn = document.getElementById('btnSaveCalcRentToMoto');
+
+  if (motoId) {
+    const moto = fleet.find(c => c.id === motoId);
+    if (moto) {
+      // 1. Populate Installment fields
+      document.getElementById('calcPrice').value = moto.price || '';
+      document.getElementById('calcDownPayment').value = moto.downPayment !== undefined ? moto.downPayment : 0;
+      document.getElementById('calcTerm').value = moto.installmentTerm || 36;
+      if (moto.installmentAmount) {
+        document.getElementById('calcMonthlyAmount').value = moto.installmentAmount;
+      }
+      document.getElementById('calcMotoDisplayTitle').textContent = `คำนวณงวด: ${moto.brand} ${moto.model} [${moto.licensePlate || ''}]`;
+
+      // 2. Populate Rental fields
+      document.getElementById('calcRentDaily').value = moto.rentDaily || 400;
+      document.getElementById('calcRentMonthly').value = moto.rentMonthly || (moto.rentDaily ? moto.rentDaily * 20 : 6000);
+      document.getElementById('calcRentDeposit').value = moto.deposit !== undefined ? moto.deposit : 1000;
+      document.getElementById('calcRentDays').value = 3;
+      document.getElementById('calcRentDiscount').value = 0;
+      document.getElementById('calcRentMotoDisplayTitle').textContent = `คำนวณค่าเช่า: ${moto.brand} ${moto.model} [${moto.licensePlate || ''}]`;
+
+      // Initialize dates (Today -> Today + 3 days)
+      const today = new Date();
+      const in3Days = new Date(today.getTime() + (3 * 24 * 60 * 60 * 1000));
+      const fmtDate = d => d.toISOString().split('T')[0];
+      const startEl = document.getElementById('calcRentalStart');
+      const endEl = document.getElementById('calcRentalEnd');
+      if (startEl) startEl.value = fmtDate(today);
+      if (endEl) endEl.value = fmtDate(in3Days);
+
+      if (saveInstBtn) saveInstBtn.style.display = (currentCalcMode === 'installment') ? 'inline-flex' : 'none';
+      if (saveRentBtn) saveRentBtn.style.display = (currentCalcMode === 'rent') ? 'inline-flex' : 'none';
+
+      calculateStandaloneInstallment(false);
+      calculateRentalLive(false);
+    }
+  } else {
+    // Default initial values for custom mode
+    const currentPrice = document.getElementById('calcPrice')?.value;
+    if (!currentPrice || currentPrice === '0') {
+      document.getElementById('calcPrice').value = 85000;
+      document.getElementById('calcDownPayment').value = 0;
+      document.getElementById('calcTerm').value = 36;
+    }
+    document.getElementById('calcMotoDisplayTitle').textContent = 'แผนคำนวณผ่อนชำระ Easy Finance';
+
+    const currentRent = document.getElementById('calcRentDaily')?.value;
+    if (!currentRent || currentRent === '0') {
+      document.getElementById('calcRentDaily').value = 450;
+      document.getElementById('calcRentMonthly').value = 7500;
+      document.getElementById('calcRentDeposit').value = 1000;
+      document.getElementById('calcRentDays').value = 3;
+      document.getElementById('calcRentDiscount').value = 0;
+    }
+    document.getElementById('calcRentMotoDisplayTitle').textContent = 'แผนคำนวณค่าเช่ารถมอเตอร์ไซค์';
+
+    // Set default dates
+    const today = new Date();
+    const in3Days = new Date(today.getTime() + (3 * 24 * 60 * 60 * 1000));
+    const fmtDate = d => d.toISOString().split('T')[0];
+    const startEl = document.getElementById('calcRentalStart');
+    const endEl = document.getElementById('calcRentalEnd');
+    if (startEl && !startEl.value) startEl.value = fmtDate(today);
+    if (endEl && !endEl.value) endEl.value = fmtDate(in3Days);
+
+    if (saveInstBtn) saveInstBtn.style.display = 'none';
+    if (saveRentBtn) saveRentBtn.style.display = 'none';
+
+    calculateStandaloneInstallment(false);
+    calculateRentalLive(false);
+  }
+
+  // Switch to initial mode if requested
+  if (initialMode) {
+    switchCalcMode(initialMode);
+  } else {
+    switchCalcMode(currentCalcMode);
+  }
+
+  openModal('calcModal');
+}
+
+function onCalcSelectMotoChange(motoId) {
+  const saveInstBtn = document.getElementById('btnSaveCalcToMoto');
+  const saveRentBtn = document.getElementById('btnSaveCalcRentToMoto');
+
+  if (!motoId) {
+    document.getElementById('calcMotoDisplayTitle').textContent = 'กำหนดราคาเองอิสระ (Custom Price)';
+    document.getElementById('calcRentMotoDisplayTitle').textContent = 'กำหนดอัตราค่าเช่าเองอิสระ (Custom Rent)';
+    if (saveInstBtn) saveInstBtn.style.display = 'none';
+    if (saveRentBtn) saveRentBtn.style.display = 'none';
+    return;
+  }
+  const moto = fleet.find(c => c.id === motoId);
+  if (!moto) return;
+
+  // Installment
+  document.getElementById('calcPrice').value = moto.price || 0;
+  document.getElementById('calcDownPayment').value = moto.downPayment !== undefined ? moto.downPayment : 0;
+  document.getElementById('calcTerm').value = moto.installmentTerm || 36;
+  if (moto.installmentAmount) {
+    document.getElementById('calcMonthlyAmount').value = moto.installmentAmount;
+  }
+  document.getElementById('calcMotoDisplayTitle').textContent = `คำนวณงวด: ${moto.brand} ${moto.model} [${moto.licensePlate || ''}]`;
+
+  // Rental
+  document.getElementById('calcRentDaily').value = moto.rentDaily || 400;
+  document.getElementById('calcRentMonthly').value = moto.rentMonthly || (moto.rentDaily ? moto.rentDaily * 20 : 6000);
+  document.getElementById('calcRentDeposit').value = moto.deposit !== undefined ? moto.deposit : 1000;
+  document.getElementById('calcRentMotoDisplayTitle').textContent = `คำนวณค่าเช่า: ${moto.brand} ${moto.model} [${moto.licensePlate || ''}]`;
+
+  if (saveInstBtn) saveInstBtn.style.display = (currentCalcMode === 'installment') ? 'inline-flex' : 'none';
+  if (saveRentBtn) saveRentBtn.style.display = (currentCalcMode === 'rent') ? 'inline-flex' : 'none';
+
+  calculateStandaloneInstallment(false);
+  calculateRentalLive(false);
+}
+
+function resetCalcToCustom() {
+  const select = document.getElementById('calcSelectMoto');
+  if (select) select.value = '';
+  document.getElementById('calcMotoDisplayTitle').textContent = 'กำหนดราคาเองอิสระ (Custom Price)';
+  document.getElementById('calcRentMotoDisplayTitle').textContent = 'กำหนดอัตราค่าเช่าเองอิสระ (Custom Rent)';
+  const saveInstBtn = document.getElementById('btnSaveCalcToMoto');
+  const saveRentBtn = document.getElementById('btnSaveCalcRentToMoto');
+  if (saveInstBtn) saveInstBtn.style.display = 'none';
+  if (saveRentBtn) saveRentBtn.style.display = 'none';
+}
+
+// ==================== INSTALLMENT CALCULATION LOGIC ====================
+function applyCalcDownPreset(amount) {
+  const el = document.getElementById('calcDownPayment');
+  if (el) {
+    el.value = amount;
+    calculateStandaloneInstallment(false);
+  }
+}
+
+function applyCalcDownPercent(percent) {
+  const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const downEl = document.getElementById('calcDownPayment');
+  if (downEl) {
+    downEl.value = Math.round((price * (percent / 100)) / 100) * 100;
+    calculateStandaloneInstallment(false);
+  }
+}
+
+function applyCalcTermPreset(term) {
+  const termEl = document.getElementById('calcTerm');
+  if (termEl) {
+    termEl.value = term;
+    calculateStandaloneInstallment(true);
+  }
+}
+
+function onCalcPriceInput() {
+  calculateStandaloneInstallment(false);
+}
+
+function onCalcDownInput() {
+  calculateStandaloneInstallment(false);
+}
+
+function onCalcTermInput() {
+  calculateStandaloneInstallment(false);
+}
+
+function calculateStandaloneInstallment(showToastMsg = true) {
+  const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('calcTerm')?.value) || 6;
+
+  if (price <= 0) {
+    if (showToastMsg) showToast('กรุณาระบุราคาขายสดของรถก่อนคำนวณ', 'warning');
+    return;
+  }
+
+  const principal = Math.max(0, price - down);
+  if (principal === 0) {
+    const amountEl = document.getElementById('calcMonthlyAmount');
+    if (amountEl) amountEl.value = 0;
+    updateCalcLiveSummary();
+    return;
+  }
+
+  // สูตรดอกเบี้ยมาตรฐาน Easy Finance: 6 งวด = 35% (0.35), ดอกเบี้ยคงที่ 35% ทุกๆ 6 งวด
+  const interestRate = (term / 6) * 0.35;
+  const totalInterest = principal * interestRate;
+  const totalFinanced = principal + totalInterest;
+  const monthly = Math.ceil(totalFinanced / term / 10) * 10;
+
+  const amountEl = document.getElementById('calcMonthlyAmount');
+  if (amountEl) {
+    amountEl.value = monthly;
+    updateCalcLiveSummary();
+    if (showToastMsg) {
+      const percentDisplay = Math.round((term / 6) * 35 * 10) / 10;
+      showToast(`คำนวณค่างวด ${term} งวด (ดอกเบี้ย ${percentDisplay}%): ${formatPrice(monthly)}/งวด เรียบร้อยแล้ว`, 'gold');
+    }
+  }
+}
+
+function updateCalcLiveSummary() {
+  const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('calcTerm')?.value) || 0;
+  const monthly = Number(document.getElementById('calcMonthlyAmount')?.value) || 0;
+
+  const financedPrincipal = Math.max(0, price - down);
+  const totalPayable = down + (monthly * term);
+  const interestRate = (term > 0) ? (term / 6) * 35 : 0;
+
+  const financedEl = document.getElementById('calcPreviewFinanced');
+  const rateEl = document.getElementById('calcPreviewRate');
+  const monthlySummaryEl = document.getElementById('calcPreviewMonthlySummary');
+  const totalPayableEl = document.getElementById('calcPreviewTotalPayable');
+
+  if (financedEl) financedEl.textContent = formatPrice(financedPrincipal);
+  if (rateEl) {
+    rateEl.textContent = term > 0 ? `${Math.round(interestRate * 10) / 10}% (${term} งวด)` : '-';
+  }
+  if (monthlySummaryEl) {
+    if (monthly > 0 && term > 0) {
+      monthlySummaryEl.textContent = `${formatPrice(monthly)} x ${term} งวด`;
+    } else {
+      monthlySummaryEl.textContent = '-';
+    }
+  }
+  if (totalPayableEl) {
+    if (monthly > 0 && term > 0) {
+      totalPayableEl.textContent = formatPrice(totalPayable);
+    } else if (price > 0) {
+      totalPayableEl.textContent = formatPrice(price);
+    } else {
+      totalPayableEl.textContent = '฿0';
+    }
+  }
+}
+
+// ==================== RENTAL CALCULATION LOGIC ====================
+function applyCalcRentDaysPreset(days) {
+  const daysEl = document.getElementById('calcRentDays');
+  if (daysEl) {
+    daysEl.value = days;
+  }
+  // Auto-adjust end date if start date is set
+  const startEl = document.getElementById('calcRentalStart');
+  const endEl = document.getElementById('calcRentalEnd');
+  if (startEl && startEl.value && endEl) {
+    const startDate = new Date(startEl.value);
+    const endDate = new Date(startDate.getTime() + (days * 24 * 60 * 60 * 1000));
+    endEl.value = endDate.toISOString().split('T')[0];
+  }
+  calculateRentalLive(false);
+}
+
+function applyCalcRentDepositPreset(deposit) {
+  const depositEl = document.getElementById('calcRentDeposit');
+  if (depositEl) {
+    depositEl.value = deposit;
+    calculateRentalLive(false);
+  }
+}
+
+function onCalcRentInput() {
+  calculateRentalLive(false);
+}
+
+function onCalcRentDaysInput() {
+  const days = Math.max(1, Number(document.getElementById('calcRentDays')?.value) || 1);
+  const startEl = document.getElementById('calcRentalStart');
+  const endEl = document.getElementById('calcRentalEnd');
+  if (startEl && startEl.value && endEl) {
+    const startDate = new Date(startEl.value);
+    const endDate = new Date(startDate.getTime() + (days * 24 * 60 * 60 * 1000));
+    endEl.value = endDate.toISOString().split('T')[0];
+  }
+  calculateRentalLive(false);
+}
+
+function onCalcRentDatesChange() {
+  const startVal = document.getElementById('calcRentalStart')?.value;
+  const endVal = document.getElementById('calcRentalEnd')?.value;
+  if (startVal && endVal) {
+    const d1 = new Date(startVal);
+    const d2 = new Date(endVal);
+    const diffTime = d2 - d1;
+    const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const daysEl = document.getElementById('calcRentDays');
+    if (daysEl) daysEl.value = diffDays;
+  }
+  calculateRentalLive(false);
+}
+
+function calculateRentalLive(showToastMsg = false) {
+  const daily = Number(document.getElementById('calcRentDaily')?.value) || 0;
+  const monthly = Number(document.getElementById('calcRentMonthly')?.value) || 0;
+  const days = Math.max(1, Number(document.getElementById('calcRentDays')?.value) || 1);
+  const deposit = Number(document.getElementById('calcRentDeposit')?.value) || 0;
+  const discount = Number(document.getElementById('calcRentDiscount')?.value) || 0;
+
+  // Compute rent: if >= 30 days and monthly rate is provided, calculate monthly rate + extra days
+  let rentBase = 0;
+  if (days >= 30 && monthly > 0) {
+    const fullMonths = Math.floor(days / 30);
+    const remainDays = days % 30;
+    rentBase = (fullMonths * monthly) + Math.round((monthly / 30) * remainDays);
+  } else {
+    rentBase = daily * days;
+  }
+
+  const totalRent = Math.max(0, rentBase - discount);
+  const totalPayableOnPickup = totalRent + deposit;
+
+  // Update UI Elements
+  const totalRentEl = document.getElementById('calcRentPreviewTotal');
+  const depositEl = document.getElementById('calcRentPreviewDeposit');
+  const discountEl = document.getElementById('calcRentPreviewDiscount');
+  const payableEl = document.getElementById('calcRentPreviewPayable');
+
+  if (totalRentEl) totalRentEl.textContent = formatPrice(totalRent);
+  if (depositEl) depositEl.textContent = formatPrice(deposit);
+  if (discountEl) {
+    discountEl.textContent = discount > 0 ? `-${formatPrice(discount)}` : '-';
+  }
+  if (payableEl) payableEl.textContent = formatPrice(totalPayableOnPickup);
+
+  if (showToastMsg) {
+    showToast(`คำนวณค่าเช่า ${days} วัน เรียบร้อยแล้ว (ยอดชำระวันรับรถ: ${formatPrice(totalPayableOnPickup)})`, 'success');
+  }
+}
+
+// ==================== QUOTE COPY & CONTRACT TRANSITION ====================
+function copyFinanceQuote() {
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  const moto = motoId ? fleet.find(c => c.id === motoId) : null;
+  const bikeName = moto ? `${moto.brand} ${moto.model} [${moto.licensePlate || 'ป้ายแดง'}]` : 'มอเตอร์ไซค์ (กำหนดราคาเอง)';
+  const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('calcTerm')?.value) || 0;
+  const monthly = Number(document.getElementById('calcMonthlyAmount')?.value) || 0;
+  const totalPayable = down + (monthly * term);
+  const financed = Math.max(0, price - down);
+  const downPercent = price > 0 ? Math.round((down / price) * 100) : 0;
+  const interestPct = term > 0 ? Math.round((term / 6) * 35 * 10) / 10 : 0;
+
+  const text = `🏍️ ใบเสนอราคาแผนผ่อนชำระ (Easy Finance)\n` +
+    `สาขา: วีระมอเตอร์\n` +
+    `--------------------------------\n` +
+    `รุ่น: ${bikeName}\n` +
+    `ราคาขายสด: ${formatPrice(price)}\n` +
+    `เงินดาวน์: ${formatPrice(down)} (${downPercent}%)\n` +
+    `ยอดจัดไฟแนนซ์: ${formatPrice(financed)}\n` +
+    `อัตราดอกเบี้ยรวม: ${interestPct}%\n` +
+    `ระยะเวลาผ่อน: ${term} งวด (${term} เดือน)\n` +
+    `ค่างวด: ${formatPrice(monthly)} /เดือน\n` +
+    `ยอดผ่อนรวมสุทธิ (ดาวน์+ค่างวด): ${formatPrice(totalPayable)}\n` +
+    `--------------------------------\n` +
+    `*อนุมัติไว รับรถได้ทันที พร้อมของแถมหมวกกันน็อคและประกัน*`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('คัดลอกใบเสนอราคาผ่อนชำระเรียบร้อยแล้ว (วางส่ง LINE ได้ทันที)', 'success');
+  }).catch(() => {
+    prompt('คัดลอกข้อความด้านล่างนี้ได้เลยครับ:', text);
+  });
+}
+
+function copyRentQuote() {
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  const moto = motoId ? fleet.find(c => c.id === motoId) : null;
+  const bikeName = moto ? `${moto.brand} ${moto.model} [${moto.licensePlate || 'ป้ายแดง'}]` : 'มอเตอร์ไซค์ ';
+  const daily = Number(document.getElementById('calcRentDaily')?.value) || 0;
+  const days = Number(document.getElementById('calcRentDays')?.value) || 1;
+  const deposit = Number(document.getElementById('calcRentDeposit')?.value) || 0;
+  const discount = Number(document.getElementById('calcRentDiscount')?.value) || 0;
+  const startVal = document.getElementById('calcRentalStart')?.value || '';
+  const endVal = document.getElementById('calcRentalEnd')?.value || '';
+
+  let rentBase = 0;
+  const monthly = Number(document.getElementById('calcRentMonthly')?.value) || 0;
+  if (days >= 30 && monthly > 0) {
+    const fullMonths = Math.floor(days / 30);
+    const remainDays = days % 30;
+    rentBase = (fullMonths * monthly) + Math.round((monthly / 30) * remainDays);
+  } else {
+    rentBase = daily * days;
+  }
+  const totalRent = Math.max(0, rentBase - discount);
+  const totalPayable = totalRent + deposit;
+
+  const dateLine = (startVal && endVal) ? `ช่วงวันที่: ${startVal} ถึง ${endVal} (${days} วัน)\n` : `ระยะเวลาเช่า: ${days} วัน\n`;
+
+  const text = `🏍️ ใบเสนอราคาเช่ารถมอเตอร์ไซค์\n` +
+    `สาขา: วีระมอเตอร์\n` +
+    `--------------------------------\n` +
+    `รุ่นรถ: ${bikeName}\n` +
+    `อัตราค่าเช่า: ${formatPrice(daily)} /วัน\n` +
+    dateLine +
+    `รวมค่าเช่า: ${formatPrice(totalRent)}${discount > 0 ? ` (หักส่วนลด ${formatPrice(discount)})` : ''}\n` +
+    `เงินประกันมัดจำ: ${formatPrice(deposit)} (ได้รับคืนเต็มจำนวนเมื่อส่งมอบรถคืน)\n` +
+    `--------------------------------\n` +
+    `ยอดชำระสุทธิวันรับรถ (ค่าเช่า+มัดจำ): ${formatPrice(totalPayable)}\n` +
+    `--------------------------------\n` +
+    `*แถมฟรี! หมวกกันน็อค 2 ใบ + ที่จับมือถือกันสะเทือน + พ.ร.บ. คุ้มครอง*`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('คัดลอกใบเสนอราคาเช่ารถเรียบร้อยแล้ว (วางส่ง LINE ได้ทันที)', 'success');
+  }).catch(() => {
+    prompt('คัดลอกข้อความด้านล่างนี้ได้เลยครับ:', text);
+  });
+}
+
+function proceedToContractFromCalc() {
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  closeModal('calcModal');
+  if (currentCalcMode === 'rent') {
+    openContractModal(motoId || null, 'rent');
+  } else {
+    openContractModal(motoId || null, 'installment');
+  }
+}
+
+function saveCalcToSelectedMoto() {
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  if (!motoId) {
+    showToast('กรุณาเลือกรถมอเตอร์ไซค์จากสต็อคก่อนบันทึก', 'warning');
+    return;
+  }
+  const moto = fleet.find(c => c.id === motoId);
+  if (!moto) return;
+
+  const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
+  const term = Number(document.getElementById('calcTerm')?.value) || 36;
+  const monthly = Number(document.getElementById('calcMonthlyAmount')?.value) || 0;
+
+  moto.price = price;
+  moto.downPayment = down;
+  moto.installmentTerm = term;
+  moto.installmentAmount = monthly;
+
+  saveFleet();
+  renderAll();
+
+  // Real-time Cloud Sync
+  if (window.FirebaseSync) {
+    FirebaseSync.upsertMoto(moto);
+  }
+
+  showToast(`บันทึกแผนผ่อนลงใน ${moto.brand} ${moto.model} เรียบร้อยแล้ว`, 'success');
+}
+
+function saveCalcRentToSelectedMoto() {
+  const motoId = document.getElementById('calcSelectMoto')?.value;
+  if (!motoId) {
+    showToast('กรุณาเลือกรถมอเตอร์ไซค์จากสต็อคก่อนบันทึก', 'warning');
+    return;
+  }
+  const moto = fleet.find(c => c.id === motoId);
+  if (!moto) return;
+
+  const daily = Number(document.getElementById('calcRentDaily')?.value) || 0;
+  const monthly = Number(document.getElementById('calcRentMonthly')?.value) || 0;
+  const deposit = Number(document.getElementById('calcRentDeposit')?.value) || 0;
+
+  moto.rentDaily = daily;
+  moto.rentMonthly = monthly;
+  moto.deposit = deposit;
+
+  saveFleet();
+  renderAll();
+
+  // Real-time Cloud Sync
+  if (window.FirebaseSync) {
+    FirebaseSync.upsertMoto(moto);
+  }
+
+  showToast(`บันทึกอัตราค่าเช่าลงใน ${moto.brand} ${moto.model} เรียบร้อยแล้ว`, 'success');
 }
 
 // ==================== MODAL LOGIC (ADD / EDIT) ====================
@@ -2945,16 +3482,27 @@ function updateContractPreview() {
   const contractDate = document.getElementById('contractDate')?.value || new Date().toISOString().slice(0, 10);
   const branch = document.getElementById('contractBranch')?.value || moto.branch || 'สาขาหลัก (วีระมอเตอร์)';
 
-  const custName = document.getElementById('contractCustName')?.value || '................................................';
-  const custId = document.getElementById('contractCustId')?.value || '................................................';
-  const custPhone = document.getElementById('contractCustPhone')?.value || '................................................';
-  const custAddr = document.getElementById('contractCustAddress')?.value || '................................................';
+  const custNameRaw = document.getElementById('contractCustName')?.value?.trim() || '';
+  const custIdRaw = document.getElementById('contractCustId')?.value?.trim() || '';
+  const custPhoneRaw = document.getElementById('contractCustPhone')?.value?.trim() || '';
+  const custAddrRaw = document.getElementById('contractCustAddress')?.value?.trim() || '';
 
-  const guarName = document.getElementById('contractGuarName')?.value || '................................................';
-  const guarRel = document.getElementById('contractGuarRelation')?.value || '........................';
-  const guarId = document.getElementById('contractGuarId')?.value || '................................................';
-  const guarPhone = document.getElementById('contractGuarPhone')?.value || '................................................';
-  const guarAddr = document.getElementById('contractGuarAddress')?.value || '................................................';
+  const guarNameRaw = document.getElementById('contractGuarName')?.value?.trim() || '';
+  const guarRelRaw = document.getElementById('contractGuarRelation')?.value?.trim() || '';
+  const guarIdRaw = document.getElementById('contractGuarId')?.value?.trim() || '';
+  const guarPhoneRaw = document.getElementById('contractGuarPhone')?.value?.trim() || '';
+  const guarAddrRaw = document.getElementById('contractGuarAddress')?.value?.trim() || '';
+
+  const custName = custNameRaw || '................................................................';
+  const custId = custIdRaw || '........................................';
+  const custPhone = custPhoneRaw || '........................................';
+  const custAddr = custAddrRaw || '................................................................................................';
+
+  const guarName = guarNameRaw || '................................................';
+  const guarRel = guarRelRaw || '........................';
+  const guarId = guarIdRaw || '........................................';
+  const guarPhone = guarPhoneRaw || '........................................';
+  const guarAddr = guarAddrRaw || '................................................................................................';
 
   // Financial values
   const rentDaily = Number(document.getElementById('contractRentDaily')?.value || moto.rentDaily || 0);
@@ -3009,36 +3557,48 @@ function updateContractPreview() {
     ${showCust ? `
       <div class="a4-box a4-avoid-break">
         <div class="a4-box-title">
-          <span>1. ข้อมูลคู่สัญญา </span>
+          <span>1. ข้อมูลคู่สัญญา</span>
           <span style="font-size: 7.2pt; color: #64748b; font-weight: normal;">ทำขึ้น ณ ${branch}</span>
         </div>
-        <table class="a4-table">
+        <table class="a4-table" style="table-layout: fixed;">
+          <colgroup>
+            <col style="width: 20%;">
+            <col style="width: 30%;">
+            <col style="width: 20%;">
+            <col style="width: 30%;">
+          </colgroup>
           <tr>
-            <td class="lbl">${isRent ? 'ผู้ให้เช่า' : 'ผู้ขาย / ผู้ให้เช่าซื้อ '}</td>
+            <td class="lbl">${isRent ? 'ผู้ให้เช่า' : 'ผู้ขาย / ผู้ให้เช่าซื้อ'}</td>
             <td colspan="3"><strong>บริษัท วีระมอเตอร์ อีซี่ไฟแนนซ์ จำกัด (Wira Easy Finance)</strong> สาขา: ${branch}</td>
           </tr>
           <tr>
-            <td class="lbl">${isRent ? 'ผู้เช่า ' : 'ผู้ซื้อ / ผู้เช่าซื้อ '}</td>
-            <td><strong>${custName}</strong></td>
-            <td class="lbl">เลขบัตร ปชช. / Passport</td>
-            <td><strong>${custId}</strong></td>
+            <td class="lbl">${isRent ? 'ผู้เช่า' : 'ผู้ซื้อ / ผู้เช่าซื้อ'}</td>
+            <td colspan="3" style="font-size: 8.5pt;"><strong>${custName}</strong></td>
           </tr>
           <tr>
+            <td class="lbl">เลขบัตร ปชช. / Passport</td>
+            <td><strong style="font-family: monospace, inherit; font-size: 8.5pt;">${custId}</strong></td>
             <td class="lbl">เบอร์โทรศัพท์ติดต่อ</td>
-            <td><strong>${custPhone}</strong></td>
-            <td class="lbl">ที่อยู่ตามบัตร / ที่พัก</td>
-            <td>${custAddr}</td>
+            <td><strong style="font-size: 8.5pt; letter-spacing: 0.2px;">${custPhone}</strong></td>
           </tr>
-          ${(showGuar && !isRent) || (showGuar && guarName !== '................................................') ? `
+          <tr>
+            <td class="lbl">ที่อยู่ตามบัตร / ที่พัก</td>
+            <td colspan="3" style="font-size: 8pt; line-height: 1.35;">${custAddr}</td>
+          </tr>
+          ${showGuar ? `
             <tr>
-              <td class="lbl" style="color: #b45309;">ผู้ค้ำประกัน </td>
-              <td><strong>${guarName}</strong> (ความสัมพันธ์: ${guarRel})</td>
+              <td class="lbl" style="color: #b45309;">ผู้ค้ำประกัน</td>
+              <td colspan="3"><strong>${guarName}</strong> ${guarRelRaw ? `(ความสัมพันธ์: ${guarRelRaw})` : ''}</td>
+            </tr>
+            <tr>
               <td class="lbl">เลขบัตร ปชช. ผู้ค้ำ</td>
-              <td><strong>${guarId}</strong> (โทร: ${guarPhone})</td>
+              <td><strong style="font-family: monospace, inherit;">${guarId}</strong></td>
+              <td class="lbl">เบอร์โทรศัพท์ผู้ค้ำ</td>
+              <td><strong style="letter-spacing: 0.2px;">${guarPhone}</strong></td>
             </tr>
             <tr>
               <td class="lbl" style="color: #b45309;">ที่อยู่ผู้ค้ำประกัน</td>
-              <td colspan="3">${guarAddr}</td>
+              <td colspan="3" style="font-size: 8pt; line-height: 1.35;">${guarAddr}</td>
             </tr>
           ` : ''}
         </table>
@@ -3048,11 +3608,17 @@ function updateContractPreview() {
     <!-- 3. VEHICLE SPECIFICATIONS TABLE -->
     <div class="a4-box a4-avoid-break">
       <div class="a4-box-title">
-        <span>2. รายละเอียดรถจักรยานยนต์ </span>
+        <span>2. รายละเอียดรถจักรยานยนต์</span>
         <span style="font-size: 7.5pt; font-weight: 700; color: #0284c7;">ป้ายทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}</span>
       </div>
       <div style="display: flex; gap: 10px; align-items: flex-start;">
-        <table class="a4-table" style="flex: 1; margin-top: 0;">
+        <table class="a4-table" style="flex: 1; margin-top: 0; table-layout: fixed;">
+          <colgroup>
+            <col style="width: 23%;">
+            <col style="width: 27%;">
+            <col style="width: 23%;">
+            <col style="width: 27%;">
+          </colgroup>
           <tr>
             <td class="lbl">ป้ายทะเบียน / จังหวัด</td>
             <td><strong style="font-size: 9pt; color: #0a1b38;">${moto.licensePlate}</strong> ${moto.province ? `(${moto.province})` : ''}</td>
@@ -3097,13 +3663,19 @@ function updateContractPreview() {
     ${showFin ? `
       <div class="a4-box a4-avoid-break">
         <div class="a4-box-title">
-          <span>3. เงื่อนไขทางการเงินและการชำระเงิน </span>
+          <span>3. เงื่อนไขทางการเงินและการชำระเงิน</span>
           <span style="font-size: 7.2pt; color: #15803d; font-weight: bold;">
             ${isRent ? 'เงื่อนไขสัญญาเช่า' : 'เงื่อนไขเช่าซื้อ'}
           </span>
         </div>
         ${isRent ? `
-          <table class="a4-table">
+          <table class="a4-table" style="table-layout: fixed;">
+            <colgroup>
+              <col style="width: 24%;">
+              <col style="width: 26%;">
+              <col style="width: 24%;">
+              <col style="width: 26%;">
+            </colgroup>
             <tr>
               <td class="lbl">อัตราค่าเช่ารายวัน</td>
               <td><strong style="font-size: 9pt; color: #0284c7;">${rentDaily ? formatPrice(rentDaily) + ' /วัน' : '-'}</strong></td>
@@ -3124,7 +3696,13 @@ function updateContractPreview() {
             </tr>
           </table>
         ` : `
-          <table class="a4-table">
+          <table class="a4-table" style="table-layout: fixed;">
+            <colgroup>
+              <col style="width: 24%;">
+              <col style="width: 26%;">
+              <col style="width: 24%;">
+              <col style="width: 26%;">
+            </colgroup>
             <tr>
               <td class="lbl">ราคาขายสด (MSRP)</td>
               <td><strong style="font-size: 9pt;">${formatPrice(price)}</strong></td>
@@ -3251,15 +3829,15 @@ function updateContractPreview() {
           <div class="a4-sig-col">
             <div class="a4-sig-line"></div>
             <div>ลงชื่อ ....................................................</div>
-            <div style="font-weight: 700; margin-top: 2px;">( ${custName !== '................................................' ? custName : (isRent ? 'ผู้เช่ารถจักรยานยนต์' : 'ผู้ซื้อ / ผู้เช่าซื้อ')} )</div>
+            <div style="font-weight: 700; margin-top: 2px;">( ${custNameRaw ? custNameRaw : (isRent ? 'ผู้เช่ารถจักรยานยนต์' : 'ผู้ซื้อ / ผู้เช่าซื้อ')} )</div>
             <div style="font-size: 6.8pt; color: #64748b;">${isRent ? 'Customer / Lessee' : ''}</div>
           </div>
 
-          ${(showGuar && !isRent) || (showGuar && guarName !== '................................................') ? `
+          ${showGuar ? `
             <div class="a4-sig-col">
               <div class="a4-sig-line"></div>
               <div>ลงชื่อ ....................................................</div>
-              <div style="font-weight: 700; margin-top: 2px;">( ${guarName !== '................................................' ? guarName : 'ผู้ค้ำประกัน'} )</div>
+              <div style="font-weight: 700; margin-top: 2px;">( ${guarNameRaw ? guarNameRaw : 'ผู้ค้ำประกัน'} )</div>
               <div style="font-size: 6.8pt; color: #64748b;"></div>
             </div>
           ` : ''}
