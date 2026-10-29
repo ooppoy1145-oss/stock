@@ -271,6 +271,7 @@ const FirebaseSync = (function () {
           state.lastSyncTime = new Date();
           state.remoteFleetCount = snapshot.size;
           setStatus('connected');
+          flushPendingQueue();
 
           const remoteFleet = [];
           snapshot.forEach(doc => {
@@ -336,6 +337,7 @@ const FirebaseSync = (function () {
         state.remoteFleetCount = remoteFleet.length;
         setCachedFleet(remoteFleet);
         setStatus('connected');
+        flushPendingQueue();
 
         const isFirstLoad = !state.initialLoadDone;
         state.initialLoadDone = true;
@@ -357,17 +359,37 @@ const FirebaseSync = (function () {
     }
   }
 
+  const pendingUpsertQueue = new Map();
+
+  async function flushPendingQueue() {
+    if (pendingUpsertQueue.size === 0) return;
+    if (state.status !== 'connected' && state.status !== 'syncing') return;
+
+    const items = Array.from(pendingUpsertQueue.values());
+    pendingUpsertQueue.clear();
+
+    for (const moto of items) {
+      await upsertMoto(moto);
+    }
+  }
+
   /**
    * Upsert a single motorcycle document to Firebase
    */
   async function upsertMoto(moto) {
     if (!moto || !moto.id) return false;
-    if (state.status !== 'connected' && state.status !== 'syncing') return false;
+
+    // If not connected yet or connecting, queue it up so it is NEVER lost on refresh!
+    if (state.status !== 'connected' && state.status !== 'syncing') {
+      pendingUpsertQueue.set(moto.id, moto);
+      console.log(`[FirebaseSync] Queued moto [${moto.id}] for cloud sync when connected`);
+      return true;
+    }
 
     state.isLocalAction = true;
     try {
       const cleanData = JSON.parse(JSON.stringify(moto));
-      cleanData._lastModified = new Date().toISOString();
+      cleanData._lastModified = cleanData._lastModified || new Date().toISOString();
 
       if (state.dbType === 'firestore' && state.db) {
         await state.db.collection(state.collectionName).doc(moto.id).set(cleanData, { merge: true });
@@ -380,6 +402,8 @@ const FirebaseSync = (function () {
       return true;
     } catch (err) {
       console.error('Error upserting moto to Firebase:', err);
+      // Re-queue on failure so it can retry
+      pendingUpsertQueue.set(moto.id, moto);
       return false;
     } finally {
       setTimeout(() => { state.isLocalAction = false; }, 800);

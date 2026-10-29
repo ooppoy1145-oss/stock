@@ -4862,3 +4862,8 @@ h1, h2, h3, h4, h5, h6, .brand-name, .modal-title, .kpi-value, .price-val {
     border-bottom: none;
   }
 }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
