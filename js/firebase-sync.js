@@ -213,24 +213,12 @@ const FirebaseSync = (function () {
         state.app = firebase.initializeApp(config);
       }
 
-      // 2. Initialize Database client
+      // 2. Initialize Database client (direct server sync without enablePersistence IndexedDB lock issues)
       if (state.dbType === 'firestore') {
         if (!firebase.firestore) {
           throw new Error('ไม่พบ Firebase Firestore SDK');
         }
         state.db = firebase.firestore();
-
-        // Enable multi-tab persistence if possible
-        try {
-          await state.db.enablePersistence({ synchronizeTabs: true });
-        } catch (persErr) {
-          if (persErr.code === 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled in one tab at a time.
-            console.warn('Firestore persistence enabled in another tab');
-          } else if (persErr.code === 'unimplemented') {
-            console.warn('Current browser does not support all Firestore persistence features');
-          }
-        }
       } else {
         if (!firebase.database) {
           throw new Error('ไม่พบ Firebase Realtime Database SDK');
@@ -253,6 +241,178 @@ const FirebaseSync = (function () {
     }
   }
 
+  // ==================== PERSISTENT OUTBOX & TOMBSTONE TRACKER ====================
+  const PENDING_UPSERTS_KEY = 'honda_sync_pending_upserts';
+  const PENDING_DELETES_KEY = 'honda_sync_pending_deletes';
+  const pendingUpsertQueue = new Map();
+  let isFlushingQueue = false;
+  let inFlightWrites = 0;
+
+  function getPendingUpsertsMap() {
+    try {
+      const raw = localStorage.getItem(PENDING_UPSERTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* ignore */ }
+    return {};
+  }
+
+  function savePendingUpsertsMap(map) {
+    try {
+      localStorage.setItem(PENDING_UPSERTS_KEY, JSON.stringify(map || {}));
+    } catch (e) { /* ignore */ }
+  }
+
+  function getPendingDeletesMap() {
+    try {
+      const raw = localStorage.getItem(PENDING_DELETES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* ignore */ }
+    return {};
+  }
+
+  function savePendingDeletesMap(map) {
+    try {
+      localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(map || {}));
+    } catch (e) { /* ignore */ }
+  }
+
+  function markPendingUpsert(motoId) {
+    if (!motoId) return;
+    const upserts = getPendingUpsertsMap();
+    upserts[motoId] = Date.now();
+    savePendingUpsertsMap(upserts);
+
+    const deletes = getPendingDeletesMap();
+    if (deletes[motoId]) {
+      delete deletes[motoId];
+      savePendingDeletesMap(deletes);
+    }
+  }
+
+  function clearPendingUpsert(motoId) {
+    if (!motoId) return;
+    pendingUpsertQueue.delete(motoId);
+    const upserts = getPendingUpsertsMap();
+    if (upserts[motoId]) {
+      delete upserts[motoId];
+      savePendingUpsertsMap(upserts);
+    }
+  }
+
+  function isPendingUpsert(motoId) {
+    if (!motoId) return false;
+    if (pendingUpsertQueue.has(motoId)) return true;
+    const upserts = getPendingUpsertsMap();
+    return Boolean(upserts[motoId]);
+  }
+
+  function markPendingDelete(motoId, docId) {
+    if (!motoId) return;
+    clearPendingUpsert(motoId);
+    if (docId && docId !== motoId) clearPendingUpsert(docId);
+
+    const deletes = getPendingDeletesMap();
+    deletes[motoId] = {
+      docId: docId || motoId,
+      deletedAt: Date.now()
+    };
+    savePendingDeletesMap(deletes);
+  }
+
+  function clearPendingDelete(motoId) {
+    if (!motoId) return;
+    const deletes = getPendingDeletesMap();
+    if (deletes[motoId]) {
+      delete deletes[motoId];
+      savePendingDeletesMap(deletes);
+    }
+  }
+
+  function isPendingDelete(motoId, docId) {
+    const deletes = getPendingDeletesMap();
+    if (motoId && deletes[motoId]) return true;
+    if (docId && deletes[docId]) return true;
+    for (const key of Object.keys(deletes)) {
+      const entry = deletes[key];
+      if (entry && ((motoId && entry.docId === motoId) || (docId && entry.docId === docId))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function clearAllPendingOutbox() {
+    pendingUpsertQueue.clear();
+    savePendingUpsertsMap({});
+    savePendingDeletesMap({});
+  }
+
+  function hasInFlightWrites() {
+    return inFlightWrites > 0;
+  }
+
+  function getUtf8ByteLength(obj) {
+    const str = typeof obj === 'string' ? obj : JSON.stringify(obj);
+    if (typeof Blob !== 'undefined') {
+      return new Blob([str]).size;
+    }
+    return encodeURIComponent(str).replace(/%[A-F\d]{2}/g, 'U').length;
+  }
+
+  /**
+   * Prepare motorcycle payload for Cloud Firestore (< 1 MiB guaranteed)
+   */
+  async function prepareCleanMotoForCloud(moto) {
+    const cleanData = JSON.parse(JSON.stringify(moto));
+    delete cleanData._docId;
+    cleanData._lastModified = cleanData._lastModified || new Date().toISOString();
+
+    if (Array.isArray(cleanData.photos) && typeof window.ensurePhotosFitCloudLimit === 'function') {
+      try {
+        cleanData.photos = await window.ensurePhotosFitCloudLimit(cleanData.photos);
+      } catch (compErr) {
+        console.warn('Photo compression helper warning:', compErr);
+      }
+    }
+
+    // Firestore hard limit is 1,048,576 bytes; enforce strict 880,000-byte ceiling
+    if (state.dbType === 'firestore') {
+      const MAX_FIRESTORE_BYTES = 880000;
+      while (
+        getUtf8ByteLength(cleanData) > MAX_FIRESTORE_BYTES &&
+        Array.isArray(cleanData.photos) &&
+        cleanData.photos.length > 1
+      ) {
+        cleanData.photos.pop();
+      }
+      if (getUtf8ByteLength(cleanData) > MAX_FIRESTORE_BYTES && Array.isArray(cleanData.photos)) {
+        cleanData.photos = ['assets/images/forza_350.jpg'];
+      }
+    }
+
+    return cleanData;
+  }
+
+  function translateFirebaseError(err) {
+    if (!err) return 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+    if (err.code === 'permission-denied') {
+      return 'สิทธิ์เข้าถึงถูกปฏิเสธ (Permission Denied) - โปรดตรวจสอบ Security Rules ใน Firebase Console';
+    }
+    if (err.code === 'resource-exhausted') {
+      return 'โควต้าการใช้งาน Firebase เต็มชั่วคราว (Quota Exceeded)';
+    }
+    if (err.code === 'invalid-argument' || (err.message && err.message.includes('maximum allowed size'))) {
+      return 'ขนาดไฟล์รูปภาพรวมเกินขีดจำกัด 1MB ของ Cloud Firestore';
+    }
+    return err.message || String(err);
+  }
+
   /**
    * Start Real-time listener on the motorcycle fleet collection/node
    */
@@ -269,22 +429,29 @@ const FirebaseSync = (function () {
       state.unsubscribe = colRef.onSnapshot(
         (snapshot) => {
           state.lastSyncTime = new Date();
-          state.remoteFleetCount = snapshot.size;
-          setStatus('connected');
-          flushPendingQueue();
 
           const remoteFleet = [];
           snapshot.forEach(doc => {
+            if (doc.id && doc.id.startsWith('_health_check_')) return;
             const data = doc.data();
+            if (!data) return;
+            data._docId = doc.id;
             data.id = data.id || doc.id;
-            remoteFleet.push(data);
+            if (!isPendingDelete(data.id, data._docId)) {
+              remoteFleet.push(data);
+            }
           });
+
+          state.remoteFleetCount = remoteFleet.length;
+          setStatus('connected');
 
           // Cache remote fleet immediately so subsequent page loads are instant (0ms delay)
           setCachedFleet(remoteFleet);
 
-          // Check if changes came from other clients
-          const hasRemoteChanges = snapshot.docChanges().some(change => {
+          // Flush any pending offline deletes or upserts
+          flushPendingQueue();
+
+          const hasRemoteChanges = snapshot.docChanges().some(() => {
             return !snapshot.metadata.hasPendingWrites;
           });
 
@@ -305,11 +472,7 @@ const FirebaseSync = (function () {
         },
         (error) => {
           console.error('Firestore onSnapshot error:', error);
-          let thaiMsg = error.message;
-          if (error.code === 'permission-denied') {
-            thaiMsg = 'สิทธิ์เข้าถึงถูกปฏิเสธ (Permission Denied) - โปรดตรวจสอบ Security Rules ใน Firebase Console ให้เปิด allow read, write: if true;';
-          }
-          setStatus('error', thaiMsg);
+          setStatus('error', translateFirebaseError(error));
         }
       );
 
@@ -325,14 +488,18 @@ const FirebaseSync = (function () {
           remoteFleet = val.filter(Boolean);
         } else if (val && typeof val === 'object') {
           remoteFleet = Object.keys(val).map(key => {
+            if (key.startsWith('_health_check')) return null;
             const item = val[key];
             if (item && typeof item === 'object') {
+              item._docId = key;
               item.id = item.id || key;
               return item;
             }
             return null;
           }).filter(Boolean);
         }
+
+        remoteFleet = remoteFleet.filter(item => !isPendingDelete(item.id, item._docId));
 
         state.remoteFleetCount = remoteFleet.length;
         setCachedFleet(remoteFleet);
@@ -359,17 +526,61 @@ const FirebaseSync = (function () {
     }
   }
 
-  const pendingUpsertQueue = new Map();
-
   async function flushPendingQueue() {
-    if (pendingUpsertQueue.size === 0) return;
+    if (isFlushingQueue) return;
     if (state.status !== 'connected' && state.status !== 'syncing') return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
 
-    const items = Array.from(pendingUpsertQueue.values());
-    pendingUpsertQueue.clear();
+    const deletesMap = getPendingDeletesMap();
+    const deleteIds = Object.keys(deletesMap);
 
-    for (const moto of items) {
-      await upsertMoto(moto);
+    const upsertsMap = getPendingUpsertsMap();
+    const upsertIds = Array.from(new Set([
+      ...Array.from(pendingUpsertQueue.keys()),
+      ...Object.keys(upsertsMap)
+    ]));
+
+    if (deleteIds.length === 0 && upsertIds.length === 0) return;
+
+    isFlushingQueue = true;
+    let backgroundSyncedCount = 0;
+
+    try {
+      // 1. Process all pending deletions first so deleted motorcycles NEVER come back
+      for (const delId of deleteIds) {
+        const entry = deletesMap[delId];
+        await deleteMoto(delId, entry ? entry.docId : delId);
+      }
+
+      // 2. Process all pending upserts (including photos saved on mobile before tab reload)
+      for (const motoId of upsertIds) {
+        if (isPendingDelete(motoId)) {
+          clearPendingUpsert(motoId);
+          continue;
+        }
+        let moto = pendingUpsertQueue.get(motoId);
+        if (!moto && typeof window.getLocalMotoForSync === 'function') {
+          moto = await window.getLocalMotoForSync(motoId);
+        }
+        if (moto && moto.id) {
+          const wasFromReload = !pendingUpsertQueue.has(motoId);
+          const res = await upsertMoto(moto);
+          if (res && res.synced && wasFromReload) {
+            backgroundSyncedCount++;
+          }
+        } else {
+          // Vehicle no longer exists locally -> clean stale pending flag
+          clearPendingUpsert(motoId);
+        }
+      }
+
+      if (backgroundSyncedCount > 0 && typeof window.onBackgroundCloudSyncDone === 'function') {
+        window.onBackgroundCloudSyncDone(backgroundSyncedCount);
+      }
+    } catch (flushErr) {
+      console.warn('Error flushing pending sync queue:', flushErr);
+    } finally {
+      isFlushingQueue = false;
     }
   }
 
@@ -377,35 +588,54 @@ const FirebaseSync = (function () {
    * Upsert a single motorcycle document to Firebase
    */
   async function upsertMoto(moto) {
-    if (!moto || !moto.id) return false;
+    if (!moto || !moto.id) return { ok: false, synced: false, error: 'ไม่มีรหัสรถ' };
 
-    // If not connected yet or connecting, queue it up so it is NEVER lost on refresh!
-    if (state.status !== 'connected' && state.status !== 'syncing') {
-      pendingUpsertQueue.set(moto.id, moto);
-      console.log(`[FirebaseSync] Queued moto [${moto.id}] for cloud sync when connected`);
-      return true;
+    markPendingUpsert(moto.id);
+    pendingUpsertQueue.set(moto.id, moto);
+
+    // If not connected yet or offline, keep queued persistently so it syncs automatically when connected
+    if (
+      (state.status !== 'connected' && state.status !== 'syncing') ||
+      (typeof navigator !== 'undefined' && navigator.onLine === false)
+    ) {
+      console.log(`[FirebaseSync] Persistently queued moto [${moto.id}] for cloud sync when connected`);
+      return { ok: true, synced: false, queued: true };
     }
 
     state.isLocalAction = true;
+    inFlightWrites++;
     try {
-      const cleanData = JSON.parse(JSON.stringify(moto));
-      cleanData._lastModified = cleanData._lastModified || new Date().toISOString();
+      const cleanData = await prepareCleanMotoForCloud(moto);
 
       if (state.dbType === 'firestore' && state.db) {
-        await state.db.collection(state.collectionName).doc(moto.id).set(cleanData, { merge: true });
+        const colRef = state.db.collection(state.collectionName);
+        await colRef.doc(cleanData.id).set(cleanData);
+        // Clean up legacy mismatched document ID if it differed from cleanData.id
+        if (moto._docId && moto._docId !== cleanData.id) {
+          await colRef.doc(moto._docId).delete().catch(() => { });
+        }
       } else if (state.dbType === 'rtdb' && state.rtdb) {
-        await state.rtdb.ref(`${state.collectionName}/${moto.id}`).set(cleanData);
+        await state.rtdb.ref(`${state.collectionName}/${cleanData.id}`).set(cleanData);
+        if (moto._docId && moto._docId !== cleanData.id) {
+          await state.rtdb.ref(`${state.collectionName}/${moto._docId}`).remove().catch(() => { });
+        }
       }
 
+      clearPendingUpsert(cleanData.id);
       state.lastSyncTime = new Date();
       notifyStatusChange();
-      return true;
+      return { ok: true, synced: true, queued: false, photos: cleanData.photos };
     } catch (err) {
       console.error('Error upserting moto to Firebase:', err);
-      // Re-queue on failure so it can retry
+      // Keep in queue for automatic retry
       pendingUpsertQueue.set(moto.id, moto);
-      return false;
+      const errMsg = translateFirebaseError(err);
+      if (err && err.code === 'permission-denied') {
+        setStatus('error', errMsg);
+      }
+      return { ok: false, synced: false, queued: true, error: errMsg };
     } finally {
+      inFlightWrites = Math.max(0, inFlightWrites - 1);
       setTimeout(() => { state.isLocalAction = false; }, 800);
     }
   }
@@ -413,23 +643,37 @@ const FirebaseSync = (function () {
   /**
    * Update status of a single motorcycle in Firebase
    */
-  async function updateMotoStatus(motoId, newStatus) {
+  async function updateMotoStatus(motoId, newStatus, fullMoto = null) {
     if (!motoId) return false;
-    if (state.status !== 'connected' && state.status !== 'syncing') return false;
+
+    if (
+      (state.status !== 'connected' && state.status !== 'syncing') ||
+      (typeof navigator !== 'undefined' && navigator.onLine === false)
+    ) {
+      if (fullMoto) {
+        await upsertMoto(fullMoto);
+        return true;
+      }
+      return false;
+    }
 
     state.isLocalAction = true;
+    inFlightWrites++;
     try {
+      const nowIso = new Date().toISOString();
+      const targetDocId = (fullMoto && fullMoto._docId) ? fullMoto._docId : motoId;
       const updatePayload = {
         status: newStatus,
-        _lastStatusChange: new Date().toISOString(),
-        _lastModified: new Date().toISOString()
+        _lastStatusChange: nowIso,
+        _lastModified: nowIso
       };
 
       if (state.dbType === 'firestore' && state.db) {
-        await state.db.collection(state.collectionName).doc(motoId).update(updatePayload);
+        await state.db.collection(state.collectionName).doc(targetDocId).set(updatePayload, { merge: true });
       } else if (state.dbType === 'rtdb' && state.rtdb) {
-        await state.rtdb.ref(`${state.collectionName}/${motoId}/status`).set(newStatus);
-        await state.rtdb.ref(`${state.collectionName}/${motoId}/_lastStatusChange`).set(new Date().toISOString());
+        await state.rtdb.ref(`${state.collectionName}/${targetDocId}/status`).set(newStatus);
+        await state.rtdb.ref(`${state.collectionName}/${targetDocId}/_lastStatusChange`).set(nowIso);
+        await state.rtdb.ref(`${state.collectionName}/${targetDocId}/_lastModified`).set(nowIso);
       }
 
       state.lastSyncTime = new Date();
@@ -437,42 +681,83 @@ const FirebaseSync = (function () {
       return true;
     } catch (err) {
       console.error('Error updating moto status in Firebase:', err);
+      if (fullMoto) {
+        markPendingUpsert(fullMoto.id);
+        pendingUpsertQueue.set(fullMoto.id, fullMoto);
+      }
       return false;
     } finally {
+      inFlightWrites = Math.max(0, inFlightWrites - 1);
       setTimeout(() => { state.isLocalAction = false; }, 800);
     }
   }
 
   /**
-   * Delete a motorcycle document from Firebase
+   * Delete a motorcycle document from Firebase permanently (including offline queue & duplicate doc IDs)
    */
-  async function deleteMoto(motoId) {
-    if (!motoId) return false;
-    if (state.status !== 'connected' && state.status !== 'syncing') return false;
+  async function deleteMoto(motoId, docId = null) {
+    if (!motoId) return { ok: false, synced: false };
+
+    markPendingDelete(motoId, docId);
+
+    // Immediately prune from synced cache so instant reload never flashes deleted bike
+    const cached = getCachedFleet();
+    if (Array.isArray(cached)) {
+      setCachedFleet(cached.filter(m => m && m.id !== motoId && m._docId !== motoId && (!docId || (m.id !== docId && m._docId !== docId))));
+    }
+
+    if (
+      (state.status !== 'connected' && state.status !== 'syncing') ||
+      (typeof navigator !== 'undefined' && navigator.onLine === false)
+    ) {
+      console.log(`[FirebaseSync] Queued deletion of moto [${motoId}] for execution when connected`);
+      return { ok: true, synced: false, queued: true };
+    }
 
     state.isLocalAction = true;
+    inFlightWrites++;
     try {
       if (state.dbType === 'firestore' && state.db) {
-        await state.db.collection(state.collectionName).doc(motoId).delete();
+        const colRef = state.db.collection(state.collectionName);
+        const deleteTasks = [colRef.doc(motoId).delete()];
+        if (docId && docId !== motoId) {
+          deleteTasks.push(colRef.doc(docId).delete());
+        }
+        await Promise.all(deleteTasks);
+
+        // Also locate and remove any documents whose internal field `id` equals motoId (in case Firestore auto-ID differed)
+        try {
+          const matchingSnap = await colRef.where('id', '==', motoId).get();
+          if (!matchingSnap.empty) {
+            await Promise.all(matchingSnap.docs.map(d => d.ref.delete()));
+          }
+        } catch (queryErr) {
+          console.warn('Secondary delete query warning:', queryErr);
+        }
       } else if (state.dbType === 'rtdb' && state.rtdb) {
         await state.rtdb.ref(`${state.collectionName}/${motoId}`).remove();
+        if (docId && docId !== motoId) {
+          await state.rtdb.ref(`${state.collectionName}/${docId}`).remove();
+        }
       }
 
+      clearPendingDelete(motoId);
       state.lastSyncTime = new Date();
       notifyStatusChange();
-      return true;
+      return { ok: true, synced: true };
     } catch (err) {
       console.error('Error deleting moto from Firebase:', err);
-      return false;
+      return { ok: false, synced: false, queued: true, error: translateFirebaseError(err) };
     } finally {
+      inFlightWrites = Math.max(0, inFlightWrites - 1);
       setTimeout(() => { state.isLocalAction = false; }, 800);
     }
   }
 
   /**
-   * Upload entire fleet array to Firebase (Batch migration / sync)
+   * Upload entire fleet array to Firebase (Byte-safe batch migration / sync)
    */
-  async function uploadAll(fleetArray) {
+  async function uploadAll(fleetArray, options = {}) {
     if (!Array.isArray(fleetArray)) return { success: false, count: 0, error: 'ข้อมูลไม่ถูกต้อง' };
 
     const config = getActiveConfig();
@@ -485,49 +770,79 @@ const FirebaseSync = (function () {
     }
 
     state.isLocalAction = true;
+    inFlightWrites++;
     setStatus('syncing');
 
     try {
+      const validIds = new Set();
+      const preparedList = [];
+      const nowIso = new Date().toISOString();
+
+      for (const moto of fleetArray) {
+        if (!moto || !moto.id) continue;
+        const clean = await prepareCleanMotoForCloud(moto);
+        clean._uploadedAt = nowIso;
+        validIds.add(clean.id);
+        preparedList.push(clean);
+      }
+
       if (state.dbType === 'firestore' && state.db) {
-        // Firestore batch max 500 operations
         const colRef = state.db.collection(state.collectionName);
-        const batchSize = 400;
+        const MAX_BATCH_OPS = 25;
+        const MAX_BATCH_BYTES = 3500000; // 3.5 MB per batch (safely under Firestore's 10 MiB batch limit)
 
-        for (let i = 0; i < fleetArray.length; i += batchSize) {
-          const chunk = fleetArray.slice(i, i + batchSize);
-          const batch = state.db.batch();
+        let batch = state.db.batch();
+        let opCount = 0;
+        let batchBytes = 0;
 
-          chunk.forEach(moto => {
-            if (!moto || !moto.id) return;
-            const docRef = colRef.doc(moto.id);
-            const clean = JSON.parse(JSON.stringify(moto));
-            clean._uploadedAt = new Date().toISOString();
-            batch.set(docRef, clean, { merge: true });
-          });
+        for (const clean of preparedList) {
+          const itemBytes = getUtf8ByteLength(clean);
+          if (opCount > 0 && (opCount >= MAX_BATCH_OPS || (batchBytes + itemBytes) > MAX_BATCH_BYTES)) {
+            await batch.commit();
+            batch = state.db.batch();
+            opCount = 0;
+            batchBytes = 0;
+          }
+          batch.set(colRef.doc(clean.id), clean);
+          opCount++;
+          batchBytes += itemBytes;
+        }
 
+        if (opCount > 0) {
           await batch.commit();
+        }
+
+        // If full replacement requested (e.g. Reset Demo Data or Import JSON), remove stale remote docs
+        if (options && options.replaceAll) {
+          const existingSnap = await colRef.get();
+          const staleDocs = existingSnap.docs.filter(d => !validIds.has(d.id) && !d.id.startsWith('_health_check_'));
+          for (let i = 0; i < staleDocs.length; i += 100) {
+            const delBatch = state.db.batch();
+            staleDocs.slice(i, i + 100).forEach(d => delBatch.delete(d.ref));
+            await delBatch.commit();
+          }
         }
       } else if (state.dbType === 'rtdb' && state.rtdb) {
         const dict = {};
-        fleetArray.forEach(moto => {
-          if (moto && moto.id) {
-            dict[moto.id] = JSON.parse(JSON.stringify(moto));
-            dict[moto.id]._uploadedAt = new Date().toISOString();
-          }
+        preparedList.forEach(clean => {
+          dict[clean.id] = clean;
         });
         await state.rtdb.ref(state.collectionName).set(dict);
       }
 
+      clearAllPendingOutbox();
       state.lastSyncTime = new Date();
-      state.remoteFleetCount = fleetArray.length;
+      state.remoteFleetCount = preparedList.length;
       setStatus('connected');
-      return { success: true, count: fleetArray.length };
+      return { success: true, count: preparedList.length };
 
     } catch (err) {
       console.error('Error uploading fleet to Firebase:', err);
-      setStatus('error', err.message);
-      return { success: false, count: 0, error: err.message };
+      const errMsg = translateFirebaseError(err);
+      setStatus('error', errMsg);
+      return { success: false, count: 0, error: errMsg };
     } finally {
+      inFlightWrites = Math.max(0, inFlightWrites - 1);
       setTimeout(() => { state.isLocalAction = false; }, 1000);
     }
   }
@@ -549,7 +864,10 @@ const FirebaseSync = (function () {
       if (state.dbType === 'firestore' && state.db) {
         const snap = await state.db.collection(state.collectionName).get();
         snap.forEach(doc => {
+          if (doc.id && doc.id.startsWith('_health_check_')) return;
           const item = doc.data();
+          if (!item) return;
+          item._docId = doc.id;
           item.id = item.id || doc.id;
           list.push(item);
         });
@@ -560,8 +878,10 @@ const FirebaseSync = (function () {
           val.filter(Boolean).forEach(m => list.push(m));
         } else if (val && typeof val === 'object') {
           Object.keys(val).forEach(k => {
+            if (k.startsWith('_health_check')) return;
             const item = val[k];
             if (item) {
+              item._docId = k;
               item.id = item.id || k;
               list.push(item);
             }
@@ -569,6 +889,8 @@ const FirebaseSync = (function () {
         }
       }
 
+      clearAllPendingOutbox();
+      setCachedFleet(list);
       state.lastSyncTime = new Date();
       state.remoteFleetCount = list.length;
       notifyStatusChange();
@@ -576,7 +898,7 @@ const FirebaseSync = (function () {
 
     } catch (err) {
       console.error('Error downloading fleet from Firebase:', err);
-      return { success: false, data: null, error: err.message };
+      return { success: false, data: null, error: translateFirebaseError(err) };
     }
   }
 
@@ -721,9 +1043,9 @@ const FirebaseSync = (function () {
   function getCachedFleet() {
     try {
       const stored = localStorage.getItem(SYNC_CACHE_KEY);
-      if (stored) {
+      if (stored !== null && stored !== undefined) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.warn('Error reading synced cache:', e);
@@ -748,6 +1070,20 @@ const FirebaseSync = (function () {
       typeof codeConfig.projectId === 'string' && codeConfig.projectId.trim() !== '');
   }
 
+  // Automatic flush on network recovery + accidental tab-close protection during active photo upload
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      flushPendingQueue();
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (inFlightWrites > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  }
+
   // Pre-initialize Firebase immediately as soon as this script is loaded!
   (function preInitFirebase() {
     try {
@@ -765,7 +1101,6 @@ const FirebaseSync = (function () {
 
         if (state.dbType === 'firestore' && firebase.firestore) {
           state.db = firebase.firestore();
-          state.db.enablePersistence({ synchronizeTabs: true }).catch(() => { });
         } else if (state.dbType === 'rtdb' && firebase.database) {
           if (!config.databaseURL) {
             config.databaseURL = `https://${config.projectId}-default-rtdb.firebaseio.com`;
@@ -796,6 +1131,15 @@ const FirebaseSync = (function () {
     getCachedFleet,
     setCachedFleet,
     isConfiguredInCode,
+    markPendingUpsert,
+    clearPendingUpsert,
+    isPendingUpsert,
+    markPendingDelete,
+    clearPendingDelete,
+    isPendingDelete,
+    clearAllPendingOutbox,
+    hasInFlightWrites,
+    flushPendingQueue,
     getState: () => ({ ...state })
   };
 })();

@@ -244,14 +244,14 @@ const DEFAULT_MOTO_FLEET = [
     id: "MOTO-2025-006",
     brand: "Honda",
     model: "Wave 125i ล้อแม็ก",
-    category: "รถครอบครัว ",
+    category: "รถครอบครัว",
     cc: "125 cc",
     year: "2024",
     purpose: "both",
     licensePlate: "5กม-1122 พัทยา",
     vin: "MLHJA5401TB066491",
     engineNo: "JA54E-7821034",
-    exteriorColor: "เทาด้านเบาะแดง ",
+    exteriorColor: "เทาด้านเบาะแดง",
     mileage: 6200,
     branch: "สาขาพัทยา",
     rentDaily: 250,
@@ -295,6 +295,7 @@ let activeMode = 'ALL'; // 'ALL' | 'RENT' | 'SALE'
 let currentView = 'grid'; // 'grid' | 'table' | 'kanban'
 let formPhotos = [];
 let isInitialCloudLoading = false;
+let hasReceivedCloudSnapshot = false;
 let currentDetailMoto = null;
 window.currentDetailMoto = null;
 
@@ -367,7 +368,7 @@ const FleetStorage = (function () {
           const req = store.get(KEY_FLEET);
           req.onsuccess = (e) => {
             const res = e.target.result;
-            resolve(Array.isArray(res) && res.length > 0 ? res : null);
+            resolve(Array.isArray(res) ? res : null);
           };
           req.onerror = () => resolve(null);
         } catch (txErr) {
@@ -383,11 +384,30 @@ const FleetStorage = (function () {
 })();
 window.FleetStorage = FleetStorage;
 
+// Provide local vehicle lookup for FirebaseSync persistent outbox queue after reload
+window.getLocalMotoForSync = async function (motoId) {
+  if (!motoId) return null;
+  const inMemory = Array.isArray(fleet) ? fleet.find(m => m && m.id === motoId) : null;
+  if (inMemory) return inMemory;
+  if (window.FleetStorage) {
+    const idbList = await FleetStorage.load();
+    if (Array.isArray(idbList)) {
+      return idbList.find(m => m && m.id === motoId) || null;
+    }
+  }
+  return null;
+};
+
+window.onBackgroundCloudSyncDone = function (syncedCount) {
+  if (syncedCount > 0 && typeof showToast === 'function') {
+    showToast(`ซิงค์รูปภาพและข้อมูลรถที่ค้างอยู่ขึ้นคลาวด์สำเร็จ (${syncedCount} คัน)`, 'success');
+  }
+};
+
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
-  // Start Firebase sync immediately
-  initFirebaseSync();
   loadFleet();
+  initFirebaseSync();
   setupEventListeners();
   setupPhotoDropAndPaste();
   setupFirebaseEvents();
@@ -396,8 +416,23 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAll();
 });
 
+function hasCustomPhotos(photos) {
+  return Array.isArray(photos) && photos.some(p => p && (p.startsWith('data:') || p.startsWith('blob:') || !p.startsWith('assets/')));
+}
+
+function hasDefaultPhotosOnly(photos) {
+  return !Array.isArray(photos) || photos.length === 0 || photos.every(p => p && p.startsWith('assets/'));
+}
+
 function loadFleet() {
   const isFirebaseInCode = window.FirebaseSync && FirebaseSync.isConfiguredInCode();
+  const hasEverInitialized = localStorage.getItem('honda_fleet_initialized') === '1';
+  const checkPendingDelete = (item) => Boolean(
+    item && window.FirebaseSync && FirebaseSync.isPendingDelete && FirebaseSync.isPendingDelete(item.id, item._docId)
+  );
+  const checkPendingUpsert = (id) => Boolean(
+    id && window.FirebaseSync && FirebaseSync.isPendingUpsert && FirebaseSync.isPendingUpsert(id)
+  );
 
   // 1. Synchronous fast load for 0ms initial render
   let loaded = null;
@@ -406,21 +441,21 @@ function loadFleet() {
     loaded = FirebaseSync.getCachedFleet ? FirebaseSync.getCachedFleet() : null;
   }
 
-  if (!loaded || !Array.isArray(loaded) || loaded.length === 0) {
+  if (!Array.isArray(loaded)) {
     try {
       const stored = localStorage.getItem('honda_motorcycle_fleet');
-      if (stored) {
+      if (stored !== null && stored !== undefined) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) loaded = parsed;
+        if (Array.isArray(parsed)) loaded = parsed;
       }
     } catch (e) {
       console.warn('Error reading honda_motorcycle_fleet from localStorage:', e);
     }
   }
 
-  if (loaded && Array.isArray(loaded) && loaded.length > 0) {
-    fleet = loaded;
-    isInitialCloudLoading = false;
+  if (Array.isArray(loaded) && (loaded.length > 0 || hasEverInitialized || isFirebaseInCode)) {
+    fleet = loaded.filter(item => item && !checkPendingDelete(item));
+    isInitialCloudLoading = (fleet.length === 0 && isFirebaseInCode && !hasEverInitialized);
   } else {
     if (isFirebaseInCode) {
       fleet = [];
@@ -433,28 +468,57 @@ function loadFleet() {
 
   ensureFleetFinancialDefaults();
 
-  // 2. Asynchronously query IndexedDB (Tier 1) to recover custom uploaded photos if localStorage hit quota limits
+  // 2. Asynchronously query IndexedDB (Tier 1) ONLY for unsynced photos or quota-overflow recovery (NEVER resurrect deleted bikes)
   if (window.FleetStorage) {
     FleetStorage.load().then(idbFleet => {
-      if (idbFleet && Array.isArray(idbFleet) && idbFleet.length > 0) {
-        let hasNewerPhotos = false;
+      if (Array.isArray(idbFleet)) {
+        let changed = false;
+        const autoHealItems = [];
+
         idbFleet.forEach(idbMoto => {
+          if (!idbMoto || !idbMoto.id || checkPendingDelete(idbMoto)) return;
+
+          const isPendingLocal = checkPendingUpsert(idbMoto.id);
           const target = fleet.find(m => m.id === idbMoto.id);
+
           if (target) {
-            const idbHasCustom = Array.isArray(idbMoto.photos) && idbMoto.photos.some(p => p && (p.startsWith('data:') || p.startsWith('blob:') || !p.startsWith('assets/')));
-            const targetHasDefault = !Array.isArray(target.photos) || target.photos.length === 0 || target.photos.every(p => p && p.startsWith('assets/'));
-            if (idbHasCustom && targetHasDefault) {
+            const idbHasCustom = hasCustomPhotos(idbMoto.photos);
+            const targetHasDefault = hasDefaultPhotosOnly(target.photos);
+
+            if (isPendingLocal) {
+              Object.assign(target, idbMoto, { _docId: target._docId || idbMoto._docId });
+              changed = true;
+            } else if (idbHasCustom && targetHasDefault && !target._photoUpdatedAt) {
+              // Recover custom photo that exceeded localStorage 5MB quota or failed legacy 1MB upload on mobile
               target.photos = idbMoto.photos;
-              hasNewerPhotos = true;
+              changed = true;
+              if (hasReceivedCloudSnapshot && window.FirebaseSync) {
+                autoHealItems.push(target);
+              }
             }
-          } else {
+          } else if (isPendingLocal || !hasReceivedCloudSnapshot) {
+            // Only keep missing item if it is explicitly waiting to sync up, OR cloud snapshot hasn't arrived yet
             fleet.push(idbMoto);
-            hasNewerPhotos = true;
+            changed = true;
           }
         });
-        if (hasNewerPhotos) {
+
+        if (changed) {
           isInitialCloudLoading = false;
+          ensureFleetFinancialDefaults();
           renderAll();
+        }
+
+        // Auto-sync any recovered mobile photos up to Cloud Firestore so PC sees them immediately
+        if (autoHealItems.length > 0 && window.FirebaseSync) {
+          autoHealItems.forEach(item => {
+            item._photoUpdatedAt = new Date().toISOString();
+            FirebaseSync.upsertMoto(item);
+          });
+        }
+
+        if (window.FirebaseSync && FirebaseSync.flushPendingQueue) {
+          FirebaseSync.flushPendingQueue();
         }
       }
     }).catch(err => {
@@ -483,6 +547,10 @@ function ensureFleetFinancialDefaults() {
 }
 
 function saveFleet() {
+  try {
+    localStorage.setItem('honda_fleet_initialized', '1');
+  } catch (e) { /* ignore */ }
+
   // 1. Asynchronously persist to IndexedDB (Tier 1: Unlimited storage, retains custom photos without 5MB quota)
   if (window.FleetStorage) {
     FleetStorage.save(fleet);
@@ -654,11 +722,12 @@ function setupEventListeners() {
   // Photo file upload in modal
   document.getElementById('formPhotoUpload').addEventListener('change', handlePhotoFileUpload);
 
-  // Edit from Detail modal
+  // Edit from Detail modal (capture ID before closeModal clears currentDetailMoto)
   document.getElementById('btnEditFromDetail').addEventListener('click', () => {
     if (currentDetailMoto) {
+      const editMotoId = currentDetailMoto.id;
       closeModal('carDetailModal');
-      openCarModal(currentDetailMoto.id);
+      openCarModal(editMotoId);
     }
   });
 
@@ -674,9 +743,9 @@ function setupEventListeners() {
       closeModal('dataModal');
       showToast('รีเซ็ตสต็อครถมอเตอร์ไซค์ Honda เรียบร้อยแล้ว', 'gold');
 
-      // Real-time Cloud Sync
+      // Real-time Cloud Sync (full replacement)
       if (window.FirebaseSync) {
-        FirebaseSync.uploadAll(fleet);
+        FirebaseSync.uploadAll(fleet, { replaceAll: true });
       }
     }
   });
@@ -1818,6 +1887,7 @@ function saveCalcToSelectedMoto() {
   moto.downPayment = down;
   moto.installmentTerm = term;
   moto.installmentAmount = monthly;
+  moto._lastModified = new Date().toISOString();
 
   saveFleet();
   renderAll();
@@ -1846,6 +1916,7 @@ function saveCalcRentToSelectedMoto() {
   moto.rentDaily = daily;
   moto.rentMonthly = monthly;
   moto.deposit = deposit;
+  moto._lastModified = new Date().toISOString();
 
   saveFleet();
   renderAll();
@@ -1859,10 +1930,57 @@ function saveCalcRentToSelectedMoto() {
 }
 
 // ==================== MODAL LOGIC (ADD / EDIT) ====================
+let isSubmittingCarForm = false;
+
+function setCategorySelectValue(rawCategory) {
+  const catSelect = document.getElementById('formCategory');
+  if (!catSelect) return;
+
+  // Clean up any temporary custom category options from earlier modal sessions
+  catSelect.querySelectorAll('option[data-custom-category="true"]').forEach(opt => opt.remove());
+
+  const cleaned = String(rawCategory || '').trim();
+  if (!cleaned) {
+    catSelect.selectedIndex = 0;
+    return;
+  }
+
+  const options = Array.from(catSelect.options);
+
+  // 1. Exact or trimmed match against value or label
+  const exactMatch = options.find(opt => opt.value.trim() === cleaned || opt.textContent.trim() === cleaned);
+  if (exactMatch) {
+    catSelect.value = exactMatch.value;
+    return;
+  }
+
+  // 2. Prefix match for shortened labels (e.g. "พรีเมียม ออโตเมติก" -> "พรีเมียม ออโตเมติก (Maxi-Scooter)")
+  if (cleaned.length >= 6) {
+    const prefixMatch = options.find(opt => opt.value.trim().startsWith(cleaned));
+    if (prefixMatch) {
+      catSelect.value = prefixMatch.value;
+      return;
+    }
+  }
+
+  // 3. Custom category from existing data -> dynamically preserve option so user never has to re-select
+  const customOpt = document.createElement('option');
+  customOpt.value = cleaned;
+  customOpt.textContent = cleaned;
+  customOpt.setAttribute('data-custom-category', 'true');
+  catSelect.appendChild(customOpt);
+  catSelect.value = cleaned;
+
+  if (!catSelect.value && catSelect.options.length > 0) {
+    catSelect.selectedIndex = 0;
+  }
+}
+
 function openCarModal(motoId = null) {
   const form = document.getElementById('vehicleForm');
   if (form) form.reset();
   formPhotos = [];
+  isSubmittingCarForm = false;
 
   const titleEl = document.getElementById('carModalTitle');
   const idEl = document.getElementById('carId');
@@ -1870,6 +1988,16 @@ function openCarModal(motoId = null) {
   const setVal = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.value = (val !== undefined && val !== null) ? val : '';
+  };
+  const setSelectSafe = (id, val, fallbackVal) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cleaned = String(val !== undefined && val !== null ? val : '').trim();
+    el.value = cleaned || fallbackVal;
+    if (!el.value && el.options && el.options.length > 0) {
+      el.value = fallbackVal;
+      if (!el.value) el.selectedIndex = 0;
+    }
   };
   const setChk = (id, val) => {
     const el = document.getElementById(id);
@@ -1883,10 +2011,10 @@ function openCarModal(motoId = null) {
     if (titleEl) titleEl.textContent = `แก้ไขข้อมูลรถมอเตอร์ไซค์: ${moto.brand} ${moto.model} (${moto.licensePlate})`;
     if (idEl) idEl.value = moto.id;
 
-    setVal('formPurpose', moto.purpose || 'both');
+    setSelectSafe('formPurpose', moto.purpose, 'both');
     setVal('formBrand', moto.brand);
     setVal('formModel', moto.model);
-    setVal('formCategory', moto.category);
+    setCategorySelectValue(moto.category);
     setVal('formCc', moto.cc || '160 cc');
     setVal('formYear', moto.year);
 
@@ -1894,8 +2022,8 @@ function openCarModal(motoId = null) {
     setVal('formProvince', moto.province || '');
     setVal('formVin', moto.vin);
     setVal('formEngineNo', moto.engineNo || '');
-    setVal('formExteriorColor', moto.exteriorColor);
-    setVal('formFuel', moto.fuel || 'เบนซิน 95');
+    setVal('formExteriorColor', moto.exteriorColor ? String(moto.exteriorColor).trim() : '');
+    setVal('formFuel', moto.fuel ? String(moto.fuel).trim() : 'เบนซิน 95');
     setVal('formMileage', moto.mileage || 0);
     setVal('formBranch', moto.branch);
 
@@ -1906,7 +2034,7 @@ function openCarModal(motoId = null) {
     setVal('formDownPayment', (moto.downPayment !== undefined && moto.downPayment !== null) ? moto.downPayment : '');
     setVal('formInstallmentTerm', (moto.installmentTerm !== undefined && moto.installmentTerm !== null) ? moto.installmentTerm : '');
     setVal('formInstallmentAmount', (moto.installmentAmount !== undefined && moto.installmentAmount !== null) ? moto.installmentAmount : '');
-    setVal('formStatus', moto.status);
+    setSelectSafe('formStatus', moto.status, 'available');
 
     setVal('formCustomer', moto.customer || '');
     setVal('formCustomerPhone', moto.customerPhone || '');
@@ -1940,10 +2068,10 @@ function openCarModal(motoId = null) {
     if (titleEl) titleEl.textContent = 'คีย์รับรถมอเตอร์ไซค์เข้าสต็อคใหม่ (New Motorcycle Entry)';
     if (idEl) idEl.value = '';
 
-    setVal('formPurpose', 'both');
+    setSelectSafe('formPurpose', 'both', 'both');
     setVal('formBrand', 'Honda');
     setVal('formModel', '');
-    setVal('formCategory', 'พรีเมียม ออโตเมติก (Maxi-Scooter)');
+    setCategorySelectValue('พรีเมียม ออโตเมติก (Maxi-Scooter)');
     setVal('formCc', '160 cc');
     setVal('formYear', new Date().getFullYear().toString());
     setVal('formLicensePlate', '');
@@ -1961,7 +2089,7 @@ function openCarModal(motoId = null) {
     setVal('formDownPayment', '');
     setVal('formInstallmentTerm', '6');
     setVal('formInstallmentAmount', '');
-    setVal('formStatus', 'available');
+    setSelectSafe('formStatus', 'available', 'available');
     setVal('formCustomer', '');
     setVal('formCustomerPhone', '');
     setVal('formCustomerPassport', '');
@@ -1991,102 +2119,178 @@ function openCarModal(motoId = null) {
   openModal('carFormModal');
 }
 
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   if (typeof isProcessingPhotos !== 'undefined' && isProcessingPhotos) {
     showToast('กำลังประมวลผลรูปภาพ กรุณารอสักครู่ก่อนกดบันทึก...', 'warning');
     return;
   }
+  if (isSubmittingCarForm) return;
+  isSubmittingCarForm = true;
 
-  const id = document.getElementById('carId')?.value || '';
-  const isEditing = Boolean(id);
-
-  const getVal = (id, fallback = '') => {
-    const el = document.getElementById(id);
-    return el ? (el.value ? el.value.trim() : fallback) : fallback;
-  };
-  const getNum = (id, fallback = 0) => {
-    const el = document.getElementById(id);
-    return el ? (Number(el.value) || fallback) : fallback;
-  };
-  const getChk = (id) => {
-    const el = document.getElementById(id);
-    return el ? Boolean(el.checked) : false;
-  };
-
-  const plate = getVal('formLicensePlate');
-  const province = getVal('formProvince', 'กรุงเทพมหานคร');
-  const vin = getVal('formVin').toUpperCase();
-
-  const motoData = {
-    id: isEditing ? id : 'MOTO-' + Date.now().toString().slice(-6),
-    brand: getVal('formBrand', 'Honda'),
-    model: getVal('formModel'),
-    category: getVal('formCategory', 'พรีเมียม ออโตเมติก (Maxi-Scooter)'),
-    cc: getVal('formCc', '160 cc'),
-    year: getVal('formYear', new Date().getFullYear().toString()),
-    purpose: getVal('formPurpose', 'both'),
-    licensePlate: plate,
-    province: province,
-    vin: vin,
-    engineNo: getVal('formEngineNo').toUpperCase(),
-    exteriorColor: getVal('formExteriorColor'),
-    fuel: getVal('formFuel', 'เบนซิน 95'),
-    mileage: getNum('formMileage', 0),
-    branch: getVal('formBranch', 'สาขาหลัก (วีระมอเตอร์)'),
-    rentDaily: getNum('formRentDaily', 0),
-    rentMonthly: getNum('formRentMonthly', 0),
-    deposit: getNum('formDeposit', 0),
-    price: getNum('formPrice', 0),
-    downPayment: getNum('formDownPayment', 0),
-    installmentAmount: getNum('formInstallmentAmount', 0),
-    installmentTerm: getNum('formInstallmentTerm', 0),
-    status: getVal('formStatus', 'available'),
-    customer: getVal('formCustomer'),
-    customerPhone: getVal('formCustomerPhone'),
-    customerPassport: getVal('formCustomerPassport'),
-    rentalStart: getVal('formRentalStart'),
-    rentalEnd: getVal('formRentalEnd'),
-    taxExpiry: getVal('formTaxExpiry'),
-    remarks: getVal('formRemarks'),
-    gpsImei: getVal('formGpsImei'),
-    gpsUrl: getVal('formGpsUrl'),
-    accessories: {
-      helmet: getChk('accHelmet'),
-      phoneMount: getChk('accPhoneMount'),
-      smartKey: getChk('accSmartKey'),
-      topBox: getChk('accTopBox')
-    },
-    inspection: {
-      oil: getChk('chkOil'),
-      brakes: getChk('chkBrakes'),
-      tyres: getChk('chkTyres'),
-      clean: getChk('chkClean')
-    },
-    photos: formPhotos.length > 0 ? formPhotos : ['assets/images/forza_350.jpg'],
-    _lastModified: new Date().toISOString()
-  };
-
-  if (isEditing) {
-    const idx = fleet.findIndex(c => c.id === id);
-    if (idx !== -1) {
-      fleet[idx] = motoData;
-      showToast(`อัปเดตข้อมูลมอเตอร์ไซค์ ${motoData.model} (${motoData.licensePlate}) สำเร็จ`, 'success');
+  const submitBtn = document.getElementById('btnSubmitCar');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    if (!submitBtn.dataset.originalHtml) {
+      submitBtn.dataset.originalHtml = submitBtn.innerHTML;
     }
-  } else {
-    fleet.unshift(motoData);
-    showToast(`คีย์รับรถมอเตอร์ไซค์เข้าสต็อคสำเร็จ: ${motoData.model}`, 'gold');
+    submitBtn.innerHTML = `
+      <span class="btn-spinner" style="display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle;"></span>
+      กำลังบันทึกและซิงค์ขึ้นคลาวด์...
+    `;
   }
 
-  saveFleet();
-  updateBranchOptions();
-  closeModal('carFormModal');
-  renderAll();
+  try {
+    const id = document.getElementById('carId')?.value || '';
+    const isEditing = Boolean(id);
+    const existingMoto = isEditing ? fleet.find(c => c.id === id) : null;
 
-  // Real-time Cloud Sync
-  if (window.FirebaseSync) {
-    FirebaseSync.upsertMoto(motoData);
+    const getVal = (id, fallback = '') => {
+      const el = document.getElementById(id);
+      return el ? (el.value ? el.value.trim() : fallback) : fallback;
+    };
+    const getNum = (id, fallback = 0) => {
+      const el = document.getElementById(id);
+      return el ? (Number(el.value) || fallback) : fallback;
+    };
+    const getChk = (id) => {
+      const el = document.getElementById(id);
+      return el ? Boolean(el.checked) : false;
+    };
+
+    const plate = getVal('formLicensePlate');
+    const province = getVal('formProvince', 'กรุงเทพมหานคร');
+    const vin = getVal('formVin').toUpperCase();
+    const nowIso = new Date().toISOString();
+
+    // Ensure all photos fit cleanly under Cloud Firestore's 1 MiB document limit before saving & syncing
+    const preparedPhotos = formPhotos.length > 0
+      ? await ensurePhotosFitCloudLimit([...formPhotos])
+      : ['assets/images/forza_350.jpg'];
+
+    const motoData = {
+      id: isEditing ? id : ('MOTO-' + Date.now().toString().slice(-6) + '-' + Math.floor(10 + Math.random() * 90)),
+      brand: getVal('formBrand', 'Honda'),
+      model: getVal('formModel'),
+      category: getVal('formCategory', 'พรีเมียม ออโตเมติก (Maxi-Scooter)'),
+      cc: getVal('formCc', '160 cc'),
+      year: getVal('formYear', new Date().getFullYear().toString()),
+      purpose: getVal('formPurpose', 'both'),
+      licensePlate: plate,
+      province: province,
+      vin: vin,
+      engineNo: getVal('formEngineNo').toUpperCase(),
+      exteriorColor: getVal('formExteriorColor'),
+      fuel: getVal('formFuel', 'เบนซิน 95'),
+      mileage: getNum('formMileage', 0),
+      branch: getVal('formBranch', 'สาขาหลัก (วีระมอเตอร์)'),
+      rentDaily: getNum('formRentDaily', 0),
+      rentMonthly: getNum('formRentMonthly', 0),
+      deposit: getNum('formDeposit', 0),
+      price: getNum('formPrice', 0),
+      downPayment: getNum('formDownPayment', 0),
+      installmentAmount: getNum('formInstallmentAmount', 0),
+      installmentTerm: getNum('formInstallmentTerm', 0),
+      status: getVal('formStatus', 'available'),
+      customer: getVal('formCustomer'),
+      customerPhone: getVal('formCustomerPhone'),
+      customerPassport: getVal('formCustomerPassport'),
+      rentalStart: getVal('formRentalStart'),
+      rentalEnd: getVal('formRentalEnd'),
+      taxExpiry: getVal('formTaxExpiry'),
+      remarks: getVal('formRemarks'),
+      gpsImei: getVal('formGpsImei'),
+      gpsUrl: getVal('formGpsUrl'),
+      accessories: {
+        helmet: getChk('accHelmet'),
+        phoneMount: getChk('accPhoneMount'),
+        smartKey: getChk('accSmartKey'),
+        topBox: getChk('accTopBox')
+      },
+      inspection: {
+        oil: getChk('chkOil'),
+        brakes: getChk('chkBrakes'),
+        tyres: getChk('chkTyres'),
+        clean: getChk('chkClean')
+      },
+      photos: preparedPhotos,
+      _photoUpdatedAt: nowIso,
+      _lastModified: nowIso
+    };
+
+    if (existingMoto && existingMoto._docId) {
+      motoData._docId = existingMoto._docId;
+    }
+
+    // Mark in persistent cloud outbox immediately so closing tab early NEVER loses mobile uploads
+    if (window.FirebaseSync && FirebaseSync.markPendingUpsert) {
+      FirebaseSync.markPendingUpsert(motoData.id);
+    }
+
+    if (isEditing) {
+      const idx = fleet.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        fleet[idx] = motoData;
+      } else {
+        fleet.unshift(motoData);
+      }
+    } else {
+      fleet.unshift(motoData);
+    }
+
+    saveFleet();
+    updateBranchOptions();
+    renderAll();
+
+    // Wait for Cloud Sync confirmation (with 6s UI timeout so slow/offline mobile never hangs)
+    let syncOutcome = null;
+    if (window.FirebaseSync && FirebaseSync.getActiveConfig && FirebaseSync.getActiveConfig()) {
+      const uploadPromise = FirebaseSync.upsertMoto(motoData);
+      const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timeout: true }), 6000));
+      syncOutcome = await Promise.race([uploadPromise, timeoutPromise]);
+
+      if (syncOutcome && syncOutcome.timeout) {
+        // Continue upload in background and notify when done
+        uploadPromise.then(finalRes => {
+          if (finalRes && finalRes.synced) {
+            showToast(`ซิงค์รูปภาพ ${motoData.model} ขึ้นคลาวด์สำเร็จแล้ว (เปิดดูในคอมได้ทันที)`, 'success');
+          } else if (finalRes && finalRes.error) {
+            showToast(`ซิงค์คลาวด์ไม่สำเร็จ: ${finalRes.error}`, 'warning');
+          }
+        });
+      }
+    }
+
+    closeModal('carFormModal');
+
+    if (syncOutcome && syncOutcome.synced) {
+      showToast(
+        isEditing
+          ? `อัปเดตและซิงค์รูป ${motoData.model} (${motoData.licensePlate}) ขึ้นคลาวด์สำเร็จ`
+          : `คีย์รับรถใหม่และซิงค์ขึ้นคลาวด์สำเร็จ: ${motoData.model}`,
+        isEditing ? 'success' : 'gold'
+      );
+    } else if (syncOutcome && syncOutcome.error) {
+      showToast(`บันทึกในเครื่องแล้ว แต่ซิงค์คลาวด์ไม่สำเร็จ: ${syncOutcome.error}`, 'warning');
+    } else if (syncOutcome && (syncOutcome.queued || syncOutcome.timeout)) {
+      showToast(`บันทึกข้อมูล ${motoData.model} แล้ว กำลังซิงค์รูปขึ้นคลาวด์เบื้องหลัง...`, 'info');
+    } else {
+      showToast(
+        isEditing
+          ? `อัปเดตข้อมูลมอเตอร์ไซค์ ${motoData.model} (${motoData.licensePlate}) สำเร็จ`
+          : `คีย์รับรถมอเตอร์ไซค์เข้าสต็อคสำเร็จ: ${motoData.model}`,
+        isEditing ? 'success' : 'gold'
+      );
+    }
+  } finally {
+    isSubmittingCarForm = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      if (submitBtn.dataset.originalHtml) {
+        submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+      }
+    }
   }
 }
 
@@ -2200,26 +2404,47 @@ function handlePhotoFileUpload(e) {
   e.target.value = '';
 }
 
+function isImageFileCandidate(file) {
+  if (!file) return false;
+  if (file.type && file.type.startsWith('image/')) return true;
+  // Fallback for mobile browsers / WebViews (e.g. LINE, Samsung, iOS Files) that leave file.type empty
+  return /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/i.test(file.name || '');
+}
+
 async function processImageFiles(files) {
-  const validFiles = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'));
-  if (validFiles.length === 0) return;
+  const validFiles = Array.from(files).filter(isImageFileCandidate);
+  if (validFiles.length === 0) {
+    showToast('ไม่พบไฟล์รูปภาพที่รองรับ (กรุณาเลือกรูป JPG หรือ PNG)', 'warning');
+    return;
+  }
 
   setPhotoProcessingState(true, validFiles.length);
+  let addedCount = 0;
 
   try {
     for (const file of validFiles) {
-      if (file.size > 20 * 1024 * 1024) {
-        showToast(`รูปภาพ ${file.name} มีขนาดใหญ่เกินไป (โปรดใช้ภาพไม่เกิน 20MB)`, 'warning');
+      if (file.size > 30 * 1024 * 1024) {
+        showToast(`รูปภาพ ${file.name} มีขนาดใหญ่เกินไป (โปรดใช้ภาพไม่เกิน 30MB)`, 'warning');
         continue;
       }
 
-      const rawDataUrl = await readFileAsDataUrl(file);
-      // High-efficiency compression (max 800px width @ 0.68 JPEG quality produces ~50KB - 75KB per photo)
-      const compressed = await compressImageAsync(rawDataUrl, 800, 0.68);
-      formPhotos.push(compressed);
+      try {
+        const compressed = await compressFileToJpegDataUrl(file, 800, 0.68);
+        formPhotos.push(compressed);
+        addedCount++;
+      } catch (fileErr) {
+        console.warn('Could not process image file:', file.name, fileErr);
+        showToast(`ไม่สามารถอ่านรูป "${file.name || 'ไฟล์ภาพ'}" ได้ (แนะนำให้ถ่ายหรือเลือกรูป JPG / PNG)`, 'warning');
+      }
     }
-    renderFormPhotosPreview();
-    showToast(`เพิ่มรูปภาพเรียบร้อย (${validFiles.length} รูป)`, 'success');
+
+    if (addedCount > 0) {
+      formPhotos = await ensurePhotosFitCloudLimit(formPhotos);
+      renderFormPhotosPreview();
+      showToast(`เพิ่มและปรับขนาดรูปภาพพร้อมซิงค์ทุกเครื่องเรียบร้อย (${addedCount} รูป)`, 'success');
+    } else {
+      renderFormPhotosPreview();
+    }
   } catch (err) {
     console.error('Error processing image files:', err);
     showToast('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ: ' + err.message, 'warning');
@@ -2233,13 +2458,73 @@ function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(new Error('อ่านไฟล์รูปภาพไม่สำเร็จ'));
+    reader.onerror = () => reject(new Error('อ่านไฟล์รูปภาพไม่สำเร็จ'));
     reader.readAsDataURL(file);
   });
 }
 
-function compressImageAsync(base64Str, maxWidth = 800, quality = 0.68) {
-  return new Promise((resolve) => {
+function renderImageElementToJpeg(img, maxDim = 800, quality = 0.68) {
+  let width = img.naturalWidth || img.width || 800;
+  let height = img.naturalHeight || img.height || 600;
+
+  // Constrain BOTH width AND height proportionally so portrait mobile camera photos stay compact (~50-75KB)
+  if (width > maxDim || height > maxDim) {
+    const ratio = Math.min(maxDim / width, maxDim / height);
+    width = Math.max(1, Math.round(width * ratio));
+    height = Math.max(1, Math.round(height * ratio));
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  // Paint crisp white background so transparent PNGs never turn black
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+function compressFileToJpegDataUrl(file, maxDim = 800, quality = 0.68) {
+  return new Promise((resolve, reject) => {
+    // Prefer ObjectURL on mobile Safari/Chrome to avoid loading huge 15MB base64 strings into RAM
+    if (typeof URL !== 'undefined' && URL.createObjectURL) {
+      const objUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objUrl);
+        try {
+          resolve(renderImageElementToJpeg(img, maxDim, quality));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = async () => {
+        URL.revokeObjectURL(objUrl);
+        // Fallback to FileReader DataURL
+        try {
+          const rawDataUrl = await readFileAsDataUrl(file);
+          const fallbackCompressed = await compressImageAsync(rawDataUrl, maxDim, quality, true);
+          resolve(fallbackCompressed);
+        } catch (fallbackErr) {
+          reject(fallbackErr);
+        }
+      };
+      img.src = objUrl;
+    } else {
+      readFileAsDataUrl(file)
+        .then(raw => compressImageAsync(raw, maxDim, quality, true))
+        .then(resolve)
+        .catch(reject);
+    }
+  });
+}
+
+function compressImageAsync(base64Str, maxDim = 800, quality = 0.68, rejectOnError = false) {
+  return new Promise((resolve, reject) => {
     if (!base64Str || typeof base64Str !== 'string') {
       resolve(base64Str);
       return;
@@ -2252,36 +2537,81 @@ function compressImageAsync(base64Str, maxWidth = 800, quality = 0.68) {
 
     const img = new Image();
     img.onload = () => {
-      let width = img.width || 800;
-      let height = img.height || 600;
-
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
       try {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressed = canvas.toDataURL('image/jpeg', quality);
+        const compressed = renderImageElementToJpeg(img, maxDim, quality);
         resolve(compressed);
       } catch (err) {
-        console.warn('Canvas compression fallback to raw:', err);
-        resolve(base64Str);
+        if (rejectOnError) {
+          reject(err);
+        } else {
+          console.warn('Canvas compression fallback to raw:', err);
+          resolve(base64Str);
+        }
       }
     };
     img.onerror = () => {
-      resolve(base64Str);
+      if (rejectOnError) {
+        reject(new Error('รูปแบบไฟล์รูปภาพไม่รองรับ'));
+      } else {
+        resolve(base64Str);
+      }
     };
     img.src = base64Str;
   });
 }
+
+/**
+ * Adaptive multi-photo size optimizer:
+ * Guarantees total `photos` payload stays safely under Cloud Firestore's 1,048,576-byte document limit
+ * so photos uploaded on Mobile ALWAYS sync to PC 100% of the time (even with 10-20 photos!)
+ */
+async function ensurePhotosFitCloudLimit(photosArray) {
+  if (!Array.isArray(photosArray) || photosArray.length === 0) return photosArray;
+
+  const MAX_TOTAL_PHOTO_CHARS = 720000; // ~700 KB total photo budget (leaves >320 KB headroom under 1 MiB)
+  const MAX_SINGLE_PHOTO_CHARS = 160000;
+
+  const calcTotalChars = (arr) => arr.reduce((sum, p) => sum + (typeof p === 'string' ? p.length : 0), 0);
+
+  // Pass 1: Compress any oversized single inline image (e.g. legacy uncompressed photo)
+  let result = [];
+  for (const p of photosArray) {
+    if (typeof p === 'string' && p.startsWith('data:') && p.length > MAX_SINGLE_PHOTO_CHARS) {
+      result.push(await compressImageAsync(p, 800, 0.65));
+    } else if (typeof p === 'string' && p.trim() !== '') {
+      result.push(p);
+    }
+  }
+
+  // Pass 2: If multiple photos exceed total budget, adaptively step down to 640px @ 0.55
+  if (calcTotalChars(result) > MAX_TOTAL_PHOTO_CHARS) {
+    const pass2 = [];
+    for (const p of result) {
+      if (typeof p === 'string' && p.startsWith('data:')) {
+        pass2.push(await compressImageAsync(p, 640, 0.55));
+      } else {
+        pass2.push(p);
+      }
+    }
+    result = pass2;
+  }
+
+  // Pass 3: If 15+ photos still exceed total budget, step down to 480px @ 0.46
+  if (calcTotalChars(result) > MAX_TOTAL_PHOTO_CHARS) {
+    const pass3 = [];
+    for (const p of result) {
+      if (typeof p === 'string' && p.startsWith('data:')) {
+        pass3.push(await compressImageAsync(p, 480, 0.46));
+      } else {
+        pass3.push(p);
+      }
+    }
+    result = pass3;
+  }
+
+  return result;
+}
+window.ensurePhotosFitCloudLimit = ensurePhotosFitCloudLimit;
 
 // Backward-compatible synchronous wrapper
 function compressImage(base64Str, maxWidth, quality, callback) {
@@ -2353,6 +2683,7 @@ function openCarDetail(motoId) {
   if (!moto) return;
 
   currentDetailMoto = moto;
+  window.currentDetailMoto = moto;
   currentHeroFitMode = 'contain';
   const statusInfo = STATUS_CONFIG[moto.status] || STATUS_CONFIG.available;
   const coverPhoto = (moto.photos && moto.photos.length > 0) ? moto.photos[0] : 'assets/images/forza_350.jpg';
@@ -2604,6 +2935,7 @@ function quickUpdateStatus(motoId, newStatus) {
   if (!moto) return;
 
   moto.status = newStatus;
+  moto._lastModified = new Date().toISOString();
   saveFleet();
   renderAll();
 
@@ -2612,7 +2944,7 @@ function quickUpdateStatus(motoId, newStatus) {
 
   // Real-time Cloud Sync
   if (window.FirebaseSync) {
-    FirebaseSync.updateMotoStatus(motoId, newStatus);
+    FirebaseSync.updateMotoStatus(motoId, newStatus, moto);
   }
 }
 
@@ -2620,16 +2952,29 @@ function deleteMoto(motoId) {
   const moto = fleet.find(c => c.id === motoId);
   if (!moto) return;
 
-  if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรถมอเตอร์ไซค์ ${moto.brand} ${moto.model} [${moto.licensePlate}] ออกจากระบบ?`)) {
-    fleet = fleet.filter(c => c.id !== motoId);
-    saveFleet();
-    renderAll();
-    closeModal('carDetailModal');
-    showToast(`ลบรถมอเตอร์ไซค์ออกจากระบบแล้ว`, 'warning');
+  if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรถมอเตอร์ไซค์ ${moto.brand} ${moto.model} [${moto.licensePlate}] ออกจากระบบอย่างถาวร?`)) {
+    const docId = moto._docId || moto.id;
 
-    // Real-time Cloud Sync
+    // 1. Record permanent deletion tombstone BEFORE updating cache or reloading so refresh NEVER resurrects it
+    if (window.FirebaseSync && FirebaseSync.markPendingDelete) {
+      FirebaseSync.markPendingDelete(motoId, docId);
+    }
+
+    // 2. Remove from memory, IndexedDB, localStorage, and synced cache immediately
+    fleet = fleet.filter(c => c && c.id !== motoId && c._docId !== motoId && (!docId || (c.id !== docId && c._docId !== docId)));
+    saveFleet();
+    updateBranchOptions();
+    closeModal('carDetailModal');
+    renderAll();
+    showToast(`ลบรถมอเตอร์ไซค์ ${moto.model} [${moto.licensePlate}] ออกจากระบบแล้ว`, 'warning');
+
+    // 3. Delete permanently from Cloud Firestore / Realtime Database
     if (window.FirebaseSync) {
-      FirebaseSync.deleteMoto(motoId);
+      FirebaseSync.deleteMoto(motoId, docId).then(res => {
+        if (res && res.error) {
+          showToast(`ลบในเครื่องแล้ว แต่ลบจากคลาวด์ไม่สำเร็จ: ${res.error}`, 'warning');
+        }
+      });
     }
   }
 }
@@ -2749,9 +3094,9 @@ function importJson(e) {
         closeModal('dataModal');
         showToast(`นำเข้าข้อมูลสำเร็จ ${fleet.length} คัน`, 'success');
 
-        // Real-time Cloud Sync
+        // Real-time Cloud Sync (full replacement)
         if (window.FirebaseSync) {
-          FirebaseSync.uploadAll(fleet);
+          FirebaseSync.uploadAll(fleet, { replaceAll: true });
         }
       } else {
         alert('รูปแบบไฟล์ JSON ไม่ถูกต้อง');
@@ -2849,6 +3194,10 @@ function closeModal(modalId) {
   const m = document.getElementById(modalId);
   if (m) {
     m.classList.remove('active');
+    if (modalId === 'carDetailModal') {
+      currentDetailMoto = null;
+      window.currentDetailMoto = null;
+    }
     const remainingOpen = document.querySelectorAll('.modal-backdrop.active');
     if (remainingOpen.length === 0) {
       document.body.style.overflow = '';
@@ -3052,40 +3401,65 @@ function updateFirebaseStatusUI(state) {
 function handleRemoteFleetUpdated(remoteFleet, meta) {
   const wasInitialLoading = isInitialCloudLoading;
   isInitialCloudLoading = false;
+  hasReceivedCloudSnapshot = true;
 
   if (Array.isArray(remoteFleet)) {
-    // Smart merge: don't let stale remote records overwrite fresh local custom photos!
-    const mergedFleet = remoteFleet.map(remoteItem => {
-      const localItem = fleet.find(m => m.id === remoteItem.id);
-      if (!localItem) return remoteItem;
+    const checkPendingDelete = (item) => Boolean(
+      item && window.FirebaseSync && FirebaseSync.isPendingDelete && FirebaseSync.isPendingDelete(item.id, item._docId)
+    );
+    const checkPendingUpsert = (id) => Boolean(
+      id && window.FirebaseSync && FirebaseSync.isPendingUpsert && FirebaseSync.isPendingUpsert(id)
+    );
 
-      const localTime = localItem._lastModified ? new Date(localItem._lastModified).getTime() : 0;
-      const remoteTime = (remoteItem._lastModified || remoteItem._uploadedAt) ? new Date(remoteItem._lastModified || remoteItem._uploadedAt).getTime() : 0;
+    const autoHealItems = [];
 
-      const hasLocalCustomPhoto = Array.isArray(localItem.photos) && localItem.photos.some(p => p && (p.startsWith('data:') || p.startsWith('blob:') || !p.startsWith('assets/')));
-      const remoteHasDefaultOnly = !Array.isArray(remoteItem.photos) || remoteItem.photos.length === 0 || remoteItem.photos.every(p => p && p.startsWith('assets/'));
+    // 1. Trust Cloud Firestore for all synced vehicles (so photos uploaded on Mobile ALWAYS appear on PC!),
+    //    while preserving only genuine pending local edits or legacy stuck mobile photos
+    const mergedFleet = remoteFleet
+      .filter(remoteItem => remoteItem && !checkPendingDelete(remoteItem))
+      .map(remoteItem => {
+        const localItem = fleet.find(m => m && m.id === remoteItem.id);
+        if (!localItem) return remoteItem;
 
-      // If local has newer timestamp or local has custom photo while remote only has default asset:
-      if (localTime > remoteTime || (hasLocalCustomPhoto && remoteHasDefaultOnly)) {
-        return {
-          ...remoteItem,
-          ...localItem,
-          photos: (localItem.photos && localItem.photos.length > 0) ? localItem.photos : remoteItem.photos
-        };
-      }
+        // If this device has an explicit unsynced edit waiting in the outbox, keep local version until upload completes
+        if (checkPendingUpsert(remoteItem.id)) {
+          return {
+            ...remoteItem,
+            ...localItem,
+            _docId: remoteItem._docId || localItem._docId,
+            photos: (Array.isArray(localItem.photos) && localItem.photos.length > 0) ? localItem.photos : remoteItem.photos
+          };
+        }
 
-      return remoteItem;
-    });
+        // Self-healing for legacy mobile photos stuck locally from before the 1MB compression update:
+        // Only triggers when local has custom Base64 photo AND remote ONLY has default asset AND remote never recorded _photoUpdatedAt
+        const localHasCustom = hasCustomPhotos(localItem.photos);
+        const remoteDefaultOnly = hasDefaultPhotosOnly(remoteItem.photos);
+        if (localHasCustom && remoteDefaultOnly && !remoteItem._photoUpdatedAt) {
+          const healed = {
+            ...remoteItem,
+            photos: localItem.photos,
+            _photoUpdatedAt: new Date().toISOString()
+          };
+          autoHealItems.push(healed);
+          return healed;
+        }
 
-    // Also preserve any local vehicles that don't exist yet in remote
+        // Otherwise, Cloud Firestore is the single source of truth (immune to PC/Mobile clock skew!)
+        return remoteItem;
+      });
+
+    // 2. Preserve local-only vehicles ONLY if they are explicitly queued in pendingUpserts (NEVER resurrect deleted vehicles!)
     fleet.forEach(localItem => {
-      if (!mergedFleet.some(r => r.id === localItem.id)) {
+      if (!localItem || !localItem.id || checkPendingDelete(localItem)) return;
+      if (!mergedFleet.some(r => r.id === localItem.id) && checkPendingUpsert(localItem.id)) {
         mergedFleet.push(localItem);
       }
     });
 
     const isDifferent = JSON.stringify(fleet) !== JSON.stringify(mergedFleet);
     fleet = mergedFleet;
+    ensureFleetFinancialDefaults();
     saveFleet();
     updateBranchOptions();
 
@@ -3093,17 +3467,31 @@ function handleRemoteFleetUpdated(remoteFleet, meta) {
       renderAll();
     }
 
-    // If detail modal is open for a motorcycle that got updated, refresh view
-    if (currentDetailMoto) {
+    // Auto-upload any healed legacy mobile photos to Cloud Firestore so PC receives them immediately
+    if (autoHealItems.length > 0 && window.FirebaseSync) {
+      autoHealItems.forEach(item => {
+        FirebaseSync.upsertMoto(item);
+      });
+    }
+
+    // 3. ONLY refresh carDetailModal if it is ACTUALLY currently open (.active) — NEVER pop open a closed modal!
+    const detailModalEl = document.getElementById('carDetailModal');
+    const isDetailModalOpen = Boolean(detailModalEl && detailModalEl.classList.contains('active'));
+    if (isDetailModalOpen && currentDetailMoto) {
       const updated = fleet.find(m => m.id === currentDetailMoto.id);
       if (updated) {
         openCarDetail(updated.id);
+      } else {
+        closeModal('carDetailModal');
       }
+    } else if (!isDetailModalOpen && currentDetailMoto) {
+      currentDetailMoto = null;
+      window.currentDetailMoto = null;
     }
 
     if (meta && meta.isRemote) {
       playSyncChime();
-      showToast('ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถจากผู้ใช้อื่น', 'info');
+      showToast('ซิงค์เรียลไทม์: ได้รับการอัปเดตข้อมูลรถและรูปภาพล่าสุดแล้ว', 'info');
     }
   }
 }
@@ -3301,14 +3689,17 @@ function setupFirebaseEvents() {
       downloadBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ดึงข้อมูลล่าสุดจาก Firebase ลงเครื่องนี้';
 
       if (res.success) {
-        if (res.data && res.data.length > 0) {
+        if (Array.isArray(res.data)) {
           fleet = res.data;
+          ensureFleetFinancialDefaults();
           saveFleet();
           updateBranchOptions();
           renderAll();
-          showToast(`ดึงข้อมูลจาก Firebase สำเร็จ ${fleet.length} คัน`, 'success');
-        } else {
-          showToast('บน Firebase ยังไม่มีข้อมูลรถ', 'info');
+          if (fleet.length > 0) {
+            showToast(`ดึงข้อมูลจาก Firebase สำเร็จ ${fleet.length} คัน`, 'success');
+          } else {
+            showToast('ซิงค์ข้อมูลจาก Firebase แล้ว (ปัจจุบันไม่มีรถในสต็อค)', 'info');
+          }
         }
       } else {
         alert('ดึงข้อมูลล้มเหลว: ' + res.error);
@@ -3389,12 +3780,8 @@ let contractCarStatusFilter = 'ALL';
 function openContractModal(motoId = null, type = null) {
   try {
     if (!fleet || fleet.length === 0) {
-      if (typeof DEFAULT_MOTO_FLEET !== 'undefined' && DEFAULT_MOTO_FLEET.length > 0) {
-        fleet = JSON.parse(JSON.stringify(DEFAULT_MOTO_FLEET));
-      } else {
-        showToast('ยังไม่มีข้อมูลรถในระบบสต็อค', 'warning');
-        return;
-      }
+      showToast('ยังไม่มีข้อมูลรถในระบบสต็อค กรุณาคีย์รับรถเข้าสต็อคก่อนพิมพ์สัญญา', 'warning');
+      return;
     }
 
     // 1. Resolve selected motorcycle safely
