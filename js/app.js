@@ -5116,8 +5116,49 @@ function updateContractPreview() {
   previewContainer.innerHTML = html;
 }
 
+let _savedDocumentTitleBeforePrint = '';
+
+function cleanTrackingQueryParams() {
+  try {
+    if (!window.location || !window.history || typeof window.history.replaceState !== 'function') return;
+    if (!window.location.search) return;
+    const url = new URL(window.location.href);
+    const trackingKeys = ['fbclid', 'gclid', 'yclid', 'mc_cid', 'mc_eid', 'mibextid'];
+    let changed = false;
+    Array.from(url.searchParams.keys()).forEach(k => {
+      if (trackingKeys.includes(k.toLowerCase()) || k.toLowerCase().startsWith('utm_')) {
+        url.searchParams.delete(k);
+        changed = true;
+      }
+    });
+    if (changed) {
+      const cleanUrl = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  } catch (e) {
+    // Ignore URL cleanup errors in restricted environments
+  }
+}
+
+cleanTrackingQueryParams();
+
+window.addEventListener('beforeprint', () => {
+  if (document.title && document.title !== '\u00A0') {
+    _savedDocumentTitleBeforePrint = document.title;
+    document.title = '\u00A0';
+  }
+});
+
+window.addEventListener('afterprint', () => {
+  if (_savedDocumentTitleBeforePrint) {
+    document.title = _savedDocumentTitleBeforePrint;
+    _savedDocumentTitleBeforePrint = '';
+  }
+});
+
 function triggerContractPrint() {
   updateContractPreview();
+  cleanTrackingQueryParams();
 
   const printOutput = document.getElementById('printContractContainer');
   const liveSheet = document.getElementById('liveA4Sheet');
@@ -5128,8 +5169,22 @@ function triggerContractPrint() {
     printOutput.querySelectorAll('.a4-no-print').forEach(el => el.remove());
   }
 
+  // Temporarily blank document.title so browsers never print the page title in top header
+  if (document.title && document.title !== '\u00A0') {
+    _savedDocumentTitleBeforePrint = document.title;
+    document.title = '\u00A0';
+  }
+
   // Trigger browser print
   window.print();
+
+  // Restore original page title after print dialog closes
+  setTimeout(() => {
+    if (_savedDocumentTitleBeforePrint) {
+      document.title = _savedDocumentTitleBeforePrint;
+      _savedDocumentTitleBeforePrint = '';
+    }
+  }, 500);
 }
 
 function saveContractCustomerToFleet() {
