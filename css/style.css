@@ -2696,6 +2696,155 @@ h1, h2, h3, h4, h5, h6, .brand-name, .modal-title, .kpi-value, .price-val {
   padding-bottom: 0.2rem;
 }
 
+/* Section 2 Granular Vehicle Toggles & Custom Field Adder (Left Panel) */
+.sec2-toggles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.sec2-toggle-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 0.24rem 0.45rem;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.sec2-toggle-chip:hover {
+  border-color: var(--cyan-500);
+  background: #f0f9ff;
+}
+
+.sec2-toggle-chip label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  color: var(--navy-900);
+  font-weight: 500;
+  user-select: none;
+}
+
+.sec2-toggle-chip label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sec2-toggle-chip input[type="checkbox"] {
+  accent-color: var(--cyan-600);
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.sec2-chip-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sec2-chip-remove:hover {
+  color: #b91c1c;
+}
+
+.sec2-add-custom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.sec2-add-custom-row input {
+  min-width: 0;
+}
+
+.btn-sec2-add {
+  background: var(--cyan-600);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.38rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+}
+
+.btn-sec2-add:hover {
+  background: var(--cyan-500);
+  color: #ffffff;
+}
+
+/* Section 3 Rental Payment Summary Box (Left Panel) */
+.rent-summary-edit-box {
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-sm);
+}
+
+.rent-summary-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.28rem;
+}
+
+.rent-summary-edit-header label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #065f46;
+  margin: 0;
+}
+
+.rent-summary-reset-link {
+  font-size: 0.69rem;
+  font-weight: 600;
+  color: #0284c7;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.rent-summary-reset-link:hover {
+  color: #0369a1;
+}
+
+.rent-total-input {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #065f46;
+  border-color: #6ee7b7;
+  background: #ffffff;
+}
+
+.rent-summary-breakdown-hint {
+  margin-top: 0.28rem;
+  font-size: 0.7rem;
+  color: #047857;
+  line-height: 1.35;
+}
+
 /* RIGHT PANE: A4 PREVIEW */
 .contract-preview-wrapper {
   flex: 1;
@@ -2913,6 +3062,213 @@ h1, h2, h3, h4, h5, h6, .brand-name, .modal-title, .kpi-value, .price-val {
   line-height: 10px;
   font-size: 8pt;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* Interactive Checkboxes on A4 Live Preview (Sections 4 & 5) */
+.a4-interactive-check {
+  cursor: pointer;
+  user-select: none;
+  padding: 1.5px 3px;
+  border-radius: 3px;
+  transition: background-color 0.12s ease;
+}
+
+.a4-interactive-check:hover {
+  background-color: #eff6ff;
+}
+
+.a4-interactive-check:hover .a4-check-box {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.25);
+}
+
+.a4-interactive-check.is-checked .a4-check-box {
+  background-color: #f0f9ff;
+  color: #0f172a;
+}
+
+.a4-check-del-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 8.5pt;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.65;
+}
+
+.a4-check-del-btn:hover {
+  opacity: 1;
+  font-weight: 700;
+}
+
+.a4-checklist-inline-adder {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+  padding-top: 4px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+/* Section 2 Inline Controls on A4 Live Preview */
+.a4-box-title-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.a4-box-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.a4-inline-edit-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0369a1;
+  font-size: 6.8pt;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.a4-inline-edit-btn:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0c4a6e;
+}
+
+.a4-cell-val-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.a4-cell-hide-btn {
+  opacity: 0;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 3px;
+  font-size: 7pt;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.a4-table td:hover .a4-cell-hide-btn {
+  opacity: 1;
+}
+
+.a4-sec2-inline-panel {
+  background: #f8fafc;
+  border: 1px dashed #94a3b8;
+  border-radius: 3px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 7.4pt;
+}
+
+.a4-sec2-inline-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  margin-bottom: 5px;
+}
+
+.a4-sec2-inline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 1.5px 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 7.2pt;
+  color: #0f172a;
+}
+
+.a4-sec2-inline-chip:hover {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+
+.a4-sec2-inline-chip input[type="checkbox"] {
+  width: 11px;
+  height: 11px;
+  margin: 0;
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+.a4-sec2-inline-adder {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.a4-inline-input {
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 7.4pt;
+  font-family: inherit;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.a4-inline-input:focus {
+  outline: none;
+  border-color: #0284c7;
+}
+
+/* Section 3 Rental Total Payment Highlight Row */
+.a4-table tr.a4-total-pay-row td.a4-total-lbl {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 700;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.a4-table tr.a4-total-pay-row td.a4-total-val {
+  background: #f0fdf4;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.a4-total-pay-wrap {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.a4-total-pay-amount {
+  font-size: 9.5pt;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.a4-total-pay-detail {
+  font-size: 7.4pt;
+  color: #334155;
+  font-weight: 500;
 }
 
 .a4-terms-box {
@@ -2977,6 +3333,10 @@ h1, h2, h3, h4, h5, h6, .brand-name, .modal-title, .kpi-value, .price-val {
     display: none !important;
   }
 
+  .a4-no-print {
+    display: none !important;
+  }
+
   #printContractContainer {
     display: block !important;
     position: static !important;
@@ -2996,6 +3356,17 @@ h1, h2, h3, h4, h5, h6, .brand-name, .modal-title, .kpi-value, .price-val {
     width: 100% !important;
     min-height: auto !important;
     transform: none !important;
+  }
+
+  .a4-interactive-check {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .a4-interactive-check.is-checked .a4-check-box {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: #0f172a !important;
   }
 
   @page {

@@ -2026,42 +2026,75 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
               <label class="control-section-label" style="margin: 0;">3. ข้อมูลที่ต้องการให้แสดงในสัญญา
                 (เลือกได้)</label>
-              <span style="font-size: 0.72rem; color: var(--cyan-600); cursor: pointer; text-decoration: underline;"
-                onclick="toggleAllContractFields(true)">เลือกทั้งหมด</span>
+              <div style="display: flex; gap: 0.5rem;">
+                <span style="font-size: 0.72rem; color: var(--cyan-600); cursor: pointer; text-decoration: underline;"
+                  onclick="toggleAllContractFields(true)">เลือกทั้งหมด</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;"
+                  onclick="toggleAllContractFields(false)">ล้าง</span>
+              </div>
             </div>
             <div class="contract-field-toggles">
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowCustomer" checked onchange="updateContractPreview()">
-                <span>ข้อมูลผู้เช่า / ผู้ซื้อ </span>
+                <span>1. ข้อมูลผู้เช่า / ผู้ซื้อ</span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowGuarantor" onchange="updateContractPreview()">
-                <span>ข้อมูลผู้ค้ำประกัน </span>
+                <span>ข้อมูลผู้ค้ำประกัน</span>
               </label>
               <label class="field-toggle-item">
-                <input type="checkbox" id="chkShowFinance" checked onchange="updateContractPreview()">
-                <span>เงื่อนไขทางการเงิน (ค่าเช่า/ดาวน์/งวด)</span>
-              </label>
-              <label class="field-toggle-item">
-                <input type="checkbox" id="chkShowAccessories" checked onchange="updateContractPreview()">
-                <span>รายการอุปกรณ์ประจำรถ (หมวก/กุญแจ)</span>
-              </label>
-              <label class="field-toggle-item">
-                <input type="checkbox" id="chkShowInspection" checked onchange="updateContractPreview()">
-                <span>ใบตรวจรับสภาพรถก่อนส่งมอบ </span>
-              </label>
-              <label class="field-toggle-item">
-                <input type="checkbox" id="chkShowTerms" checked onchange="updateContractPreview()">
-                <span>ข้อกำหนด &amp; เงื่อนไขสัญญา </span>
+                <input type="checkbox" id="chkShowVehicle" checked onchange="updateContractPreview()">
+                <span>2. รายละเอียดรถมอเตอร์ไซค์</span>
               </label>
               <label class="field-toggle-item">
                 <input type="checkbox" id="chkShowPhoto" checked onchange="updateContractPreview()">
                 <span>รูปถ่ายมอเตอร์ไซค์ในสัญญา</span>
               </label>
               <label class="field-toggle-item">
-                <input type="checkbox" id="chkShowWitness" checked onchange="updateContractPreview()">
-                <span>ช่องลงลายมือชื่อพยาน / เจ้าหน้าที่</span>
+                <input type="checkbox" id="chkShowFinance" checked onchange="updateContractPreview()">
+                <span>3. เงื่อนไขการเงิน / ค่าเช่า / ยอดชำระ</span>
               </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowAccessories" checked onchange="updateContractPreview()">
+                <span>4. อุปกรณ์ประจำรถ (ติ๊กหน้าปริ้นได้)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowInspection" checked onchange="updateContractPreview()">
+                <span>5. ใบตรวจสภาพรถ (ติ๊กหน้าปริ้นได้)</span>
+              </label>
+              <label class="field-toggle-item">
+                <input type="checkbox" id="chkShowTerms" checked onchange="updateContractPreview()">
+                <span>ข้อกำหนด &amp; เงื่อนไขสัญญา</span>
+              </label>
+              <label class="field-toggle-item" style="grid-column: 1 / -1;">
+                <input type="checkbox" id="chkShowWitness" checked onchange="updateContractPreview()">
+                <span>ช่องลงลายมือชื่อคู่สัญญา / พยาน / เจ้าหน้าที่</span>
+              </label>
+            </div>
+
+            <!-- Section 2 Granular Vehicle Info Selector & Customizer -->
+            <div id="sec2FieldsControlBox" class="subform-card" style="margin-top: 0.55rem; background: #f8fafc;">
+              <div class="subform-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>รายการข้อมูลรถในส่วนที่ 2 (ติ๊กออก / เพิ่มได้)</span>
+                <div style="display: flex; gap: 0.45rem; font-weight: 600; font-size: 0.68rem;">
+                  <span style="color: var(--cyan-600); cursor: pointer;" onclick="toggleAllSec2Fields(true)">ติ๊กครบ</span>
+                  <span style="color: var(--text-muted); cursor: pointer;" onclick="toggleAllSec2Fields(false)">ติ๊กออกหมด</span>
+                </div>
+              </div>
+              <div id="contractSec2FieldToggles" class="sec2-toggles-grid">
+                <!-- Rendered dynamically via JavaScript -->
+              </div>
+              <div class="sec2-add-custom-row">
+                <input type="text" id="customVehFieldLabel" class="form-control-sm"
+                  placeholder="หัวข้อเพิ่ม (เช่น ระดับน้ำมัน)"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomVehicleField(false);}">
+                <input type="text" id="customVehFieldValue" class="form-control-sm"
+                  placeholder="ข้อมูล (เช่น เต็มถัง)"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomVehicleField(false);}">
+                <button type="button" class="btn-sec2-add" onclick="addCustomVehicleField(false)" title="เพิ่มข้อมูลรถลงในส่วนที่ 2">
+                  + เพิ่ม
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2155,36 +2188,64 @@
                 <div class="contract-form-subgrid">
                   <div class="form-group-sm">
                     <label>ค่าเช่า (บาท/วัน)</label>
-                    <input type="number" id="contractRentDaily" class="form-control-sm"
-                      oninput="updateContractPreview()">
+                    <input type="number" id="contractRentDaily" class="form-control-sm" min="0"
+                      oninput="onRentFinanceInputChanged()">
                   </div>
                   <div class="form-group-sm">
                     <label>ค่าเช่า (บาท/เดือน)</label>
-                    <input type="number" id="contractRentMonthly" class="form-control-sm"
-                      oninput="updateContractPreview()">
+                    <input type="number" id="contractRentMonthly" class="form-control-sm" min="0"
+                      oninput="onRentFinanceInputChanged()">
                   </div>
                 </div>
-                <div class="contract-form-subgrid">
+                <div class="contract-form-subgrid" style="margin-top: 0.35rem;">
                   <div class="form-group-sm">
                     <label>เงินประกันมัดจำ (บาท)</label>
-                    <input type="number" id="contractDeposit" class="form-control-sm" oninput="updateContractPreview()">
+                    <input type="number" id="contractDeposit" class="form-control-sm" min="0"
+                      oninput="onRentFinanceInputChanged()">
                   </div>
+                  <div class="form-group-sm">
+                    <label>ค่าจัดส่ง / รับ-ส่งรถ (บาท)</label>
+                    <input type="number" id="contractDeliveryFee" class="form-control-sm" min="0" value="0"
+                      placeholder="0 = ฟรี / รับที่สาขา" oninput="onRentFinanceInputChanged()">
+                  </div>
+                </div>
+                <div class="contract-form-subgrid" style="margin-top: 0.35rem;">
+                  <div class="form-group-sm">
+                    <label>วันเริ่มเช่า</label>
+                    <input type="date" id="contractRentalStart" class="form-control-sm"
+                      oninput="onRentFinanceInputChanged()">
+                  </div>
+                  <div class="form-group-sm">
+                    <label>วันสิ้นสุดเช่า</label>
+                    <input type="date" id="contractRentalEnd" class="form-control-sm"
+                      oninput="onRentFinanceInputChanged()">
+                  </div>
+                </div>
+                <div class="contract-form-subgrid" style="margin-top: 0.35rem;">
                   <div class="form-group-sm">
                     <label>เวลาส่งคืนรถ</label>
                     <input type="time" id="contractReturnTime" class="form-control-sm" value="18:00"
                       oninput="updateContractPreview()">
                   </div>
+                  <div class="form-group-sm">
+                    <label>วิธีคำนวณค่าเช่า</label>
+                    <select id="contractRentCalcMode" class="form-control-sm" onchange="onRentFinanceInputChanged()">
+                      <option value="daily">คิดรายวัน (ตามจำนวนวัน)</option>
+                      <option value="monthly">คิดเหมารายเดือน</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="contract-form-subgrid">
-                  <div class="form-group-sm">
-                    <label>วันเริ่มเช่า</label>
-                    <input type="date" id="contractRentalStart" class="form-control-sm"
-                      oninput="updateContractPreview()">
+
+                <!-- Summary Total Payable Box -->
+                <div class="rent-summary-edit-box">
+                  <div class="rent-summary-edit-header">
+                    <label for="contractRentTotalPayable">สรุปยอดชำระทั้งสิ้น (บาท)</label>
+                    <span class="rent-summary-reset-link" onclick="resetManualRentTotal()"
+                      title="คำนวณยอดรวมใหม่อัตโนมัติจากค่าเช่า + มัดจำ + ค่าจัดส่ง">คำนวณอัตโนมัติ</span>
                   </div>
-                  <div class="form-group-sm">
-                    <label>วันสิ้นสุดเช่า</label>
-                    <input type="date" id="contractRentalEnd" class="form-control-sm" oninput="updateContractPreview()">
-                  </div>
+                  <input type="number" id="contractRentTotalPayable" class="form-control-sm rent-total-input" min="0"
+                    placeholder="คำนวณอัตโนมัติ หรือพิมพ์แก้ไขยอดสุทธิเองได้" oninput="onManualRentTotalChanged()">
+                  <div id="contractRentSummaryBreakdown" class="rent-summary-breakdown-hint"></div>
                 </div>
               </div>
 
