@@ -6078,6 +6078,559 @@ window.setEditRevDepositZero = setEditRevDepositZero;
 window.applyEditRevOtherPreset = applyEditRevOtherPreset;
 window.saveEditedRentalRevenueLog = saveEditedRentalRevenueLog;
 
+// ==================== 6-DIGIT PASSWORD / PIN LOCK ENGINE (OTP-BOX STYLE) ====================
+const APP_PIN_STORAGE_KEY = 'wira_app_pin_v1';
+const APP_PIN_SESSION_UNLOCKED_KEY = 'wira_app_pin_unlocked_v1';
+const DEFAULT_APP_PIN = '123456';
+let isPinMaskVisible = false;
+let isPinVerifying = false;
+
+function getAppPinRecord() {
+  let localRec = null;
+  try {
+    const raw = localStorage.getItem(APP_PIN_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.pin === 'string' && /^\d{6}$/.test(parsed.pin)) {
+        localRec = parsed;
+      } else if (typeof raw === 'string' && /^\d{6}$/.test(raw.trim())) {
+        localRec = { pin: raw.trim(), updatedAt: '' };
+      }
+    }
+  } catch (e) {
+    // Fallback
+  }
+
+  // Also check if any synced motorcycle in fleet carries a newer cloud-synced PIN
+  if (Array.isArray(fleet)) {
+    fleet.forEach(m => {
+      if (m && typeof m._systemAppPin === 'string' && /^\d{6}$/.test(m._systemAppPin)) {
+        const cloudStamp = m._systemAppPinUpdatedAt || '';
+        const localStamp = localRec ? (localRec.updatedAt || '') : '';
+        if (!localRec || (cloudStamp && cloudStamp > localStamp)) {
+          localRec = { pin: m._systemAppPin, updatedAt: cloudStamp };
+        }
+      }
+    });
+  }
+
+  return localRec || { pin: DEFAULT_APP_PIN, updatedAt: '' };
+}
+
+function getAppPin() {
+  return getAppPinRecord().pin;
+}
+
+function setAppPin(newPin) {
+  if (!/^\d{6}$/.test(String(newPin || ''))) return false;
+  const nowIso = new Date().toISOString();
+  const record = { pin: String(newPin), updatedAt: nowIso };
+  try {
+    localStorage.setItem(APP_PIN_STORAGE_KEY, JSON.stringify(record));
+  } catch (e) {
+    console.warn('Error saving PIN to localStorage:', e);
+  }
+
+  // Sync across devices via fleet[0]
+  if (Array.isArray(fleet) && fleet.length > 0 && fleet[0]) {
+    fleet[0]._systemAppPin = String(newPin);
+    fleet[0]._systemAppPinUpdatedAt = nowIso;
+    fleet[0]._lastModified = nowIso;
+    saveFleet();
+    if (window.FirebaseSync && typeof FirebaseSync.upsertMoto === 'function') {
+      FirebaseSync.upsertMoto(fleet[0]);
+    }
+  }
+  updatePinDefaultHintVisibility();
+  return true;
+}
+
+function updatePinDefaultHintVisibility() {
+  const hintEl = document.getElementById('pinDefaultHintBox');
+  if (!hintEl) return;
+  const currentPin = getAppPin();
+  hintEl.style.display = currentPin === DEFAULT_APP_PIN ? 'block' : 'none';
+}
+
+function getPinBoxElements() {
+  const arr = [];
+  for (let i = 0; i < 6; i++) {
+    const el = document.getElementById(`pinBox${i}`);
+    if (el) arr.push(el);
+  }
+  return arr;
+}
+
+function getEnteredPinValue() {
+  return getPinBoxElements().map(el => (el.value || '').trim()).join('');
+}
+
+function refreshPinBoxStyles() {
+  getPinBoxElements().forEach(el => {
+    el.classList.toggle('has-value', Boolean(el.value));
+  });
+}
+
+function clearPinBoxes(shouldFocusFirst = true) {
+  const boxes = getPinBoxElements();
+  boxes.forEach(el => {
+    el.value = '';
+    el.classList.remove('has-value');
+  });
+  const container = document.getElementById('pinBoxesContainer');
+  const iconRing = document.getElementById('pinLockIconRing');
+  const statusMsg = document.getElementById('pinLockStatusMsg');
+  if (container) container.classList.remove('is-error', 'is-success');
+  if (iconRing) iconRing.classList.remove('is-error', 'is-success');
+  if (statusMsg) {
+    statusMsg.textContent = 'กรุณากรอกรหัสผ่าน 6 หลักเพื่อเข้าใช้งานระบบจัดการสต็อครถ';
+    statusMsg.classList.remove('text-error', 'text-success');
+  }
+  if (shouldFocusFirst && boxes[0]) {
+    boxes[0].focus();
+  }
+}
+
+function togglePinMaskVisibility() {
+  isPinMaskVisible = !isPinMaskVisible;
+  const type = isPinMaskVisible ? 'text' : 'password';
+  getPinBoxElements().forEach(el => {
+    el.type = type;
+  });
+  const lbl = document.getElementById('pinMaskBtnLabel');
+  if (lbl) {
+    lbl.textContent = isPinMaskVisible ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน';
+  }
+}
+
+function pressPinKeypad(digit) {
+  if (isPinVerifying) return;
+  const cleanDigit = String(digit).replace(/\D/g, '').slice(0, 1);
+  if (!cleanDigit) return;
+
+  const boxes = getPinBoxElements();
+  const emptyIdx = boxes.findIndex(b => !b.value);
+  const targetIdx = emptyIdx !== -1 ? emptyIdx : 5;
+  if (!boxes[targetIdx]) return;
+
+  boxes[targetIdx].value = cleanDigit;
+  refreshPinBoxStyles();
+
+  if (targetIdx < 5) {
+    boxes[targetIdx + 1].focus();
+  } else {
+    boxes[5].focus();
+  }
+
+  if (getEnteredPinValue().length === 6) {
+    verifyEnteredPin();
+  }
+}
+
+function backspacePinKeypad() {
+  if (isPinVerifying) return;
+  const boxes = getPinBoxElements();
+  for (let i = 5; i >= 0; i--) {
+    if (boxes[i] && boxes[i].value) {
+      boxes[i].value = '';
+      refreshPinBoxStyles();
+      boxes[i].focus();
+      return;
+    }
+  }
+  if (boxes[0]) boxes[0].focus();
+}
+
+function verifyEnteredPin() {
+  if (isPinVerifying) return;
+  const entered = getEnteredPinValue();
+  const boxes = getPinBoxElements();
+  const container = document.getElementById('pinBoxesContainer');
+  const iconRing = document.getElementById('pinLockIconRing');
+  const statusMsg = document.getElementById('pinLockStatusMsg');
+  const overlay = document.getElementById('appPinLockOverlay');
+
+  if (entered.length < 6) {
+    if (statusMsg) {
+      statusMsg.textContent = 'กรุณากรอกรหัสผ่านให้ครบทั้ง 6 หลัก';
+      statusMsg.classList.add('text-error');
+    }
+    const firstEmpty = boxes.find(b => !b.value) || boxes[0];
+    if (firstEmpty) firstEmpty.focus();
+    return;
+  }
+
+  const targetPin = getAppPin();
+  if (entered === targetPin) {
+    isPinVerifying = true;
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(APP_PIN_SESSION_UNLOCKED_KEY, '1');
+      }
+    } catch (e) {}
+
+    if (container) {
+      container.classList.remove('is-error');
+      container.classList.add('is-success');
+    }
+    if (iconRing) {
+      iconRing.classList.remove('is-error');
+      iconRing.classList.add('is-success');
+    }
+    if (statusMsg) {
+      statusMsg.textContent = 'รหัสผ่านถูกต้อง กำลังเข้าสู่ระบบ...';
+      statusMsg.classList.remove('text-error');
+      statusMsg.classList.add('text-success');
+    }
+
+    setTimeout(() => {
+      if (overlay) {
+        overlay.classList.add('is-unlocked');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          isPinVerifying = false;
+        }, 320);
+      } else {
+        isPinVerifying = false;
+      }
+    }, 220);
+  } else {
+    isPinVerifying = true;
+    if (container) {
+      container.classList.remove('is-success', 'is-error');
+      void container.offsetWidth; // Reflow for shake animation
+      container.classList.add('is-error');
+    }
+    if (iconRing) {
+      iconRing.classList.remove('is-success');
+      iconRing.classList.add('is-error');
+    }
+    if (statusMsg) {
+      statusMsg.textContent = 'รหัสผ่าน 6 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+      statusMsg.classList.remove('text-success');
+      statusMsg.classList.add('text-error');
+    }
+
+    setTimeout(() => {
+      boxes.forEach(b => {
+        b.value = '';
+        b.classList.remove('has-value');
+      });
+      if (container) container.classList.remove('is-error');
+      if (iconRing) iconRing.classList.remove('is-error');
+      if (boxes[0]) boxes[0].focus();
+      isPinVerifying = false;
+    }, 440);
+  }
+}
+
+function lockAppScreenNow() {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(APP_PIN_SESSION_UNLOCKED_KEY);
+    }
+  } catch (e) {}
+
+  closeModal('pinSettingsModal');
+  updatePinDefaultHintVisibility();
+  const overlay = document.getElementById('appPinLockOverlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    overlay.classList.remove('is-unlocked');
+  }
+  clearPinBoxes(true);
+}
+
+const APP_MASTER_KEY_STORAGE = 'wira_app_master_key_v1';
+const DEFAULT_MASTER_KEY = '9999';
+
+function getAppMasterKey() {
+  let localKey = null;
+  let localStamp = '';
+  try {
+    const raw = localStorage.getItem(APP_MASTER_KEY_STORAGE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.key) {
+        localKey = String(parsed.key);
+        localStamp = parsed.updatedAt || '';
+      }
+    }
+  } catch (e) {}
+
+  if (Array.isArray(fleet)) {
+    fleet.forEach(m => {
+      if (m && m._systemMasterKey) {
+        const cStamp = m._systemMasterKeyUpdatedAt || '';
+        if (!localKey || (cStamp && cStamp > localStamp)) {
+          localKey = String(m._systemMasterKey);
+          localStamp = cStamp;
+        }
+      }
+    });
+  }
+  return localKey || DEFAULT_MASTER_KEY;
+}
+
+function setAppMasterKey(newKey) {
+  const cleaned = String(newKey || '').trim();
+  if (!cleaned) return false;
+  const nowIso = new Date().toISOString();
+  try {
+    localStorage.setItem(APP_MASTER_KEY_STORAGE, JSON.stringify({ key: cleaned, updatedAt: nowIso }));
+  } catch (e) {}
+
+  if (Array.isArray(fleet) && fleet.length > 0 && fleet[0]) {
+    fleet[0]._systemMasterKey = cleaned;
+    fleet[0]._systemMasterKeyUpdatedAt = nowIso;
+    fleet[0]._lastModified = nowIso;
+    saveFleet();
+    if (window.FirebaseSync && typeof FirebaseSync.upsertMoto === 'function') {
+      FirebaseSync.upsertMoto(fleet[0]);
+    }
+  }
+  return true;
+}
+
+function openPinSettingsModal() {
+  const statusEl = document.getElementById('pinChangeStatusText');
+  if (statusEl) {
+    statusEl.textContent = '';
+    statusEl.style.color = '';
+  }
+  const gateBox = document.getElementById('pinChangeGateBox');
+  const formContainer = document.getElementById('pinChangeFormContainer');
+  const masterInput = document.getElementById('pinMasterKeyInput');
+  const masterErr = document.getElementById('pinMasterGateError');
+  const newMasterInput = document.getElementById('pinNewMasterKeyInput');
+
+  if (gateBox) gateBox.style.display = 'block';
+  if (formContainer) formContainer.style.display = 'none';
+  if (masterInput) masterInput.value = '';
+  if (newMasterInput) newMasterInput.value = '';
+  if (masterErr) {
+    masterErr.style.display = 'none';
+    masterErr.textContent = '';
+  }
+
+  const miniBoxes = document.querySelectorAll('.pin-mini-box');
+  miniBoxes.forEach(b => { b.value = ''; });
+  openModal('pinSettingsModal');
+  if (masterInput) {
+    setTimeout(() => masterInput.focus(), 80);
+  }
+}
+
+function unlockPinChangeSection() {
+  const masterInput = document.getElementById('pinMasterKeyInput');
+  const masterErr = document.getElementById('pinMasterGateError');
+  const gateBox = document.getElementById('pinChangeGateBox');
+  const formContainer = document.getElementById('pinChangeFormContainer');
+
+  const entered = (masterInput?.value || '').trim();
+  if (!entered || entered !== getAppMasterKey()) {
+    if (masterErr) {
+      masterErr.textContent = 'รหัสมาสเตอร์ไม่ถูกต้อง ไม่สามารถแก้ไขรหัสผ่านได้';
+      masterErr.style.display = 'block';
+    }
+    if (masterInput) {
+      masterInput.value = '';
+      masterInput.focus();
+    }
+    return;
+  }
+
+  if (masterErr) masterErr.style.display = 'none';
+  if (gateBox) gateBox.style.display = 'none';
+  if (formContainer) formContainer.style.display = 'block';
+
+  const firstOld = document.querySelector('.pin-mini-box[data-group="old"][data-idx="0"]');
+  if (firstOld) {
+    setTimeout(() => firstOld.focus(), 60);
+  }
+}
+
+function getMiniGroupPin(groupName) {
+  const boxes = document.querySelectorAll(`.pin-mini-box[data-group="${groupName}"]`);
+  return Array.from(boxes).map(b => (b.value || '').trim()).join('');
+}
+
+function saveNewAppPin() {
+  const oldPin = getMiniGroupPin('old');
+  const newPin = getMiniGroupPin('new');
+  const confirmPin = getMiniGroupPin('confirm');
+  const newMasterVal = (document.getElementById('pinNewMasterKeyInput')?.value || '').trim();
+  const statusEl = document.getElementById('pinChangeStatusText');
+
+  const setStatus = (msg, isErr = true) => {
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.style.color = isErr ? '#dc2626' : '#15803d';
+    }
+  };
+
+  if (oldPin.length < 6) {
+    setStatus('กรุณากรอกรหัสผ่านเดิมให้ครบ 6 หลัก');
+    return;
+  }
+  if (oldPin !== getAppPin()) {
+    setStatus('รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+    return;
+  }
+  if (!/^\d{6}$/.test(newPin)) {
+    setStatus('กรุณาตั้งรหัสผ่านใหม่เป็นตัวเลขให้ครบ 6 หลัก');
+    return;
+  }
+  if (newPin !== confirmPin) {
+    setStatus('รหัสผ่านใหม่และช่องยืนยันรหัสผ่านไม่ตรงกัน');
+    return;
+  }
+
+  setAppPin(newPin);
+  if (newMasterVal) {
+    setAppMasterKey(newMasterVal);
+  }
+  setStatus('บันทึกรหัสผ่าน 6 หลักใหม่เรียบร้อยแล้ว!', false);
+  showToast('เปลี่ยนรหัสผ่าน 6 หลักใหม่เรียบร้อยแล้ว', 'success');
+  setTimeout(() => {
+    closeModal('pinSettingsModal');
+  }, 350);
+}
+
+function bindOtpBoxGroup(boxes, onCompleteCallback) {
+  boxes.forEach((box, idx) => {
+    if (!box) return;
+    if (box.dataset && box.dataset.pinBound === '1') return;
+    if (box.dataset) box.dataset.pinBound = '1';
+
+    box.addEventListener('input', (e) => {
+      const digits = (e.target.value || '').replace(/\D/g, '');
+      if (!digits) {
+        e.target.value = '';
+        refreshPinBoxStyles();
+        return;
+      }
+
+      if (digits.length > 1) {
+        for (let k = 0; k < digits.length && (idx + k) < boxes.length; k++) {
+          boxes[idx + k].value = digits[k];
+        }
+        refreshPinBoxStyles();
+        const nextFocusIdx = Math.min(idx + digits.length, boxes.length - 1);
+        boxes[nextFocusIdx].focus();
+      } else {
+        e.target.value = digits[0];
+        refreshPinBoxStyles();
+        if (idx < boxes.length - 1) {
+          boxes[idx + 1].focus();
+        }
+      }
+
+      const allFilled = boxes.every(b => (b.value || '').trim().length === 1);
+      if (allFilled && typeof onCompleteCallback === 'function') {
+        onCompleteCallback();
+      }
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        if (!box.value && idx > 0) {
+          e.preventDefault();
+          boxes[idx - 1].value = '';
+          refreshPinBoxStyles();
+          boxes[idx - 1].focus();
+        } else {
+          box.value = '';
+          setTimeout(refreshPinBoxStyles, 0);
+        }
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault();
+        boxes[idx - 1].focus();
+      } else if (e.key === 'ArrowRight' && idx < boxes.length - 1) {
+        e.preventDefault();
+        boxes[idx + 1].focus();
+      } else if (e.key === 'Enter' && typeof onCompleteCallback === 'function') {
+        e.preventDefault();
+        onCompleteCallback();
+      }
+    });
+
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const rawPaste = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      const pastedDigits = rawPaste.replace(/\D/g, '').slice(0, boxes.length);
+      if (!pastedDigits) return;
+      for (let k = 0; k < pastedDigits.length && k < boxes.length; k++) {
+        boxes[k].value = pastedDigits[k];
+      }
+      refreshPinBoxStyles();
+      const focusIdx = Math.min(pastedDigits.length, boxes.length - 1);
+      boxes[focusIdx].focus();
+      if (pastedDigits.length === boxes.length && typeof onCompleteCallback === 'function') {
+        onCompleteCallback();
+      }
+    });
+
+    box.addEventListener('focus', () => {
+      if (typeof box.select === 'function') box.select();
+    });
+  });
+}
+
+function initAppPinLock() {
+  const overlay = document.getElementById('appPinLockOverlay');
+  if (!overlay) return;
+
+  updatePinDefaultHintVisibility();
+
+  const mainBoxes = getPinBoxElements();
+  bindOtpBoxGroup(mainBoxes, () => {
+    verifyEnteredPin();
+  });
+
+  // Bind mini OTP-style boxes inside Change PIN Modal
+  const oldBoxes = Array.from(document.querySelectorAll('.pin-mini-box[data-group="old"]'));
+  const newBoxes = Array.from(document.querySelectorAll('.pin-mini-box[data-group="new"]'));
+  const confirmBoxes = Array.from(document.querySelectorAll('.pin-mini-box[data-group="confirm"]'));
+
+  bindOtpBoxGroup(oldBoxes, () => { if (newBoxes[0]) newBoxes[0].focus(); });
+  bindOtpBoxGroup(newBoxes, () => { if (confirmBoxes[0]) confirmBoxes[0].focus(); });
+  bindOtpBoxGroup(confirmBoxes, null);
+
+  let isUnlocked = false;
+  try {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(APP_PIN_SESSION_UNLOCKED_KEY) === '1') {
+      isUnlocked = true;
+    }
+  } catch (e) {}
+
+  if (isUnlocked) {
+    overlay.classList.add('is-unlocked');
+    overlay.style.display = 'none';
+  } else {
+    overlay.style.display = 'flex';
+    overlay.classList.remove('is-unlocked');
+    if (mainBoxes[0]) {
+      setTimeout(() => mainBoxes[0].focus(), 80);
+    }
+  }
+}
+
+initAppPinLock();
+document.addEventListener('DOMContentLoaded', initAppPinLock);
+
+window.getAppPin = getAppPin;
+window.setAppPin = setAppPin;
+window.verifyEnteredPin = verifyEnteredPin;
+window.pressPinKeypad = pressPinKeypad;
+window.backspacePinKeypad = backspacePinKeypad;
+window.clearPinBoxes = clearPinBoxes;
+window.togglePinMaskVisibility = togglePinMaskVisibility;
+window.lockAppScreenNow = lockAppScreenNow;
+window.openPinSettingsModal = openPinSettingsModal;
+window.unlockPinChangeSection = unlockPinChangeSection;
+window.saveNewAppPin = saveNewAppPin;
+
 
 
 

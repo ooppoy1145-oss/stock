@@ -16,11 +16,109 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=20261105c">
+  <link rel="stylesheet" href="css/style.css?v=20261105g">
   <link rel="icon" href="assets/images/honda_wing_logo.svg" type="image/svg+xml">
 </head>
 
 <body>
+
+  <!-- ==================== 6-DIGIT PASSWORD / PIN LOCK SCREEN (3D CHAMFERED GLASS & GOLD) ==================== -->
+  <div id="appPinLockOverlay" class="pin-lock-overlay">
+    <!-- 3D Obsidian & Metallic Gold Diagonal Streaks -->
+    <div class="pin-bg-streak streak-1"></div>
+    <div class="pin-bg-streak streak-2"></div>
+    <div class="pin-bg-streak streak-3"></div>
+    <div class="pin-lock-ambient-glow glow-1"></div>
+    <div class="pin-lock-ambient-glow glow-2"></div>
+
+    <div class="pin-chamfer-stage">
+      <!-- Floating 3D Cut-Corner Triangles (Top-Left & Bottom-Right) -->
+      <div class="pin-corner-tri tri-tl" aria-hidden="true">
+        <svg viewBox="0 0 80 80" fill="none">
+          <path d="M16 4 H66 Q76 4 69 11 L11 69 Q4 76 4 66 V16 Q4 4 16 4 Z" fill="rgba(16, 16, 20, 0.88)"
+            stroke="rgba(255, 255, 255, 0.16)" stroke-width="1.2" />
+        </svg>
+      </div>
+      <div class="pin-corner-tri tri-br" aria-hidden="true">
+        <svg viewBox="0 0 80 80" fill="none">
+          <path d="M69 11 Q76 4 76 14 V64 Q76 76 64 76 H14 Q4 76 11 69 L69 11 Z" fill="rgba(16, 16, 20, 0.88)"
+            stroke="rgba(255, 255, 255, 0.16)" stroke-width="1.2" />
+        </svg>
+      </div>
+
+      <!-- Main Chamfered Frosted Glass Card -->
+      <div class="pin-lock-card" id="pinLockCard">
+        <!-- Precision SVG Chamfered Glass Border -->
+        <svg class="pin-chamfer-border-svg" viewBox="0 0 460 430" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="pinCardRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="rgba(255, 255, 255, 0.35)" />
+              <stop offset="35%" stop-color="rgba(234, 179, 8, 0.25)" />
+              <stop offset="70%" stop-color="rgba(255, 255, 255, 0.08)" />
+              <stop offset="100%" stop-color="rgba(255, 255, 255, 0.28)" />
+            </linearGradient>
+          </defs>
+          <path d="M 82 2 H 436 Q 458 2 458 24 V 348 L 378 428 H 24 Q 2 428 2 406 V 82 Z" fill="none"
+            stroke="url(#pinCardRimGrad)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+        </svg>
+
+        <!-- Top 3D Squircle Key Icon Badge -->
+        <div class="pin-lock-icon-ring" id="pinLockIconRing">
+          <svg class="pin-lock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="15.5" cy="8.5" r="4.5" />
+            <path d="m12.3 11.7-7.8 7.8v2h2l2-2h2v-2l1.8-1.8" />
+            <circle cx="16" cy="8" r="1" fill="currentColor" />
+          </svg>
+        </div>
+
+        <h2 class="pin-lock-title">Verify <span class="pin-gold-text">Password</span></h2>
+        <p class="pin-lock-subtitle" id="pinLockStatusMsg">กรอกรหัสผ่านความปลอดภัย 6 หลักเพื่อเข้าสู่ระบบ</p>
+
+        <!-- 6 3D Squircle Password Input Boxes -->
+        <div class="pin-boxes-container" id="pinBoxesContainer">
+          <input type="password" id="pinBox0" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="0" aria-label="รหัสหลักที่ 1">
+          <input type="password" id="pinBox1" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="1" aria-label="รหัสหลักที่ 2">
+          <input type="password" id="pinBox2" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="2" aria-label="รหัสหลักที่ 3">
+          <input type="password" id="pinBox3" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="3" aria-label="รหัสหลักที่ 4">
+          <input type="password" id="pinBox4" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="4" aria-label="รหัสหลักที่ 5">
+          <input type="password" id="pinBox5" class="pin-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]*"
+            autocomplete="off" data-pin-idx="5" aria-label="รหัสหลักที่ 6">
+        </div>
+
+        <!-- Subtle Helper Text Line -->
+        <div class="pin-helper-bar">
+          <span class="pin-helper-muted">ต้องการตรวจสอบตัวเลขที่พิมพ์?</span>
+          <button type="button" class="pin-toggle-mask-btn" id="btnTogglePinMask" onclick="togglePinMaskVisibility()">
+            <span id="pinMaskBtnLabel">แสดงรหัสผ่าน</span>
+          </button>
+          <span class="pin-helper-dot">•</span>
+          <button type="button" class="pin-toggle-mask-btn" onclick="clearPinBoxes()">
+            ล้างช่อง
+          </button>
+        </div>
+
+        <!-- 3D Gold Pill Button -->
+        <button type="button" class="pin-submit-btn" id="btnVerifyPinSubmit" onclick="verifyEnteredPin()">
+          <span>Verify &amp; Proceed</span>
+          <svg class="pin-submit-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="13 6 19 12 13 18" />
+          </svg>
+        </button>
+
+        <div class="pin-default-hint" id="pinDefaultHintBox">
+          รหัสผ่านเริ่มต้น: <strong>123456</strong>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ==================== DEDICATED PRINT CONTAINER (SHOWN ONLY ON PRINT) ==================== -->
   <div id="printContractContainer" class="print-contract-output" style="display: none;"></div>
@@ -125,6 +223,16 @@
             <line x1="12" x2="12" y1="20" y2="4" />
             <line x1="6" x2="6" y1="20" y2="14" />
           </svg> จัดการข้อมูล / รายงาน
+        </button>
+
+        <!-- PIN Password Settings & Lock Button -->
+        <button id="btnOpenPinModal" class="header-btn btn-glass" onclick="openPinSettingsModal()"
+          title="เปลี่ยนรหัสผ่าน 6 หลัก หรือล็อกหน้าจอ">
+          <svg class="ui-icon ui-icon-sm" style="color: #fbbf24;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg> รหัสผ่าน / ล็อก
         </button>
       </div>
     </div>
@@ -2598,6 +2706,158 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: PIN PASSWORD SETTINGS & CHANGE 6-DIGIT PIN ==================== -->
+  <div id="pinSettingsModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg class="ui-icon ui-icon-lg" style="color: #fbbf24;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <div>
+            <span class="modal-title">ตั้งค่ารหัสผ่าน 6 หลัก </span>
+            <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 1px;">
+              ป้องกันการเข้าถึงข้อมูลสต็อคและยอดเงินก่อนเข้าใช้งาน
+            </div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="pinSettingsModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Quick Lock Action Box -->
+        <div
+          style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: var(--radius-md); padding: 0.95rem 1.1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; border: 1px solid rgba(56, 189, 248, 0.25);">
+          <div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #ffffff;">ล็อกหน้าจอระบบทันที</div>
+            <div style="font-size: 0.74rem; color: #94a3b8;">กลับสู่หน้าใส่รหัสผ่าน 6 หลักทันทีเมื่อไม่ได้อยู่หน้าจอ
+            </div>
+          </div>
+          <button type="button" class="header-btn btn-gold" onclick="lockAppScreenNow()">
+            <svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg> ล็อกหน้าจอเดี๋ยวนี้
+          </button>
+        </div>
+
+        <!-- Locked Gate Protecting Change-PIN Form (Prevents others from changing password) -->
+        <div id="pinChangeGateBox"
+          style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 1.05rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.45rem;">
+            <svg class="ui-icon ui-icon-md" style="color: #d97706;" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span style="font-size: 0.88rem; font-weight: 800; color: #92400e;">ล็อกป้องกันคนอื่นเปลี่ยนรหัสผ่าน</span>
+          </div>
+          <p style="font-size: 0.76rem; color: #b45309; margin: 0 0 0.75rem;">
+            <strong>รหัสมาสเตอร์เจ้าของร้าน</strong> เพื่อปลดล็อกเมนูเปลี่ยนรหัสผ่าน
+          </p>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="password" id="pinMasterKeyInput" class="form-control-sm"
+              style="max-width: 190px; font-weight: 800; letter-spacing: 0.15em;" placeholder="กรอกรหัสมาสเตอร์..."
+              onkeydown="if(event.key==='Enter'){event.preventDefault();unlockPinChangeSection();}">
+            <button type="button" class="header-btn btn-gold" style="padding: 0.42rem 0.85rem; font-size: 0.78rem;"
+              onclick="unlockPinChangeSection()">
+              ปลดล็อกเพื่อเปลี่ยนรหัส
+            </button>
+          </div>
+          <div id="pinMasterGateError"
+            style="font-size: 0.74rem; color: #dc2626; font-weight: 700; margin-top: 0.4rem; display: none;"></div>
+        </div>
+
+        <!-- Change 6-Digit PIN Form (Hidden until Master Key is verified) -->
+        <div id="pinChangeFormContainer"
+          style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1.1rem;">
+          <div
+            style="font-size: 0.88rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>เปลี่ยนรหัสผ่าน 6 หลักใหม่</span>
+            <span
+              style="font-size: 0.7rem; font-weight: 700; color: #15803d; background: #dcfce7; padding: 0.15rem 0.5rem; border-radius: 99px;">ปลดล็อกสิทธิ์เจ้าของร้านแล้ว</span>
+          </div>
+
+          <div class="pin-change-group">
+            <label class="pin-change-label">1. รหัสผ่านเดิม (6 หลัก)</label>
+            <div class="pin-change-boxes" data-pin-group="old">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="0">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="1">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="2">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="3">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="4">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="old"
+                data-idx="5">
+            </div>
+          </div>
+
+          <div class="pin-change-group" style="margin-top: 0.9rem;">
+            <label class="pin-change-label" style="color: #0369a1;">2. ตั้งรหัสผ่านใหม่ (ตัวเลข 6 หลัก)</label>
+            <div class="pin-change-boxes" data-pin-group="new">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="0">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="1">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="2">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="3">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="4">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="new"
+                data-idx="5">
+            </div>
+          </div>
+
+          <div class="pin-change-group" style="margin-top: 0.9rem;">
+            <label class="pin-change-label" style="color: #047857;">3. ยืนยันรหัสผ่านใหม่อีกครั้ง (6 หลัก)</label>
+            <div class="pin-change-boxes" data-pin-group="confirm">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="0">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="1">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="2">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="3">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="4">
+              <input type="password" class="pin-mini-box" maxlength="1" inputmode="numeric" data-group="confirm"
+                data-idx="5">
+            </div>
+          </div>
+
+          <div style="margin-top: 0.95rem; padding-top: 0.75rem; border-top: 1px dashed #cbd5e1;">
+            <label class="pin-change-label" style="color: #92400e;">เปลี่ยนรหัสมาสเตอร์เจ้าของร้าน
+              (เว้นว่างได้หากไม่ต้องการเปลี่ยน)</label>
+            <input type="password" id="pinNewMasterKeyInput" class="form-control-sm" style="max-width: 220px;"
+              placeholder="ตั้งรหัสมาสเตอร์ใหม่ (ถ้าต้องการ)">
+          </div>
+
+          <div id="pinChangeStatusText"
+            style="font-size: 0.76rem; margin-top: 0.75rem; min-height: 1.1rem; font-weight: 700;"></div>
+
+          <div style="margin-top: 0.65rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button type="button" class="header-btn btn-emerald" onclick="saveNewAppPin()">
+              บันทึกรหัสผ่านใหม่
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="header-btn btn-glass" data-close-modal="pinSettingsModal">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== LIGHTBOX MODAL: FULLSCREEN IMAGE VIEWER ==================== -->
   <div id="imageLightboxModal" class="modal-backdrop image-lightbox-backdrop" onclick="closeLightbox(event)">
     <button type="button" class="lightbox-close-btn" onclick="closeLightbox()" title="ปิดรูปขยาย (ESC)">&times;</button>
@@ -2615,9 +2875,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 
   <!-- Application & Sync Scripts -->
-  <script src="js/firebase-config.js?v=20261105d"></script>
-  <script src="js/firebase-sync.js?v=20261105d"></script>
-  <script src="js/app.js?v=20261105d"></script>
+  <script src="js/firebase-config.js?v=20261105g"></script>
+  <script src="js/firebase-sync.js?v=20261105g"></script>
+  <script src="js/app.js?v=20261105g"></script>
 </body>
 
 </html>
