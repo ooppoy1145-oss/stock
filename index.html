@@ -16,7 +16,7 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Sarabun:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=20261031b">
+  <link rel="stylesheet" href="css/style.css?v=20261105c">
   <link rel="icon" href="assets/images/honda_wing_logo.svg" type="image/svg+xml">
 </head>
 
@@ -179,7 +179,8 @@
         </div>
       </div>
 
-      <div class="kpi-card kpi-revenue">
+      <div class="kpi-card kpi-revenue kpi-clickable" onclick="openRentalRevenueModal()"
+        title="คลิกเพื่อดูสรุปยอดเช่ารายวัน / รายสัปดาห์ / รายเดือน จากการพิมพ์สัญญา">
         <div class="kpi-icon-wrap icon-revenue">
           <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect width="20" height="14" x="2" y="5" rx="2" />
@@ -187,10 +188,13 @@
             <circle cx="16" cy="15" r="1.5" />
           </svg>
         </div>
-        <div class="kpi-content">
-          <span class="kpi-title">ยอดเช่ารวม / วัน</span>
+        <div class="kpi-content" style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.35rem;">
+            <span class="kpi-title">ยอดเช่ารวม / วัน</span>
+            <span class="kpi-click-badge">ดูสรุป &rarr;</span>
+          </div>
           <span class="kpi-value" id="kpiRentalRevenue">฿0 /วัน</span>
-          <span class="kpi-sub">รายได้หมุนเวียนต่อวัน</span>
+          <span class="kpi-sub" id="kpiRentalRevenueSub">คลิกดูสรุป วัน &bull; สัปดาห์ &bull; เดือน</span>
         </div>
       </div>
 
@@ -334,8 +338,8 @@
           <option value="date-desc">รับเข้าล่าสุด</option>
           <option value="rent-desc">ค่าเช่าต่อวัน (มาก->น้อย)</option>
           <option value="rent-asc">ค่าเช่าต่อวัน (น้อย->มาก)</option>
-          <option value="price-desc">ราคาขายสด (มาก->น้อย)</option>
-          <option value="price-asc">ราคาขายสด (น้อย->มาก)</option>
+          <option value="price-desc">ราคาสดจัดไฟแนนซ์ (มาก->น้อย)</option>
+          <option value="price-asc">ราคาสดจัดไฟแนนซ์ (น้อย->มาก)</option>
           <option value="installment-asc">ค่างวดผ่อน (น้อย->มาก)</option>
           <option value="installment-desc">ค่างวดผ่อน (มาก->น้อย)</option>
           <option value="down-asc">เงินดาวน์ (น้อย->มาก / ฟรีดาวน์)</option>
@@ -853,14 +857,23 @@
               </div>
             </div>
 
-            <!-- Row 1: ราคาขายสด & ราคาดาวน์ -->
-            <div class="form-grid-2" style="margin-top: 0.85rem;">
+            <!-- Row 1: ราคาขายสด, ราคาสดไม่จัดไฟแนนซ์ & ราคาดาวน์ -->
+            <div class="form-grid-3" style="margin-top: 0.85rem;">
               <div class="form-group">
                 <label class="form-label">
-                  ราคาขายสด (บาท) <span class="help-text-inline"></span>
+                  ราคาสดจัดไฟแนนซ์ (บาท) <span class="help-text-inline"></span>
                 </label>
                 <input type="number" id="formPrice" class="form-control font-weight-bold"
                   placeholder="เช่น 61900, 93400, 179000" min="0" step="any">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="color: #047857;">
+                  ราคาสด (บาท)
+                </label>
+                <input type="number" id="formCashOnlyPrice" class="form-control font-weight-bold"
+                  style="border-color: #6ee7b7; color: #065f46;" placeholder="เช่น 31000, 59000 (ตัดสด)" min="0"
+                  step="any">
               </div>
 
               <div class="form-group">
@@ -1257,12 +1270,19 @@
               </div>
             </div>
 
-            <!-- Row 1: ราคาขายสด & ราคาดาวน์ -->
-            <div class="form-grid-2" style="margin-top: 0.85rem;">
+            <!-- Row 1: ราคาขายสด, ราคาสดไม่จัดไฟแนนซ์ & ราคาดาวน์ -->
+            <div class="form-grid-3" style="margin-top: 0.85rem;">
               <div class="form-group">
-                <label class="form-label">ราคาขายสด (บาท) <span class="req">*</span></label>
+                <label class="form-label">ราคาสดจัดไฟแนนซ์ (บาท) <span class="req">*</span></label>
                 <input type="number" id="calcPrice" class="form-control font-weight-bold"
                   placeholder="เช่น 61900, 93400, 179000" min="0" step="any" oninput="onCalcPriceInput()">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="color: #047857;">ราคาสด (บาท)</label>
+                <input type="number" id="calcCashOnlyPrice" class="form-control font-weight-bold"
+                  style="border-color: #6ee7b7; color: #065f46;" placeholder="เช่น 31000, 59000 (ตัดสด)" min="0"
+                  step="any">
               </div>
 
               <div class="form-group">
@@ -2074,11 +2094,14 @@
 
             <!-- Section 2 Granular Vehicle Info Selector & Customizer -->
             <div id="sec2FieldsControlBox" class="subform-card" style="margin-top: 0.55rem; background: #f8fafc;">
-              <div class="subform-card-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="subform-card-title"
+                style="display: flex; justify-content: space-between; align-items: center;">
                 <span>รายการข้อมูลรถในส่วนที่ 2 (ติ๊กออก / เพิ่มได้)</span>
                 <div style="display: flex; gap: 0.45rem; font-weight: 600; font-size: 0.68rem;">
-                  <span style="color: var(--cyan-600); cursor: pointer;" onclick="toggleAllSec2Fields(true)">ติ๊กครบ</span>
-                  <span style="color: var(--text-muted); cursor: pointer;" onclick="toggleAllSec2Fields(false)">ติ๊กออกหมด</span>
+                  <span style="color: var(--cyan-600); cursor: pointer;"
+                    onclick="toggleAllSec2Fields(true)">ติ๊กครบ</span>
+                  <span style="color: var(--text-muted); cursor: pointer;"
+                    onclick="toggleAllSec2Fields(false)">ติ๊กออกหมด</span>
                 </div>
               </div>
               <div id="contractSec2FieldToggles" class="sec2-toggles-grid">
@@ -2088,10 +2111,10 @@
                 <input type="text" id="customVehFieldLabel" class="form-control-sm"
                   placeholder="หัวข้อเพิ่ม (เช่น ระดับน้ำมัน)"
                   onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomVehicleField(false);}">
-                <input type="text" id="customVehFieldValue" class="form-control-sm"
-                  placeholder="ข้อมูล (เช่น เต็มถัง)"
+                <input type="text" id="customVehFieldValue" class="form-control-sm" placeholder="ข้อมูล (เช่น เต็มถัง)"
                   onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomVehicleField(false);}">
-                <button type="button" class="btn-sec2-add" onclick="addCustomVehicleField(false)" title="เพิ่มข้อมูลรถลงในส่วนที่ 2">
+                <button type="button" class="btn-sec2-add" onclick="addCustomVehicleField(false)"
+                  title="เพิ่มข้อมูลรถลงในส่วนที่ 2">
                   + เพิ่ม
                 </button>
               </div>
@@ -2123,25 +2146,27 @@
               <div class="subform-card-title">ข้อมูลผู้เช่า / ผู้ซื้อ</div>
               <div class="form-group-sm">
                 <label>ชื่อ-นามสกุล / บริษัทผู้เช่า</label>
-                <input type="text" id="contractCustName" class="form-control-sm" placeholder="เช่น นายสมชาย ใจดี หรือ บริษัท สแครชท์ เฟิร์สท จำกัด (สำนักงานใหญ่)"
+                <input type="text" id="contractCustName" class="form-control-sm"
+                  placeholder="เช่น นายสมชาย ใจดี หรือ บริษัท สแครชท์ เฟิร์สท จำกัด (สำนักงานใหญ่)"
                   oninput="updateContractPreview()">
               </div>
               <div class="contract-form-subgrid">
                 <div class="form-group-sm">
                   <label>เลขบัตร ปชช. / Passport</label>
-                  <input type="text" id="contractCustId" class="form-control-sm" placeholder="เลขบัตร 13 หลัก / เลขนิติบุคคล"
-                    oninput="updateContractPreview()">
+                  <input type="text" id="contractCustId" class="form-control-sm"
+                    placeholder="เลขบัตร 13 หลัก / เลขนิติบุคคล" oninput="updateContractPreview()">
                 </div>
                 <div class="form-group-sm">
                   <label>เบอร์โทรติดต่อ</label>
-                  <input type="text" id="contractCustPhone" class="form-control-sm" placeholder="เช่น 08X-XXX-XXXX หรือ 061-390-0446 061-390-0535"
-                    oninput="updateContractPreview()">
+                  <input type="text" id="contractCustPhone" class="form-control-sm"
+                    placeholder="เช่น 08X-XXX-XXXX หรือ 061-390-0446 061-390-0535" oninput="updateContractPreview()">
                 </div>
               </div>
               <div class="form-group-sm" style="margin-top: 0.35rem;">
                 <label>ที่อยู่ตามบัตร / ที่พัก</label>
                 <input type="text" id="contractCustAddress" class="form-control-sm"
-                  placeholder="บ้านเลขที่ ถนน อาคาร แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์" oninput="updateContractPreview()">
+                  placeholder="บ้านเลขที่ ถนน อาคาร แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+                  oninput="updateContractPreview()">
               </div>
             </div>
 
@@ -2253,7 +2278,7 @@
               <div id="fieldsInstallmentFinance" style="display: none;">
                 <div class="contract-form-subgrid">
                   <div class="form-group-sm">
-                    <label>ราคาขายสด (บาท)</label>
+                    <label>ราคาสดจัดไฟแนนซ์ (บาท)</label>
                     <input type="number" id="contractPrice" class="form-control-sm" oninput="updateContractPreview()">
                   </div>
                   <div class="form-group-sm">
@@ -2379,6 +2404,200 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: RENTAL REVENUE SUMMARY (DAILY / WEEKLY / MONTHLY) ==================== -->
+  <div id="rentalRevenueModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 920px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg class="ui-icon ui-icon-lg" style="color: #fbbf24;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <rect width="20" height="14" x="2" y="5" rx="2" />
+            <line x1="2" x2="22" y1="10" y2="10" />
+            <circle cx="16" cy="15" r="1.5" />
+          </svg>
+          <div>
+            <span class="modal-title">สรุปยอดเช่ารวม</span>
+            <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 1px;">
+            </div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="rentalRevenueModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Top Date & Branch Filter Bar -->
+        <div class="rev-filter-bar">
+          <div class="rev-filter-left">
+            <label for="revReferenceDate" class="rev-filter-label">เลือกวันที่อ้างอิง:</label>
+            <input type="date" id="revReferenceDate" class="form-control-sm" style="width: auto; font-weight: 600;"
+              onchange="onRevFilterDateChanged()">
+            <button type="button" class="quick-chip-btn" onclick="resetRevFilterDateToToday()">วันนี้</button>
+          </div>
+          <div class="rev-filter-right">
+            <span id="revBranchBadge" class="rev-branch-pill">ทุกสาขา</span>
+          </div>
+        </div>
+
+        <!-- 3 Big Summary Cards: ต่อวัน / ต่อสัปดาห์ / ต่อเดือน -->
+        <div class="rev-summary-grid">
+          <div class="rev-stat-card rev-stat-daily active" id="revCardDaily" onclick="setRevPeriodTab('daily')">
+            <div class="rev-stat-top">
+              <span class="rev-stat-badge badge-daily">สรุปต่อวัน (รายวัน)</span>
+              <span class="rev-stat-count" id="revDailyCount">0 สัญญา</span>
+            </div>
+            <div class="rev-stat-value" id="revDailyTotal">฿0</div>
+            <div class="rev-stat-sub" id="revDailyDateLabel">ประจำวันนี้</div>
+          </div>
+
+          <div class="rev-stat-card rev-stat-weekly" id="revCardWeekly" onclick="setRevPeriodTab('weekly')">
+            <div class="rev-stat-top">
+              <span class="rev-stat-badge badge-weekly">สรุปต่อสัปดาห์ (7 วัน)</span>
+              <span class="rev-stat-count" id="revWeeklyCount">0 สัญญา</span>
+            </div>
+            <div class="rev-stat-value" id="revWeeklyTotal">฿0</div>
+            <div class="rev-stat-sub" id="revWeeklyDateLabel">ประจำสัปดาห์นี้</div>
+          </div>
+
+          <div class="rev-stat-card rev-stat-monthly" id="revCardMonthly" onclick="setRevPeriodTab('monthly')">
+            <div class="rev-stat-top">
+              <span class="rev-stat-badge badge-monthly">สรุปต่อเดือน (รายเดือน)</span>
+              <span class="rev-stat-count" id="revMonthlyCount">0 สัญญา</span>
+            </div>
+            <div class="rev-stat-value" id="revMonthlyTotal">฿0</div>
+            <div class="rev-stat-sub" id="revMonthlyDateLabel">ประจำเดือนนี้</div>
+          </div>
+        </div>
+
+        <!-- Sub-breakdown of the selected period -->
+        <div class="finance-summary-box" style="margin-top: 0.9rem; background: #f8fafc;">
+          <div class="summary-col">
+            <span class="summary-lbl">ค่าเช่ารถรวม (ไม่รวมมัดจำ):</span>
+            <span class="summary-val" id="revBreakdownRent" style="color: var(--cyan-600);">฿0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-col">
+            <span class="summary-lbl">เงินประกันมัดจำคงเหลือ:</span>
+            <span class="summary-val" id="revBreakdownDeposit" style="color: #b45309;">฿0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-col">
+            <span class="summary-lbl">ค่าจัดส่งรวม:</span>
+            <span class="summary-val" id="revBreakdownDelivery">฿0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-col">
+            <span class="summary-lbl">รายรับอื่นๆ (หักมัดจำ/น้ำมัน):</span>
+            <span class="summary-val" id="revBreakdownOther" style="color: #7c3aed;">฿0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-col">
+            <span class="summary-lbl" id="revBreakdownTotalLabel">สรุปยอดชำระทั้งสิ้น (ช่วงที่เลือก):</span>
+            <span class="summary-val summary-highlight" id="revBreakdownTotal">฿0</span>
+          </div>
+        </div>
+
+        <!-- Custom Other Income Box (รายรับอื่นๆ: หักค่ามัดจำ / หักค่าน้ำมัน / กรอกเองได้) -->
+        <div class="rev-other-income-card">
+          <div class="rev-other-income-head">
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <span class="rev-other-badge">+ เพิ่มรายรับอื่นๆ</span>
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--navy-900);">บันทึกหักค่ามัดจำ /
+                หักค่าน้ำมัน / รายรับเพิ่มเติม </span>
+            </div>
+            <div class="rev-other-chips">
+              <button type="button" class="quick-chip-btn" onclick="applyRevOtherPreset('หักค่าน้ำมัน')">+
+                หักค่าน้ำมัน</button>
+              <button type="button" class="quick-chip-btn" onclick="applyRevOtherPreset('หักค่ามัดจำ')">+
+                หักค่ามัดจำ</button>
+              <button type="button" class="quick-chip-btn" onclick="applyRevOtherPreset('ค่าปรับคืนรถล่าช้า')">+
+                ค่าปรับคืนช้า</button>
+              <button type="button" class="quick-chip-btn" onclick="applyRevOtherPreset('ค่าซ่อม/รอยเฉี่ยวชน')">+
+                ค่าซ่อม/รอยชน</button>
+              <button type="button" class="quick-chip-btn" onclick="applyRevOtherPreset('ค่าล้างรถ')">+
+                ค่าล้างรถ</button>
+            </div>
+          </div>
+          <div class="rev-other-income-form">
+            <div class="rev-other-field" style="flex: 1.5; min-width: 180px;">
+              <label class="rev-other-lbl">รายการรายรับอื่นๆ / สาเหตุที่หัก</label>
+              <input type="text" id="revOtherNoteInput" class="form-control-sm"
+                placeholder="เช่น หักค่าน้ำมัน, หักค่ามัดจำ, ค่าปรับส่งช้า (กรอกเองได้)">
+            </div>
+            <div class="rev-other-field" style="flex: 1.2; min-width: 160px;">
+              <label class="rev-other-lbl">รถมอเตอร์ไซค์ / ผู้เช่า (ถ้ามี)</label>
+              <select id="revOtherMotoSelect" class="form-control-sm">
+                <option value="">-- รายรับทั่วไป (ไม่ระบุคัน) --</option>
+              </select>
+            </div>
+            <div class="rev-other-field" style="width: 145px;">
+              <label class="rev-other-lbl">จำนวนเงิน (บาท)</label>
+              <input type="number" id="revOtherAmountInput" class="form-control-sm"
+                style="font-weight: 800; color: #7c3aed;" min="0" step="any" placeholder="เช่น 100, 300">
+            </div>
+            <div class="rev-other-action">
+              <button type="button" class="header-btn btn-emerald"
+                style="padding: 0.44rem 0.9rem; font-size: 0.78rem; white-space: nowrap;"
+                onclick="addCustomOtherRevenue()">
+                + บันทึกรายรับอื่นๆ
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Period Tabs & History Table Header -->
+        <div class="rev-list-header">
+          <div class="rev-period-tabs">
+            <button type="button" class="rev-tab-btn active" id="btnRevTabDaily"
+              onclick="setRevPeriodTab('daily')">รายวัน</button>
+            <button type="button" class="rev-tab-btn" id="btnRevTabWeekly"
+              onclick="setRevPeriodTab('weekly')">รายสัปดาห์</button>
+            <button type="button" class="rev-tab-btn" id="btnRevTabMonthly"
+              onclick="setRevPeriodTab('monthly')">รายเดือน</button>
+            <button type="button" class="rev-tab-btn" id="btnRevTabAll"
+              onclick="setRevPeriodTab('all')">ทั้งหมด</button>
+          </div>
+          <div style="display: flex; gap: 0.45rem; align-items: center;">
+            <button type="button" class="header-btn btn-cyan" style="padding: 0.35rem 0.7rem; font-size: 0.75rem;"
+              onclick="closeModal('rentalRevenueModal'); openContractModal(null, 'rent');">
+              + ไปหน้าพิมพ์สัญญาเช่า
+            </button>
+            <button type="button" class="header-btn btn-glass"
+              style="padding: 0.35rem 0.7rem; font-size: 0.75rem; color: #dc2626; border-color: #fecaca;"
+              onclick="clearAllRentalRevenueLogs()">
+              ล้างประวัติ
+            </button>
+          </div>
+        </div>
+
+        <!-- Printed Contract Revenue Table -->
+        <div class="rev-table-wrap">
+          <table class="rev-history-table">
+            <thead>
+              <tr>
+                <th>วันที่ / เลขสัญญา</th>
+                <th>รถมอเตอร์ไซค์</th>
+                <th>ผู้เช่า / ระยะเวลา</th>
+                <th>รายละเอียด (ค่าเช่า / มัดจำ / รายรับอื่นๆ)</th>
+                <th style="text-align: right;">สรุปยอดชำระทั้งสิ้น</th>
+                <th style="text-align: center; width: 140px;">แก้ไขยอด / คืนมัดจำ</th>
+              </tr>
+            </thead>
+            <tbody id="revHistoryTableBody">
+              <!-- Rendered dynamically via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div style="font-size: 0.76rem; color: var(--text-muted);" id="revAllTimeFooterSummary">
+          ยอดสะสมทั้งหมด: ฿0 (0 สัญญา)
+        </div>
+        <button type="button" class="header-btn btn-glass" data-close-modal="rentalRevenueModal">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== LIGHTBOX MODAL: FULLSCREEN IMAGE VIEWER ==================== -->
   <div id="imageLightboxModal" class="modal-backdrop image-lightbox-backdrop" onclick="closeLightbox(event)">
     <button type="button" class="lightbox-close-btn" onclick="closeLightbox()" title="ปิดรูปขยาย (ESC)">&times;</button>
@@ -2396,9 +2615,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 
   <!-- Application & Sync Scripts -->
-  <script src="js/firebase-config.js?v=20261031b"></script>
-  <script src="js/firebase-sync.js?v=20261031b"></script>
-  <script src="js/app.js?v=20261031b"></script>
+  <script src="js/firebase-config.js?v=20261105d"></script>
+  <script src="js/firebase-sync.js?v=20261105d"></script>
+  <script src="js/app.js?v=20261105d"></script>
 </body>
 
 </html>

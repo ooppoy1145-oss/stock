@@ -917,13 +917,27 @@ function updateKpiStats() {
   const totalUnits = currentSet.length;
   const availableCount = currentSet.filter(c => c.status === 'available').length;
   const rentedCount = currentSet.filter(c => c.status === 'rented').length;
-  const totalDailyRevenue = currentSet.reduce((sum, c) => sum + (Number(c.rentDaily) || 0), 0);
   const serviceCount = currentSet.filter(c => c.status === 'check' || c.status === 'maintenance').length;
+
+  // Compute rental revenue from printed contracts (daily / weekly / monthly)
+  const revStats = typeof computeRentalRevenueStats === 'function'
+    ? computeRentalRevenueStats(null, branch)
+    : { dailyTotal: 0, weeklyTotal: 0, monthlyTotal: 0, allList: [] };
 
   document.getElementById('kpiTotalUnits').textContent = totalUnits.toLocaleString();
   document.getElementById('kpiAvailableUnits').textContent = availableCount.toLocaleString();
   document.getElementById('kpiRentedUnits').textContent = rentedCount.toLocaleString();
-  document.getElementById('kpiRentalRevenue').textContent = `฿${totalDailyRevenue.toLocaleString()} /วัน`;
+  document.getElementById('kpiRentalRevenue').textContent = `฿${revStats.dailyTotal.toLocaleString()} /วัน`;
+
+  const revSubEl = document.getElementById('kpiRentalRevenueSub');
+  if (revSubEl) {
+    if (revStats.allList.length > 0) {
+      revSubEl.textContent = `สัปดาห์ ฿${revStats.weeklyTotal.toLocaleString()} • เดือน ฿${revStats.monthlyTotal.toLocaleString()}`;
+    } else {
+      revSubEl.textContent = 'คลิกดูสรุป วัน • สัปดาห์ • เดือน';
+    }
+  }
+
   document.getElementById('kpiServiceUnits').textContent = serviceCount.toLocaleString();
 }
 
@@ -1030,26 +1044,22 @@ function renderGridView(motos) {
 
           <!-- Dual Pricing Box -->
           <div class="price-dual-container">
-            ${moto.purpose !== 'sale' ? `
+            <div class="price-dual-top">
               <div class="price-item">
                 <span class="price-item-label">ค่าเช่ารายวัน</span>
                 <span class="price-rent-val">${formatPrice(moto.rentDaily)}<span style="font-size: 0.72rem; font-weight: normal; color: var(--text-muted);">/วัน</span></span>
               </div>
-            ` : ''}
 
-            ${moto.purpose !== 'rent' ? `
-              <div class="price-item" style="text-align: right;">
-                <span class="price-item-label">ราคาขายสด</span>
+              <div class="price-item" style="text-align: right; align-items: flex-end; margin-left: auto;">
+                <span class="price-item-label">ราคาสดจัดไฟแนนซ์</span>
                 <span class="price-sale-val">${formatPrice(moto.price)}</span>
               </div>
-            ` : ''}
+            </div>
 
-            ${moto.purpose === 'rent' ? `
-              <div class="price-item" style="text-align: right;">
-                <span class="price-item-label">เงินประกันมัดจำ</span>
-                <span style="font-size: 1rem; font-weight: 800; color: var(--navy-800);">${formatPrice(moto.deposit)}</span>
-              </div>
-            ` : ''}
+            <div class="price-cash-nofin-row">
+              <span class="price-cash-nofin-label">ราคาสด</span>
+              <span class="price-cash-nofin-val">${formatPrice(moto.cashOnlyPrice || 0)}</span>
+            </div>
           </div>
 
           <!-- Installment Badge (Easy Finance) -->
@@ -1202,6 +1212,7 @@ function renderTableView(motos) {
         <td>
           ${moto.rentDaily ? `<div style="font-weight: 700; color: var(--cyan-500); font-size: 0.85rem;">${formatPrice(moto.rentDaily)}/วัน</div>` : ''}
           ${moto.price ? `<div style="font-size: 0.78rem; color: var(--navy-900); font-weight: 700;">ขายสด: ${formatPrice(moto.price)}</div>` : ''}
+          ${moto.cashOnlyPrice ? `<div style="font-size: 0.76rem; color: #059669; font-weight: 700;">สดไม่จัดไฟแนนซ์: ${formatPrice(moto.cashOnlyPrice)}</div>` : ''}
           ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount) ? `
             <div class="table-installment-pill">
               <span class="table-inst-down">ดาวน์: <strong>${(moto.downPayment !== undefined && Number(moto.downPayment) === 0) ? 'ฟรีดาวน์' : formatPrice(moto.downPayment || 0)}</strong></span>
@@ -1453,6 +1464,8 @@ function openCalcModal(motoId = null, initialMode = null) {
     if (moto) {
       // 1. Populate Installment fields
       document.getElementById('calcPrice').value = moto.price || '';
+      const calcCashEl = document.getElementById('calcCashOnlyPrice');
+      if (calcCashEl) calcCashEl.value = moto.cashOnlyPrice || '';
       document.getElementById('calcDownPayment').value = moto.downPayment !== undefined ? moto.downPayment : 0;
       document.getElementById('calcTerm').value = moto.installmentTerm || 36;
       if (moto.installmentAmount) {
@@ -1545,6 +1558,8 @@ function onCalcSelectMotoChange(motoId) {
 
   // Installment
   document.getElementById('calcPrice').value = moto.price || 0;
+  const calcCashEl = document.getElementById('calcCashOnlyPrice');
+  if (calcCashEl) calcCashEl.value = moto.cashOnlyPrice || '';
   document.getElementById('calcDownPayment').value = moto.downPayment !== undefined ? moto.downPayment : 0;
   document.getElementById('calcTerm').value = moto.installmentTerm || 36;
   if (moto.installmentAmount) {
@@ -1785,6 +1800,7 @@ function copyFinanceQuote() {
   const moto = motoId ? fleet.find(c => c.id === motoId) : null;
   const bikeName = moto ? `${moto.brand} ${moto.model} [${moto.licensePlate || 'ป้ายแดง'}]` : 'มอเตอร์ไซค์ (กำหนดราคาเอง)';
   const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const cashOnlyPrice = Number(document.getElementById('calcCashOnlyPrice')?.value) || (moto?.cashOnlyPrice || 0);
   const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
   const term = Number(document.getElementById('calcTerm')?.value) || 0;
   const monthly = Number(document.getElementById('calcMonthlyAmount')?.value) || 0;
@@ -1792,12 +1808,14 @@ function copyFinanceQuote() {
   const financed = Math.max(0, price - down);
   const downPercent = price > 0 ? Math.round((down / price) * 100) : 0;
   const interestPct = term > 0 ? Math.round((term / 6) * 35 * 10) / 10 : 0;
+  const cashOnlyLine = cashOnlyPrice > 0 ? `ราคาสด: ${formatPrice(cashOnlyPrice)}\n` : '';
 
   const text = `🏍️ ใบเสนอราคาแผนผ่อนชำระ (Easy Finance)\n` +
     `สาขา: วีระมอเตอร์\n` +
     `--------------------------------\n` +
     `รุ่น: ${bikeName}\n` +
-    `ราคาขายสด: ${formatPrice(price)}\n` +
+    `ราคาสดจัดไฟแนนซ์: ${formatPrice(price)}\n` +
+    cashOnlyLine +
     `เงินดาวน์: ${formatPrice(down)} (${downPercent}%)\n` +
     `ยอดจัดไฟแนนซ์: ${formatPrice(financed)}\n` +
     `อัตราดอกเบี้ยรวม: ${interestPct}%\n` +
@@ -1879,11 +1897,13 @@ function saveCalcToSelectedMoto() {
   if (!moto) return;
 
   const price = Number(document.getElementById('calcPrice')?.value) || 0;
+  const cashOnlyPrice = Number(document.getElementById('calcCashOnlyPrice')?.value) || 0;
   const down = Number(document.getElementById('calcDownPayment')?.value) || 0;
   const term = Number(document.getElementById('calcTerm')?.value) || 36;
   const monthly = Number(document.getElementById('calcMonthlyAmount')?.value) || 0;
 
   moto.price = price;
+  moto.cashOnlyPrice = cashOnlyPrice;
   moto.downPayment = down;
   moto.installmentTerm = term;
   moto.installmentAmount = monthly;
@@ -2031,6 +2051,7 @@ function openCarModal(motoId = null) {
     setVal('formRentMonthly', moto.rentMonthly || '');
     setVal('formDeposit', moto.deposit || '');
     setVal('formPrice', moto.price || '');
+    setVal('formCashOnlyPrice', moto.cashOnlyPrice || '');
     setVal('formDownPayment', (moto.downPayment !== undefined && moto.downPayment !== null) ? moto.downPayment : '');
     setVal('formInstallmentTerm', (moto.installmentTerm !== undefined && moto.installmentTerm !== null) ? moto.installmentTerm : '');
     setVal('formInstallmentAmount', (moto.installmentAmount !== undefined && moto.installmentAmount !== null) ? moto.installmentAmount : '');
@@ -2086,6 +2107,7 @@ function openCarModal(motoId = null) {
     setVal('formRentMonthly', '');
     setVal('formDeposit', '');
     setVal('formPrice', '');
+    setVal('formCashOnlyPrice', '');
     setVal('formDownPayment', '');
     setVal('formInstallmentTerm', '6');
     setVal('formInstallmentAmount', '');
@@ -2169,7 +2191,7 @@ async function handleFormSubmit(e) {
       ? await ensurePhotosFitCloudLimit([...formPhotos])
       : ['assets/images/forza_350.jpg'];
 
-    const motoData = {
+    const motoData = Object.assign({}, existingMoto || {}, {
       id: isEditing ? id : ('MOTO-' + Date.now().toString().slice(-6) + '-' + Math.floor(10 + Math.random() * 90)),
       brand: getVal('formBrand', 'Honda'),
       model: getVal('formModel'),
@@ -2189,6 +2211,7 @@ async function handleFormSubmit(e) {
       rentMonthly: getNum('formRentMonthly', 0),
       deposit: getNum('formDeposit', 0),
       price: getNum('formPrice', 0),
+      cashOnlyPrice: getNum('formCashOnlyPrice', 0),
       downPayment: getNum('formDownPayment', 0),
       installmentAmount: getNum('formInstallmentAmount', 0),
       installmentTerm: getNum('formInstallmentTerm', 0),
@@ -2202,22 +2225,22 @@ async function handleFormSubmit(e) {
       remarks: getVal('formRemarks'),
       gpsImei: getVal('formGpsImei'),
       gpsUrl: getVal('formGpsUrl'),
-      accessories: {
+      accessories: Object.assign({}, existingMoto?.accessories || {}, {
         helmet: getChk('accHelmet'),
         phoneMount: getChk('accPhoneMount'),
         smartKey: getChk('accSmartKey'),
         topBox: getChk('accTopBox')
-      },
-      inspection: {
+      }),
+      inspection: Object.assign({}, existingMoto?.inspection || {}, {
         oil: getChk('chkOil'),
         brakes: getChk('chkBrakes'),
         tyres: getChk('chkTyres'),
         clean: getChk('chkClean')
-      },
+      }),
       photos: preparedPhotos,
       _photoUpdatedAt: nowIso,
       _lastModified: nowIso
-    };
+    });
 
     if (existingMoto && existingMoto._docId) {
       motoData._docId = existingMoto._docId;
@@ -2717,8 +2740,12 @@ function openCarDetail(motoId) {
           ${moto.rentMonthly ? `<div class="price-sub-rent">รายเดือน ${formatPrice(moto.rentMonthly)}/ด.</div>` : ''}
         ` : ''}
         ${moto.price ? `
-          <div class="price-caption" style="${moto.rentDaily ? 'margin-top: 6px;' : ''}">ราคาขายสด (MSRP)</div>
+          <div class="price-caption" style="${moto.rentDaily ? 'margin-top: 6px;' : ''}">ราคาสดจัดไฟแนนซ์ (MSRP)</div>
           <div class="price-highlight-sale">${formatPrice(moto.price)}</div>
+        ` : ''}
+        ${moto.cashOnlyPrice ? `
+          <div class="price-caption" style="margin-top: 4px; color: #047857;">ราคาสด</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #059669;">${formatPrice(moto.cashOnlyPrice)}</div>
         ` : ''}
         ${(moto.downPayment !== undefined && moto.downPayment !== '' || moto.installmentAmount) ? `
           <div class="detail-installment-tag">
@@ -2817,7 +2844,8 @@ function openCarDetail(motoId) {
           <tr><td class="label-col">ค่าเช่ารายวัน</td><td class="value-col"><strong style="color: var(--cyan-500); font-size: 1rem;">${moto.rentDaily ? formatPrice(moto.rentDaily) + '/วัน' : '-'}</strong></td></tr>
           <tr><td class="label-col">ค่าเช่ารายเดือน</td><td class="value-col">${moto.rentMonthly ? formatPrice(moto.rentMonthly) + '/เดือน' : '-'}</td></tr>
           <tr><td class="label-col">เงินประกันมัดจำ</td><td class="value-col">${moto.deposit ? formatPrice(moto.deposit) : '-'}</td></tr>
-          <tr><td class="label-col">ราคาขายสด (MSRP)</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.price ? formatPrice(moto.price) : '-'}</strong></td></tr>
+          <tr><td class="label-col">ราคาสดจัดไฟแนนซ์ (MSRP)</td><td class="value-col"><strong style="color: var(--navy-900); font-size: 1rem;">${moto.price ? formatPrice(moto.price) : '-'}</strong></td></tr>
+          <tr><td class="label-col">ราคาสด</td><td class="value-col"><strong style="color: #059669; font-size: 1rem;">${moto.cashOnlyPrice ? formatPrice(moto.cashOnlyPrice) : '-'}</strong></td></tr>
           <tr><td class="label-col">ราคาดาวน์ (เงินดาวน์)</td><td class="value-col"><strong style="color: #1d4ed8;">${(moto.downPayment !== undefined && moto.downPayment !== '') ? (Number(moto.downPayment) === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(moto.downPayment)) : '-'}</strong></td></tr>
           <tr><td class="label-col">ราคาผ่อนงวดละ</td><td class="value-col"><strong style="color: #15803d; font-size: 1.05rem;">${moto.installmentAmount ? formatPrice(moto.installmentAmount) + '/งวด' : '-'}</strong></td></tr>
           <tr><td class="label-col">ผ่อนกี่งวด (จำนวนงวด)</td><td class="value-col">${moto.installmentTerm ? `<strong style="color: var(--navy-900);">${moto.installmentTerm} งวด</strong> (${Math.round((moto.installmentTerm / 12) * 10) / 10} ปี)` : '-'}</td></tr>
@@ -2996,7 +3024,7 @@ function copySummaryForLine(motoId) {
 ทะเบียน: ${moto.licensePlate}${moto.province ? ' ' + moto.province : ''}
 สี: ${moto.exteriorColor}
 เชื้อเพลิง: ${moto.fuel || 'เบนซิน 95'}
-${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน\n` : ''}${moto.rentMonthly ? `เรทเช่ารายเดือน: ${formatPrice(moto.rentMonthly)}/เดือน\n` : ''}${moto.deposit ? `เงินประกันมัดจำ: ${formatPrice(moto.deposit)}\n` : ''}${moto.price ? `ราคาขายสด: ${formatPrice(moto.price)}\n` : ''}${(moto.downPayment !== undefined && moto.downPayment !== '') ? `ราคาดาวน์: ${Number(moto.downPayment) === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(moto.downPayment)}\n` : ''}${moto.installmentAmount ? `ราคาผ่อนงวดละ: ${formatPrice(moto.installmentAmount)}/งวด (ผ่อน ${moto.installmentTerm || '-'} งวด)\n` : ''}สาขา/จุดรับรถ: ${moto.branch}
+${moto.rentDaily ? `เรทเช่ารายวัน: ${formatPrice(moto.rentDaily)}/วัน\n` : ''}${moto.rentMonthly ? `เรทเช่ารายเดือน: ${formatPrice(moto.rentMonthly)}/เดือน\n` : ''}${moto.deposit ? `เงินประกันมัดจำ: ${formatPrice(moto.deposit)}\n` : ''}${moto.price ? `ราคาสดจัดไฟแนนซ์: ${formatPrice(moto.price)}\n` : ''}${(moto.downPayment !== undefined && moto.downPayment !== '') ? `ราคาดาวน์: ${Number(moto.downPayment) === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(moto.downPayment)}\n` : ''}${moto.installmentAmount ? `ราคาผ่อนงวดละ: ${formatPrice(moto.installmentAmount)}/งวด (ผ่อน ${moto.installmentTerm || '-'} งวด)\n` : ''}สาขา/จุดรับรถ: ${moto.branch}
 ${moto.gpsImei ? `GPS ติดตามรถ (GPSDD): IMEI ${moto.gpsImei}\n` : ''}สถานะ: ${STATUS_CONFIG[moto.status]?.label || moto.status}
 อุปกรณ์ที่ให้: หมวกกันน็อค  ใบ + ที่จับมือถือ
 ติดต่อสอบถาม / จองรถ โทร: 081-xxx-xxxx หรือทักแชทได้ทันทีครับ`;
@@ -4966,7 +4994,7 @@ function updateContractPreview() {
               <col style="width: 26%;">
             </colgroup>
             <tr>
-              <td class="lbl">ราคาขายสด (MSRP)</td>
+              <td class="lbl">ราคาสดจัดไฟแนนซ์ (MSRP)</td>
               <td><strong style="font-size: 9pt;">${formatPrice(price)}</strong></td>
               <td class="lbl">เงินดาวน์</td>
               <td><strong style="color: #1d4ed8;">${downPayment === 0 ? 'ฟรีดาวน์ (฿0)' : formatPrice(downPayment)}</strong></td>
@@ -5160,6 +5188,9 @@ function triggerContractPrint() {
   updateContractPreview();
   cleanTrackingQueryParams();
 
+  // Pull "สรุปยอดชำระทั้งสิ้น" into Rental Revenue Summary (Daily / Weekly / Monthly)
+  recordPrintedContractRevenue();
+
   const printOutput = document.getElementById('printContractContainer');
   const liveSheet = document.getElementById('liveA4Sheet');
 
@@ -5295,6 +5326,757 @@ window.setAllContractCheckItems = setAllContractCheckItems;
 window.toggleChecklistAdder = toggleChecklistAdder;
 window.addCustomChecklistItem = addCustomChecklistItem;
 window.removeCustomChecklistItem = removeCustomChecklistItem;
+
+// ==================== RENTAL REVENUE SUMMARY ENGINE (DAILY / WEEKLY / MONTHLY) ====================
+const RENTAL_REVENUE_STORAGE_KEY = 'wira_rental_revenue_logs_v1';
+const DELETED_REVENUE_IDS_KEY = 'wira_deleted_revenue_ids_v1';
+let activeRevPeriodTab = 'daily'; // 'daily' | 'weekly' | 'monthly' | 'all'
+let editingRevLogId = null; // ID of contract log currently being edited inline
+
+function getLocalDateIso(d = new Date()) {
+  const dt = (d instanceof Date && !isNaN(d.getTime())) ? d : new Date();
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDeletedRevenueIds() {
+  try {
+    const raw = localStorage.getItem(DELETED_REVENUE_IDS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveDeletedRevenueIds(idSet) {
+  try {
+    localStorage.setItem(DELETED_REVENUE_IDS_KEY, JSON.stringify(Array.from(idSet)));
+  } catch (e) {
+    // Ignore storage quota errors
+  }
+}
+
+function loadRentalRevenueLogs() {
+  const deletedIds = getDeletedRevenueIds();
+  const mapById = new Map();
+
+  // 1. Load local logs
+  try {
+    const raw = localStorage.getItem(RENTAL_REVENUE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      parsed.forEach(item => {
+        if (item && item.id && !deletedIds.has(item.id)) {
+          mapById.set(item.id, item);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Error loading rental revenue logs:', e);
+  }
+
+  // 2. Merge logs synced via fleet motorcycles (moto.contractRevenueHistory)
+  if (Array.isArray(fleet)) {
+    fleet.forEach(moto => {
+      if (moto && Array.isArray(moto.contractRevenueHistory)) {
+        moto.contractRevenueHistory.forEach(item => {
+          if (item && item.id && !deletedIds.has(item.id)) {
+            const existing = mapById.get(item.id);
+            const itemStamp = item.updatedAt || item.printedAt || '';
+            const existStamp = existing ? (existing.updatedAt || existing.printedAt || '') : '';
+            if (!existing || (itemStamp && itemStamp > existStamp)) {
+              mapById.set(item.id, item);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  const merged = Array.from(mapById.values());
+  merged.sort((a, b) => (b.printedAt || b.contractDate || '').localeCompare(a.printedAt || a.contractDate || ''));
+  return merged;
+}
+
+function saveRentalRevenueLogs(logs) {
+  try {
+    localStorage.setItem(RENTAL_REVENUE_STORAGE_KEY, JSON.stringify(logs));
+  } catch (e) {
+    console.warn('Error saving rental revenue logs:', e);
+  }
+}
+
+function persistUpdatedRevenueLog(entry) {
+  if (!entry || !entry.id) return;
+  entry.updatedAt = new Date().toISOString();
+
+  const logs = loadRentalRevenueLogs();
+  const idx = logs.findIndex(l => l.id === entry.id);
+  if (idx !== -1) {
+    logs[idx] = entry;
+  } else {
+    logs.unshift(entry);
+  }
+  saveRentalRevenueLogs(logs);
+
+  const targetMoto = (entry.motoId && fleet.find(c => c.id === entry.motoId)) || fleet[0];
+  if (targetMoto) {
+    if (!Array.isArray(targetMoto.contractRevenueHistory)) {
+      targetMoto.contractRevenueHistory = [];
+    }
+    const hIdx = targetMoto.contractRevenueHistory.findIndex(h => h && h.id === entry.id);
+    if (hIdx !== -1) {
+      targetMoto.contractRevenueHistory[hIdx] = entry;
+    } else {
+      targetMoto.contractRevenueHistory.unshift(entry);
+      if (targetMoto.contractRevenueHistory.length > 50) {
+        targetMoto.contractRevenueHistory = targetMoto.contractRevenueHistory.slice(0, 50);
+      }
+    }
+    targetMoto._lastModified = entry.updatedAt;
+    saveFleet();
+    if (window.FirebaseSync && typeof FirebaseSync.upsertMoto === 'function') {
+      FirebaseSync.upsertMoto(targetMoto);
+    }
+  }
+  updateKpiStats();
+}
+
+function recordPrintedContractRevenue() {
+  if (activeContractType !== 'rent') return null;
+
+  const moto = fleet.find(c => c.id === currentContractMotoId) || fleet[0];
+  if (!moto) return null;
+
+  const rentSummary = computeRentSummary(moto);
+  const todayIso = getLocalDateIso();
+  const docNo = document.getElementById('contractDocNo')?.value?.trim() || ('RC-' + Date.now().toString().slice(-6));
+  const contractDate = document.getElementById('contractDate')?.value || todayIso;
+  const branch = document.getElementById('contractBranch')?.value?.trim() || moto.branch || 'สาขาหลัก (วีระมอเตอร์)';
+  const custName = document.getElementById('contractCustName')?.value?.trim() || moto.customer || 'ลูกค้าเช่ารถ';
+  const custPhone = document.getElementById('contractCustPhone')?.value?.trim() || moto.customerPhone || '';
+  const rentStart = document.getElementById('contractRentalStart')?.value || '';
+  const rentEnd = document.getElementById('contractRentalEnd')?.value || '';
+
+  const logs = loadRentalRevenueLogs();
+  const existingIdx = logs.findIndex(l =>
+    l.docNo === docNo &&
+    l.motoId === moto.id &&
+    (l.customer || '') === custName &&
+    (l.rentalStart || '') === rentStart &&
+    (l.rentalEnd || '') === rentEnd
+  );
+
+  const prevEntry = existingIdx !== -1 ? logs[existingIdx] : null;
+  const entryId = prevEntry
+    ? prevEntry.id
+    : ('REV-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900));
+
+  const nowIso = new Date().toISOString();
+  const entry = {
+    id: entryId,
+    entryType: 'contract',
+    docNo,
+    contractDate,
+    dateStr: todayIso,
+    printedAt: prevEntry?.printedAt || nowIso,
+    updatedAt: nowIso,
+    motoId: moto.id,
+    licensePlate: moto.licensePlate || '',
+    province: moto.province || '',
+    brand: moto.brand || '',
+    model: moto.model || '',
+    branch,
+    customer: custName,
+    customerPhone: custPhone,
+    rentalStart: rentStart,
+    rentalEnd: rentEnd,
+    rentalDays: rentSummary.rentalDays,
+    rentDaily: rentSummary.rentDaily,
+    rentMonthly: rentSummary.rentMonthly,
+    rentSubtotal: rentSummary.rentSubtotal,
+    deposit: rentSummary.deposit,
+    originalDeposit: rentSummary.deposit,
+    depositReturned: false,
+    deliveryFee: rentSummary.deliveryFee,
+    otherIncome: Number(prevEntry?.otherIncome) || 0,
+    otherIncomeNote: prevEntry?.otherIncomeNote || '',
+    totalPayable: rentSummary.finalTotal + (Number(prevEntry?.otherIncome) || 0),
+    breakdownText: rentSummary.docBreakdownText
+  };
+
+  persistUpdatedRevenueLog(entry);
+  showToast(`ดึงยอดชำระทั้งสิ้น ${formatPrice(entry.totalPayable)} เข้าสรุปยอดเช่ารวมเรียบร้อยแล้ว`, 'success');
+  return entry;
+}
+
+function applyRevOtherPreset(label) {
+  const noteInput = document.getElementById('revOtherNoteInput');
+  const amtInput = document.getElementById('revOtherAmountInput');
+  if (noteInput) {
+    noteInput.value = label;
+  }
+  if (amtInput) {
+    amtInput.focus();
+  }
+}
+
+function populateRevOtherMotoSelect() {
+  const selectEl = document.getElementById('revOtherMotoSelect');
+  if (!selectEl) return;
+  const currentVal = selectEl.value;
+  const optionsHtml = ['<option value="">-- รายรับทั่วไป (ไม่ระบุคัน) --</option>'];
+  if (Array.isArray(fleet)) {
+    fleet.forEach(m => {
+      const custPart = m.customer ? ` • ผู้เช่า: ${escapeContractHtml(m.customer)}` : '';
+      optionsHtml.push(
+        `<option value="${escapeContractHtml(m.id)}">${escapeContractHtml(m.licensePlate || '-')} (${escapeContractHtml(m.brand + ' ' + m.model)})${custPart}</option>`
+      );
+    });
+  }
+  selectEl.innerHTML = optionsHtml.join('');
+  if (currentVal) selectEl.value = currentVal;
+}
+
+function addCustomOtherRevenue() {
+  const noteInput = document.getElementById('revOtherNoteInput');
+  const amtInput = document.getElementById('revOtherAmountInput');
+  const motoSelect = document.getElementById('revOtherMotoSelect');
+  const dateInput = document.getElementById('revReferenceDate');
+
+  const note = noteInput?.value?.trim() || 'รายรับอื่นๆ (หักมัดจำ/ค่าน้ำมัน)';
+  const amount = Number(amtInput?.value) || 0;
+  if (amount <= 0) {
+    showToast('กรุณากรอกจำนวนเงินรายรับอื่นๆ ให้มากกว่า 0 บาท', 'warning');
+    if (amtInput) amtInput.focus();
+    return;
+  }
+
+  const selectedMotoId = motoSelect?.value || '';
+  const moto = selectedMotoId ? fleet.find(c => c.id === selectedMotoId) : null;
+  const refDateStr = dateInput?.value || getLocalDateIso();
+  const headerBranch = document.getElementById('headerBranchSelect')?.value || 'ALL';
+  const branch = moto?.branch || (headerBranch !== 'ALL' ? headerBranch : (fleet[0]?.branch || 'สาขาหลัก (วีระมอเตอร์)'));
+  const nowIso = new Date().toISOString();
+
+  const entry = {
+    id: 'REV-OTHER-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+    entryType: 'other',
+    docNo: 'OTHER-' + Date.now().toString().slice(-5),
+    contractDate: refDateStr,
+    dateStr: refDateStr,
+    printedAt: nowIso,
+    updatedAt: nowIso,
+    motoId: moto ? moto.id : (fleet[0]?.id || ''),
+    licensePlate: moto ? (moto.licensePlate || '') : 'รายรับอื่นๆ',
+    province: moto ? (moto.province || '') : '',
+    brand: moto ? (moto.brand || '') : '',
+    model: moto ? (moto.model || '') : note,
+    branch,
+    customer: moto?.customer || note,
+    customerPhone: moto?.customerPhone || '',
+    rentalStart: refDateStr,
+    rentalEnd: refDateStr,
+    rentalDays: 0,
+    rentDaily: 0,
+    rentMonthly: 0,
+    rentSubtotal: 0,
+    deposit: 0,
+    originalDeposit: 0,
+    depositReturned: false,
+    deliveryFee: 0,
+    otherIncome: amount,
+    otherIncomeNote: note,
+    totalPayable: amount,
+    breakdownText: `${note} ${formatPrice(amount)}`
+  };
+
+  persistUpdatedRevenueLog(entry);
+
+  if (noteInput) noteInput.value = '';
+  if (amtInput) amtInput.value = '';
+  renderRentalRevenueModal();
+  showToast(`เพิ่มรายรับอื่นๆ "${note}" จำนวน ${formatPrice(amount)} เรียบร้อยแล้ว`, 'success');
+}
+
+function refundRentalRevenueDeposit(logId) {
+  if (!logId) return;
+  const logs = loadRentalRevenueLogs();
+  const item = logs.find(l => l.id === logId);
+  if (!item) return;
+
+  const currentDeposit = Number(item.deposit) || 0;
+  if (currentDeposit <= 0 && item.depositReturned) {
+    showToast('รายการนี้ได้คืนเงินประกันมัดจำไปแล้ว', 'info');
+    return;
+  }
+
+  item.originalDeposit = Number(item.originalDeposit) || currentDeposit;
+  item.deposit = 0;
+  item.depositReturned = true;
+
+  // Recalculate totalPayable after returning deposit
+  const rentSub = Number(item.rentSubtotal) || 0;
+  const deliv = Number(item.deliveryFee) || 0;
+  const other = Number(item.otherIncome) || 0;
+  const computedWithoutDeposit = rentSub + deliv + other;
+  item.totalPayable = computedWithoutDeposit >= 0
+    ? computedWithoutDeposit
+    : Math.max(0, (Number(item.totalPayable) || 0) - currentDeposit);
+
+  persistUpdatedRevenueLog(item);
+  renderRentalRevenueModal();
+  showToast(`คืนเงินมัดจำ ${formatPrice(item.originalDeposit)} เรียบร้อยแล้ว (ยอดสุทธิคงเหลือ ${formatPrice(item.totalPayable)})`, 'success');
+}
+
+function toggleEditRentalRevenueLog(logId) {
+  if (editingRevLogId === logId) {
+    editingRevLogId = null;
+  } else {
+    editingRevLogId = logId;
+  }
+  renderRentalRevenueModal();
+}
+
+function onEditRevSubfieldChange(logId) {
+  const rent = Number(document.getElementById(`editRevRent_${logId}`)?.value) || 0;
+  const deposit = Number(document.getElementById(`editRevDeposit_${logId}`)?.value) || 0;
+  const delivery = Number(document.getElementById(`editRevDelivery_${logId}`)?.value) || 0;
+  const other = Number(document.getElementById(`editRevOther_${logId}`)?.value) || 0;
+  const totalEl = document.getElementById(`editRevTotal_${logId}`);
+  if (totalEl) {
+    totalEl.value = rent + deposit + delivery + other;
+  }
+}
+
+function setEditRevDepositZero(logId) {
+  const depEl = document.getElementById(`editRevDeposit_${logId}`);
+  if (depEl) {
+    depEl.value = 0;
+    onEditRevSubfieldChange(logId);
+  }
+}
+
+function applyEditRevOtherPreset(logId, label) {
+  const noteEl = document.getElementById(`editRevOtherNote_${logId}`);
+  const otherEl = document.getElementById(`editRevOther_${logId}`);
+  if (noteEl) {
+    noteEl.value = noteEl.value ? `${noteEl.value}, ${label}` : label;
+  }
+  if (otherEl) {
+    otherEl.focus();
+  }
+}
+
+function saveEditedRentalRevenueLog(logId) {
+  if (!logId) return;
+  const logs = loadRentalRevenueLogs();
+  const item = logs.find(l => l.id === logId);
+  if (!item) return;
+
+  const rent = Number(document.getElementById(`editRevRent_${logId}`)?.value) || 0;
+  const deposit = Number(document.getElementById(`editRevDeposit_${logId}`)?.value) || 0;
+  const delivery = Number(document.getElementById(`editRevDelivery_${logId}`)?.value) || 0;
+  const other = Number(document.getElementById(`editRevOther_${logId}`)?.value) || 0;
+  const otherNote = document.getElementById(`editRevOtherNote_${logId}`)?.value?.trim() || '';
+  const totalInput = document.getElementById(`editRevTotal_${logId}`);
+  const totalPayable = totalInput && totalInput.value !== ''
+    ? (Number(totalInput.value) || 0)
+    : (rent + deposit + delivery + other);
+
+  const prevDeposit = Number(item.originalDeposit) || Number(item.deposit) || 0;
+  if (prevDeposit > 0 && deposit === 0) {
+    item.originalDeposit = prevDeposit;
+    item.depositReturned = true;
+  } else if (deposit > 0) {
+    item.depositReturned = false;
+  }
+
+  item.rentSubtotal = rent;
+  item.deposit = deposit;
+  item.deliveryFee = delivery;
+  item.otherIncome = other;
+  item.otherIncomeNote = otherNote;
+  item.totalPayable = totalPayable;
+
+  editingRevLogId = null;
+  persistUpdatedRevenueLog(item);
+  renderRentalRevenueModal();
+  showToast(`บันทึกการแก้ไขยอดสัญญา ${item.docNo || ''} เรียบร้อยแล้ว (${formatPrice(item.totalPayable)})`, 'success');
+}
+
+function computeRentalRevenueStats(refDateIso = null, branchFilter = null) {
+  const refDateStr = refDateIso || getLocalDateIso();
+  const branch = branchFilter || (document.getElementById('headerBranchSelect')?.value || 'ALL');
+
+  const [ry, rm, rd] = refDateStr.split('-').map(Number);
+  const refDt = new Date(ry || new Date().getFullYear(), (rm || 1) - 1, rd || 1);
+  const dayOfWeek = refDt.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+  const diffToMon = dayOfWeek === 0 ? -6 : (1 - dayOfWeek);
+  const monDt = new Date(refDt.getFullYear(), refDt.getMonth(), refDt.getDate() + diffToMon);
+  const sunDt = new Date(monDt.getFullYear(), monDt.getMonth(), monDt.getDate() + 6);
+
+  const weekStartStr = getLocalDateIso(monDt);
+  const weekEndStr = getLocalDateIso(sunDt);
+  const monthPrefix = refDateStr.slice(0, 7);
+
+  const allLogs = loadRentalRevenueLogs().filter(log => {
+    if (branch !== 'ALL' && log.branch !== branch) return false;
+    return true;
+  });
+
+  const getLogDate = (log) => log.contractDate || log.dateStr || (log.printedAt ? log.printedAt.slice(0, 10) : '');
+
+  const dailyList = allLogs.filter(log => getLogDate(log) === refDateStr);
+  const weeklyList = allLogs.filter(log => {
+    const d = getLogDate(log);
+    return d >= weekStartStr && d <= weekEndStr;
+  });
+  const monthlyList = allLogs.filter(log => getLogDate(log).startsWith(monthPrefix));
+
+  const sumPayable = (arr) => arr.reduce((sum, item) => sum + (Number(item.totalPayable) || 0), 0);
+
+  return {
+    refDateStr,
+    weekStartStr,
+    weekEndStr,
+    monthPrefix,
+    branch,
+    dailyList,
+    weeklyList,
+    monthlyList,
+    allList: allLogs,
+    dailyTotal: sumPayable(dailyList),
+    weeklyTotal: sumPayable(weeklyList),
+    monthlyTotal: sumPayable(monthlyList),
+    allTotal: sumPayable(allLogs)
+  };
+}
+
+function openRentalRevenueModal() {
+  const dateInput = document.getElementById('revReferenceDate');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = getLocalDateIso();
+  }
+  editingRevLogId = null;
+  populateRevOtherMotoSelect();
+  renderRentalRevenueModal();
+  openModal('rentalRevenueModal');
+}
+
+function setRevPeriodTab(period) {
+  activeRevPeriodTab = period || 'daily';
+  renderRentalRevenueModal();
+}
+
+function onRevFilterDateChanged() {
+  renderRentalRevenueModal();
+}
+
+function resetRevFilterDateToToday() {
+  const dateInput = document.getElementById('revReferenceDate');
+  if (dateInput) dateInput.value = getLocalDateIso();
+  renderRentalRevenueModal();
+}
+
+function renderRentalRevenueModal() {
+  const dateInput = document.getElementById('revReferenceDate');
+  const refDateStr = dateInput?.value || getLocalDateIso();
+  const branch = document.getElementById('headerBranchSelect')?.value || 'ALL';
+  const stats = computeRentalRevenueStats(refDateStr, branch);
+
+  populateRevOtherMotoSelect();
+
+  const branchBadge = document.getElementById('revBranchBadge');
+  if (branchBadge) {
+    branchBadge.textContent = branch === 'ALL' ? '  (All)' : `สาขา: ${branch}`;
+  }
+
+  // Format Thai Month label
+  const thMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  const [ry, rm] = refDateStr.split('-').map(Number);
+  const monthLabel = `${thMonths[(rm || 1) - 1] || ''} ${(ry || new Date().getFullYear()) + 543}`;
+
+  // Update 3 Big Summary Cards
+  const setTxt = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+
+  setTxt('revDailyTotal', formatPrice(stats.dailyTotal));
+  setTxt('revDailyCount', `${stats.dailyList.length} รายการ`);
+  setTxt('revDailyDateLabel', `วันที่ ${formatThaiDate(stats.refDateStr)}`);
+
+  setTxt('revWeeklyTotal', formatPrice(stats.weeklyTotal));
+  setTxt('revWeeklyCount', `${stats.weeklyList.length} รายการ`);
+  setTxt('revWeeklyDateLabel', `${formatThaiDate(stats.weekStartStr)} - ${formatThaiDate(stats.weekEndStr)}`);
+
+  setTxt('revMonthlyTotal', formatPrice(stats.monthlyTotal));
+  setTxt('revMonthlyCount', `${stats.monthlyList.length} รายการ`);
+  setTxt('revMonthlyDateLabel', `เดือน${monthLabel}`);
+
+  setTxt('revAllTimeFooterSummary', `ยอดสะสมทั้งหมด: ${formatPrice(stats.allTotal)} (${stats.allList.length} รายการ)`);
+
+  // Highlight active card & tab
+  ['daily', 'weekly', 'monthly'].forEach(p => {
+    const cardId = p === 'daily' ? 'revCardDaily' : (p === 'weekly' ? 'revCardWeekly' : 'revCardMonthly');
+    document.getElementById(cardId)?.classList.toggle('active', activeRevPeriodTab === p);
+  });
+  ['daily', 'weekly', 'monthly', 'all'].forEach(p => {
+    const btnId = p === 'daily' ? 'btnRevTabDaily' : (p === 'weekly' ? 'btnRevTabWeekly' : (p === 'monthly' ? 'btnRevTabMonthly' : 'btnRevTabAll'));
+    document.getElementById(btnId)?.classList.toggle('active', activeRevPeriodTab === p);
+  });
+
+  // Active list for breakdown & table
+  let activeList = stats.dailyList;
+  let periodTitle = 'รายวัน';
+  if (activeRevPeriodTab === 'weekly') {
+    activeList = stats.weeklyList;
+    periodTitle = 'รายสัปดาห์';
+  } else if (activeRevPeriodTab === 'monthly') {
+    activeList = stats.monthlyList;
+    periodTitle = 'รายเดือน';
+  } else if (activeRevPeriodTab === 'all') {
+    activeList = stats.allList;
+    periodTitle = 'ทั้งหมด';
+  }
+
+  const sumField = (field) => activeList.reduce((s, item) => s + (Number(item[field]) || 0), 0);
+  setTxt('revBreakdownRent', formatPrice(sumField('rentSubtotal')));
+  setTxt('revBreakdownDeposit', formatPrice(sumField('deposit')));
+  setTxt('revBreakdownDelivery', formatPrice(sumField('deliveryFee')));
+  setTxt('revBreakdownOther', formatPrice(sumField('otherIncome')));
+  setTxt('revBreakdownTotalLabel', `สรุปยอดชำระทั้งสิ้น (${periodTitle}):`);
+  setTxt('revBreakdownTotal', formatPrice(sumField('totalPayable')));
+
+  const tbody = document.getElementById('revHistoryTableBody');
+  if (!tbody) return;
+
+  if (activeList.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
+          ยังไม่มีรายการพิมพ์สัญญาเช่าหรือรายรับในช่วง<strong>${periodTitle}</strong>นี้
+          <div style="font-size: 0.72rem; margin-top: 4px;">เมื่อกดปุ่ม "สั่งพิมพ์เอกสาร A4" ในหน้าสัญญาเช่า หรือเพิ่ม "รายรับอื่นๆ" ด้านบน ระบบจะดึงยอดมารวมไว้ที่นี่อัตโนมัติ</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = activeList.map(item => {
+    const safeId = escapeContractHtml(item.id);
+    const dateLabel = formatThaiDate(item.contractDate || item.dateStr);
+    const timeLabel = item.printedAt ? new Date(item.printedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : '';
+    const isOtherOnly = item.entryType === 'other';
+    const hasDepositToRefund = !isOtherOnly && (Number(item.deposit) || 0) > 0;
+    const isEditing = editingRevLogId === item.id;
+
+    let detailHtml = '';
+    if (isOtherOnly) {
+      detailHtml = `
+        <div style="font-size: 0.74rem; color: #6d28d9; font-weight: 700;">
+          <span class="rev-badge-other">รายรับอื่นๆ</span> ${escapeContractHtml(item.otherIncomeNote || 'รายรับเพิ่มเติม')} (${formatPrice(item.otherIncome || item.totalPayable || 0)})
+        </div>
+      `;
+    } else {
+      const depPart = item.depositReturned
+        ? `มัดจำ ฿0 <span class="rev-badge-returned">คืนมัดจำแล้ว${item.originalDeposit ? ' ' + formatPrice(item.originalDeposit) : ''}</span>`
+        : `มัดจำ ${formatPrice(item.deposit || 0)}`;
+      const delivPart = item.deliveryFee ? ` + จัดส่ง ${formatPrice(item.deliveryFee)}` : '';
+      const otherPart = Number(item.otherIncome) > 0
+        ? `<div style="margin-top: 2px; color: #6d28d9; font-weight: 700;">+ รายรับอื่นๆ ${formatPrice(item.otherIncome)}${item.otherIncomeNote ? ' (' + escapeContractHtml(item.otherIncomeNote) + ')' : ''}</div>`
+        : '';
+      detailHtml = `
+        <div style="font-size: 0.72rem; color: #475569; line-height: 1.4;">
+          ค่าเช่า ${formatPrice(item.rentSubtotal || 0)} + ${depPart}${delivPart}
+          ${otherPart}
+        </div>
+      `;
+    }
+
+    const editRowHtml = isEditing ? `
+      <tr class="rev-edit-row">
+        <td colspan="6">
+          <div style="font-size: 0.76rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.45rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+            <span>แก้ไขยอดสัญญา / คืนเงินมัดจำ / เพิ่มหักค่าน้ำมัน-หักมัดจำ (${escapeContractHtml(item.docNo || '')})</span>
+            <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+              <button type="button" class="quick-chip-btn" onclick="setEditRevDepositZero('${safeId}')">คืนมัดจำ (ตั้งมัดจำเป็น 0)</button>
+              <button type="button" class="quick-chip-btn" onclick="applyEditRevOtherPreset('${safeId}', 'หักค่าน้ำมัน')">+ หักค่าน้ำมัน</button>
+              <button type="button" class="quick-chip-btn" onclick="applyEditRevOtherPreset('${safeId}', 'หักค่ามัดจำ')">+ หักค่ามัดจำ</button>
+            </div>
+          </div>
+          <div class="rev-edit-grid">
+            <div class="rev-other-field">
+              <label class="rev-other-lbl" style="color: var(--navy-800);">ค่าเช่ารถ (บาท)</label>
+              <input type="number" id="editRevRent_${safeId}" class="form-control-sm" min="0" step="any"
+                value="${Number(item.rentSubtotal) || 0}" oninput="onEditRevSubfieldChange('${safeId}')">
+            </div>
+            <div class="rev-other-field">
+              <label class="rev-other-lbl" style="color: #b45309;">เงินมัดจำคงเหลือ (บาท)</label>
+              <input type="number" id="editRevDeposit_${safeId}" class="form-control-sm" min="0" step="any"
+                value="${Number(item.deposit) || 0}" oninput="onEditRevSubfieldChange('${safeId}')">
+            </div>
+            <div class="rev-other-field">
+              <label class="rev-other-lbl" style="color: var(--navy-800);">ค่าจัดส่ง (บาท)</label>
+              <input type="number" id="editRevDelivery_${safeId}" class="form-control-sm" min="0" step="any"
+                value="${Number(item.deliveryFee) || 0}" oninput="onEditRevSubfieldChange('${safeId}')">
+            </div>
+            <div class="rev-other-field">
+              <label class="rev-other-lbl" style="color: #7c3aed;">รายรับอื่นๆ / หักมัดจำ (บาท)</label>
+              <input type="number" id="editRevOther_${safeId}" class="form-control-sm" min="0" step="any"
+                value="${Number(item.otherIncome) || 0}" oninput="onEditRevSubfieldChange('${safeId}')">
+            </div>
+            <div class="rev-other-field" style="grid-column: span 2;">
+              <label class="rev-other-lbl" style="color: #7c3aed;">หมายเหตุรายรับอื่นๆ (เช่น หักค่าน้ำมัน, หักมัดจำ)</label>
+              <input type="text" id="editRevOtherNote_${safeId}" class="form-control-sm"
+                placeholder="เช่น หักค่าน้ำมัน 100, หักค่ามัดจำ" value="${escapeContractHtml(item.otherIncomeNote || '')}">
+            </div>
+            <div class="rev-other-field">
+              <label class="rev-other-lbl" style="color: #15803d;">สรุปยอดรับสุทธิ (บาท)</label>
+              <input type="number" id="editRevTotal_${safeId}" class="form-control-sm" min="0" step="any"
+                style="font-weight: 800; color: #15803d; border-color: #86efac;"
+                value="${Number(item.totalPayable) || 0}">
+            </div>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button type="button" class="header-btn btn-emerald" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;"
+                onclick="saveEditedRentalRevenueLog('${safeId}')">บันทึกยอด</button>
+              <button type="button" class="header-btn btn-glass" style="padding: 0.4rem 0.65rem; font-size: 0.75rem;"
+                onclick="toggleEditRentalRevenueLog('${safeId}')">ยกเลิก</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    ` : '';
+
+    return `
+      <tr>
+        <td>
+          <div style="font-weight: 700; color: var(--navy-900); font-family: monospace;">${escapeContractHtml(item.docNo || '-')}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeContractHtml(dateLabel)}${timeLabel ? ' • ' + escapeContractHtml(timeLabel) : ''}</div>
+        </td>
+        <td>
+          <div style="font-weight: 700; color: var(--navy-900);">${escapeContractHtml(item.licensePlate || '-')}${item.province ? ' ' + escapeContractHtml(item.province) : ''}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeContractHtml((item.brand || '') + ' ' + (item.model || ''))} • ${escapeContractHtml(item.branch || '')}</div>
+        </td>
+        <td>
+          <div style="font-weight: 600; color: var(--navy-900);">${escapeContractHtml(item.customer || '-')}</div>
+          <div style="font-size: 0.72rem; color: var(--cyan-600);">${isOtherOnly ? 'รายการรายรับเพิ่มเติม' : `เช่า ${Number(item.rentalDays || 1)} วัน`}${item.customerPhone ? ' • ' + escapeContractHtml(item.customerPhone) : ''}</div>
+        </td>
+        <td>
+          ${detailHtml}
+        </td>
+        <td style="text-align: right;">
+          <strong style="font-size: 0.95rem; color: #15803d; font-family: var(--font-number); cursor: pointer; border-bottom: 1px dashed #86efac;"
+            onclick="toggleEditRentalRevenueLog('${safeId}')" title="คลิกเพื่อแก้ไขยอดสัญญานี้">${formatPrice(item.totalPayable || 0)}</strong>
+        </td>
+        <td style="text-align: center;">
+          <div class="rev-action-group">
+            ${hasDepositToRefund ? `
+              <button type="button" class="rev-btn-mini rev-btn-refund"
+                onclick="refundRentalRevenueDeposit('${safeId}')" title="คืนเงินมัดจำ (${formatPrice(item.deposit)}) และหักออกจากยอดรวมทันที">
+                คืนมัดจำ
+              </button>
+            ` : ''}
+            <button type="button" class="rev-btn-mini rev-btn-edit"
+              onclick="toggleEditRentalRevenueLog('${safeId}')" title="แก้ไขยอดสัญญา / หักมัดจำ / ค่าน้ำมัน">
+              แก้ไข
+            </button>
+            <button type="button" class="btn-card-icon" style="color: #ef4444; width: 26px; height: 26px;"
+              onclick="deleteRentalRevenueLog('${safeId}')" title="ลบรายการนี้">
+              &times;
+            </button>
+          </div>
+        </td>
+      </tr>
+      ${editRowHtml}
+    `;
+  }).join('');
+}
+
+function deleteRentalRevenueLog(logId) {
+  if (!logId) return;
+  const deletedIds = getDeletedRevenueIds();
+  deletedIds.add(logId);
+  saveDeletedRevenueIds(deletedIds);
+
+  const logs = loadRentalRevenueLogs().filter(l => l.id !== logId);
+  saveRentalRevenueLogs(logs);
+
+  fleet.forEach(moto => {
+    if (moto && Array.isArray(moto.contractRevenueHistory)) {
+      const beforeLen = moto.contractRevenueHistory.length;
+      moto.contractRevenueHistory = moto.contractRevenueHistory.filter(h => h && h.id !== logId);
+      if (moto.contractRevenueHistory.length !== beforeLen) {
+        moto._lastModified = new Date().toISOString();
+        if (window.FirebaseSync && typeof FirebaseSync.upsertMoto === 'function') {
+          FirebaseSync.upsertMoto(moto);
+        }
+      }
+    }
+  });
+
+  saveFleet();
+  updateKpiStats();
+  renderRentalRevenueModal();
+  showToast('ลบรายการออกจากสรุปยอดเช่าเรียบร้อยแล้ว', 'info');
+}
+
+function clearAllRentalRevenueLogs() {
+  const logs = loadRentalRevenueLogs();
+  if (logs.length === 0) {
+    showToast('ยังไม่มีประวัติยอดเช่าให้ล้าง', 'info');
+    return;
+  }
+  if (typeof window.confirm === 'function' && !window.confirm('ต้องการล้างประวัติยอดเช่ารวมทั้งหมดใช่หรือไม่?')) {
+    return;
+  }
+
+  const deletedIds = getDeletedRevenueIds();
+  logs.forEach(l => {
+    if (l && l.id) deletedIds.add(l.id);
+  });
+  saveDeletedRevenueIds(deletedIds);
+  saveRentalRevenueLogs([]);
+
+  fleet.forEach(moto => {
+    if (moto && Array.isArray(moto.contractRevenueHistory) && moto.contractRevenueHistory.length > 0) {
+      moto.contractRevenueHistory = [];
+      moto._lastModified = new Date().toISOString();
+      if (window.FirebaseSync && typeof FirebaseSync.upsertMoto === 'function') {
+        FirebaseSync.upsertMoto(moto);
+      }
+    }
+  });
+
+  saveFleet();
+  updateKpiStats();
+  renderRentalRevenueModal();
+  showToast('ล้างประวัติยอดเช่ารวมทั้งหมดเรียบร้อยแล้ว', 'info');
+}
+
+window.openRentalRevenueModal = openRentalRevenueModal;
+window.setRevPeriodTab = setRevPeriodTab;
+window.onRevFilterDateChanged = onRevFilterDateChanged;
+window.resetRevFilterDateToToday = resetRevFilterDateToToday;
+window.deleteRentalRevenueLog = deleteRentalRevenueLog;
+window.clearAllRentalRevenueLogs = clearAllRentalRevenueLogs;
+window.computeRentalRevenueStats = computeRentalRevenueStats;
+window.recordPrintedContractRevenue = recordPrintedContractRevenue;
+window.applyRevOtherPreset = applyRevOtherPreset;
+window.addCustomOtherRevenue = addCustomOtherRevenue;
+window.refundRentalRevenueDeposit = refundRentalRevenueDeposit;
+window.toggleEditRentalRevenueLog = toggleEditRentalRevenueLog;
+window.onEditRevSubfieldChange = onEditRevSubfieldChange;
+window.setEditRevDepositZero = setEditRevDepositZero;
+window.applyEditRevOtherPreset = applyEditRevOtherPreset;
+window.saveEditedRentalRevenueLog = saveEditedRentalRevenueLog;
 
 
 
