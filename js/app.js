@@ -4865,7 +4865,7 @@ function updateContractPreview() {
           </colgroup>
           <tr>
             <td class="lbl">${isRent ? 'ผู้ให้เช่า' : 'ผู้ขาย / ผู้ให้เช่าซื้อ'}</td>
-            <td colspan="3"><strong>บริษัท วีระมอเตอร์ อีซี่ไฟแนนซ์ จำกัด (Wira Easy Finance)</strong> สาขา: ${branch}</td>
+            <td colspan="3"><strong>ร้าน วีระมอเตอร์ รถเช่าพัทยา </strong> 
           </tr>
           <tr>
             <td class="lbl">${isRent ? 'ผู้เช่า' : 'ผู้ซื้อ / ผู้เช่าซื้อ'}</td>
@@ -6267,7 +6267,7 @@ function verifyEnteredPin() {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(APP_PIN_SESSION_UNLOCKED_KEY, '1');
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (container) {
       container.classList.remove('is-error');
@@ -6329,7 +6329,7 @@ function lockAppScreenNow() {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(APP_PIN_SESSION_UNLOCKED_KEY);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   closeModal('pinSettingsModal');
   updatePinDefaultHintVisibility();
@@ -6356,7 +6356,7 @@ function getAppMasterKey() {
         localStamp = parsed.updatedAt || '';
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
   if (Array.isArray(fleet)) {
     fleet.forEach(m => {
@@ -6378,7 +6378,7 @@ function setAppMasterKey(newKey) {
   const nowIso = new Date().toISOString();
   try {
     localStorage.setItem(APP_MASTER_KEY_STORAGE, JSON.stringify({ key: cleaned, updatedAt: nowIso }));
-  } catch (e) {}
+  } catch (e) { }
 
   if (Array.isArray(fleet) && fleet.length > 0 && fleet[0]) {
     fleet[0]._systemMasterKey = cleaned;
@@ -6602,7 +6602,7 @@ function initAppPinLock() {
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(APP_PIN_SESSION_UNLOCKED_KEY) === '1') {
       isUnlocked = true;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   if (isUnlocked) {
     overlay.classList.add('is-unlocked');
