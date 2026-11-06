@@ -4824,13 +4824,13 @@ function updateContractPreview() {
     <div class="a4-doc-header">
       <div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <h1 class="a4-company-name">Wira Easy Finance</h1>
+          <h1 class="a4-company-name">WiraMotor Pattaya</h1>
           <span style="font-size: 7.5pt; background: #0a1b38; color: #fff; padding: 1px 6px; border-radius: 2px; font-weight: bold;">OFFICIAL FLEET</span>
         </div>
-        <p class="a4-company-sub">บริษัท วีระมอเตอร์ อีซี่ไฟแนนซ์ จำกัด &bull; ศูนย์รวมมอเตอร์ไซค์ จำหน่าย-ผ่อน-เช่า ครบวงจร</p>
+        <p class="a4-company-sub">ร้าน วีระมอเตอร์ รถเช่าพัทยา  &bull; ศูนย์รวมมอเตอร์ไซค์ จำหน่าย-ผ่อน-เช่า ครบวงจร</p>
         <p class="a4-company-sub" style="color: #475569; font-size: 7.5pt;">
           สถานที่ทำสัญญา: <strong>${branch}</strong> &bull; สายด่วนบริการลูกค้า: 064-427-6449
-        </p>
+        </p>  
       </div>
       <div class="a4-doc-badge-col">
         <div class="a4-doc-type-pill">
