@@ -610,6 +610,10 @@ function updateBranchOptions() {
       headerSelect.value = 'ALL';
     }
   }
+
+  if (typeof syncMobileBranchOptions === 'function') {
+    syncMobileBranchOptions();
+  }
 }
 
 function updatePrintDate() {
@@ -650,6 +654,8 @@ function setupEventListeners() {
   document.getElementById('filterCc').addEventListener('change', () => renderAll());
   document.getElementById('sortBy').addEventListener('change', () => renderAll());
   document.getElementById('headerBranchSelect').addEventListener('change', (e) => {
+    const mobBranch = document.getElementById('mobileBranchSelect');
+    if (mobBranch) mobBranch.value = e.target.value;
     renderAll();
     showToast(`เลือกดูสต็อคสาขา: ${e.target.value}`, 'info');
   });
@@ -662,6 +668,8 @@ function setupEventListeners() {
     document.getElementById('filterCc').value = 'ALL';
     document.getElementById('sortBy').value = 'date-desc';
     document.getElementById('headerBranchSelect').value = 'ALL';
+    const mobBranch = document.getElementById('mobileBranchSelect');
+    if (mobBranch) mobBranch.value = 'ALL';
     renderAll();
     showToast('รีเซ็ตตัวกรองทั้งหมดแล้ว', 'info');
   });
@@ -762,6 +770,11 @@ function switchView(viewName) {
   document.getElementById('viewTable').style.display = viewName === 'table' ? 'block' : 'none';
   document.getElementById('viewKanban').style.display = viewName === 'kanban' ? 'block' : 'none';
 
+  const mobColGroup = document.getElementById('mobileColToggleGroup');
+  if (mobColGroup) {
+    mobColGroup.classList.toggle('is-hidden', viewName !== 'grid');
+  }
+
   renderAll();
 }
 
@@ -786,8 +799,11 @@ function renderAll() {
   // 2. Update KPIs
   updateKpiStats();
 
-  // 3. Update filtered count badge
+  // 3. Update filtered count badge & mobile active filter counter
   document.getElementById('filteredCountBadge').textContent = `แสดง ${filtered.length} จากทั้งหมด ${fleet.length} คัน`;
+  if (typeof updateMobileFilterBadge === 'function') {
+    updateMobileFilterBadge();
+  }
 
   // 4. Render current active view
   if (currentView === 'grid') {
@@ -946,7 +962,7 @@ const UI_ICONS = {
   moto: `<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M12 17h-2.5l-2-7h5.5l2 4h4"/><path d="M15 6h2l2 4"/></svg>`,
   key: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m11 12 8-8h3v3l-2 2v2l-2 2z"/></svg>`,
   tag: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r="1.5"/></svg>`,
-  sparkle: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>`,
+  layers: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
   camera: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>`,
   zap: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
   user: `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
@@ -979,7 +995,7 @@ function formatPrice(num) {
 function getPurposeBadge(purpose) {
   if (purpose === 'rent') return `<span class="purpose-badge purpose-rent">${UI_ICONS.key} สำหรับเช่า</span>`;
   if (purpose === 'sale') return `<span class="purpose-badge purpose-sale">${UI_ICONS.tag} สำหรับขาย</span>`;
-  return `<span class="purpose-badge purpose-both">${UI_ICONS.sparkle} ขายและเช่า</span>`;
+  return `<span class="purpose-badge purpose-both">${UI_ICONS.layers} ขายและเช่า</span>`;
 }
 
 // ==================== VIEW 1: GRID VIEW RENDERER ====================
@@ -1123,12 +1139,12 @@ function renderGridView(motos) {
             <div class="card-footer-top">
               <!-- Quick Status Change -->
               <select class="card-quick-status" onchange="quickUpdateStatus('${moto.id}', this.value)" title="เปลี่ยนสถานะรถด่วน">
-                <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
-                <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
-                <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน</option>
-                <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
-                <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
-                <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
+                <option value="available" ${moto.status === 'available' ? 'selected' : ''}>ว่างพร้อมบริการ</option>
+                <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>กำลังเช่า</option>
+                <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>กำลังผ่อน</option>
+                <option value="check" ${moto.status === 'check' ? 'selected' : ''}>ไม่พบรถ</option>
+                <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>ซ่อม/ถ่ายน้ำมัน</option>
+                <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>ขายแล้ว</option>
               </select>
 
               <div class="card-action-icons">
@@ -1810,7 +1826,7 @@ function copyFinanceQuote() {
   const interestPct = term > 0 ? Math.round((term / 6) * 35 * 10) / 10 : 0;
   const cashOnlyLine = cashOnlyPrice > 0 ? `ราคาสด: ${formatPrice(cashOnlyPrice)}\n` : '';
 
-  const text = `🏍️ ใบเสนอราคาแผนผ่อนชำระ (Easy Finance)\n` +
+  const text = `[ใบเสนอราคาแผนผ่อนชำระ - Easy Finance]\n` +
     `สาขา: วีระมอเตอร์\n` +
     `--------------------------------\n` +
     `รุ่น: ${bikeName}\n` +
@@ -1857,7 +1873,7 @@ function copyRentQuote() {
 
   const dateLine = (startVal && endVal) ? `ช่วงวันที่: ${startVal} ถึง ${endVal} (${days} วัน)\n` : `ระยะเวลาเช่า: ${days} วัน\n`;
 
-  const text = `🏍️ ใบเสนอราคาเช่ารถมอเตอร์ไซค์\n` +
+  const text = `[ใบเสนอราคาเช่ารถมอเตอร์ไซค์]\n` +
     `สาขา: วีระมอเตอร์\n` +
     `--------------------------------\n` +
     `รุ่นรถ: ${bikeName}\n` +
@@ -2345,7 +2361,7 @@ function setPhotoProcessingState(isProcessing, count = 0) {
   if (grid && isProcessing) {
     grid.innerHTML = `
       <div style="grid-column: 1/-1; padding: 1rem; text-align: center; color: var(--cyan-600); font-size: 0.82rem; font-weight: 600; background: rgba(0, 153, 229, 0.08); border-radius: 6px; border: 1px dashed var(--cyan-400);">
-        ⏳ กำลังบีบอัดและปรับขนาดรูปภาพให้เหมาะสมกับการบันทึกถาวร...
+        กำลังบีบอัดและปรับขนาดรูปภาพให้เหมาะสมกับการบันทึกถาวร...
       </div>
     `;
   }
@@ -2791,12 +2807,12 @@ function openCarDetail(motoId) {
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span style="font-weight: 700; color: var(--navy-900);">เปลี่ยนสถานะรถคันนี้:</span>
         <select class="form-control" style="width: auto; font-weight: 600;" onchange="quickUpdateStatus('${moto.id}', this.value); openCarDetail('${moto.id}');">
-          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>&#x25CF; ว่างพร้อมบริการ</option>
-          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>&#x25CF; กำลังเช่า</option>
-          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>&#x25CF; กำลังผ่อน / จอง</option>
-          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>&#x25CF; ไม่พบรถ</option>
-          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>&#x25CF; ซ่อม/ถ่ายน้ำมัน</option>
-          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>&#x25CF; ขายแล้ว</option>
+          <option value="available" ${moto.status === 'available' ? 'selected' : ''}>ว่างพร้อมบริการ</option>
+          <option value="rented" ${moto.status === 'rented' ? 'selected' : ''}>กำลังเช่า</option>
+          <option value="reserved" ${moto.status === 'reserved' ? 'selected' : ''}>กำลังผ่อน / จอง</option>
+          <option value="check" ${moto.status === 'check' ? 'selected' : ''}>ไม่พบรถ</option>
+          <option value="maintenance" ${moto.status === 'maintenance' ? 'selected' : ''}>ซ่อม/ถ่ายน้ำมัน</option>
+          <option value="sold" ${moto.status === 'sold' ? 'selected' : ''}>ขายแล้ว</option>
         </select>
       </div>
       <div>
@@ -3215,6 +3231,9 @@ function openModal(modalId) {
     document.body.style.overflow = 'hidden';
     const bodyEl = m.querySelector('.modal-body');
     if (bodyEl) bodyEl.scrollTop = 0;
+    if (typeof syncMobileBottomNavFromModals === 'function') {
+      syncMobileBottomNavFromModals();
+    }
   }
 }
 
@@ -3229,6 +3248,9 @@ function closeModal(modalId) {
     const remainingOpen = document.querySelectorAll('.modal-backdrop.active');
     if (remainingOpen.length === 0) {
       document.body.style.overflow = '';
+    }
+    if (typeof syncMobileBottomNavFromModals === 'function') {
+      syncMobileBottomNavFromModals();
     }
   }
 }
@@ -3423,6 +3445,10 @@ function updateFirebaseStatusUI(state) {
       dataModalBadge.style.color = '#94a3b8';
       dataModalBadge.style.borderColor = '#94a3b8';
     }
+  }
+
+  if (typeof syncMobileCloudStatusIndicators === 'function') {
+    syncMobileCloudStatusIndicators(state);
   }
 }
 
@@ -3936,7 +3962,7 @@ function renderContractCarList() {
           </div>
           <div class="car-item-title">${moto.brand} ${moto.model} <span style="color: var(--cyan-600); font-weight: normal;">${moto.cc}</span></div>
           <div class="car-item-sub">
-            <span>📍 ${moto.branch}</span>
+            <span>สาขา: ${moto.branch}</span>
             ${moto.rentDaily ? `<span>&bull; ค่าเช่า ฿${Number(moto.rentDaily).toLocaleString()}/วัน</span>` : ''}
             ${moto.price ? `<span>&bull; ขาย ฿${Number(moto.price).toLocaleString()}</span>` : ''}
           </div>
@@ -6630,6 +6656,275 @@ window.lockAppScreenNow = lockAppScreenNow;
 window.openPinSettingsModal = openPinSettingsModal;
 window.unlockPinChangeSection = unlockPinChangeSection;
 window.saveNewAppPin = saveNewAppPin;
+
+// ==================== DEDICATED MOBILE APP UI CONTROLLER (<= 768px) ====================
+const MOBILE_GRID_COLS_STORAGE_KEY = 'wira_mobile_grid_cols';
+
+function toggleMobileDrawer(forceOpen) {
+  const btn = document.getElementById('btnMobileMenuToggle');
+  const backdrop = document.getElementById('mobileDrawerBackdrop');
+  const drawer = document.getElementById('mobileNavDrawer');
+  if (!drawer) return;
+
+  const shouldOpen = typeof forceOpen === 'boolean'
+    ? forceOpen
+    : !drawer.classList.contains('is-open');
+
+  drawer.classList.toggle('is-open', shouldOpen);
+  drawer.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+  if (backdrop) backdrop.classList.toggle('is-open', shouldOpen);
+  if (btn) {
+    btn.classList.toggle('is-open', shouldOpen);
+    btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  }
+
+  if (shouldOpen) {
+    syncMobileBranchOptions();
+    document.body.style.overflow = 'hidden';
+  } else {
+    const anyModalOpen = document.querySelectorAll('.modal-backdrop.active').length > 0;
+    if (!anyModalOpen) {
+      document.body.style.overflow = '';
+    }
+  }
+}
+
+function runMobileDrawerAction(actionFn) {
+  toggleMobileDrawer(false);
+  if (typeof actionFn === 'function') {
+    actionFn();
+  }
+}
+
+function openFirebaseModalSafe() {
+  if (typeof openFirebaseModal === 'function' && window.FirebaseSync) {
+    openFirebaseModal();
+  } else {
+    openModal('firebaseModal');
+  }
+}
+
+function syncMobileBranchOptions() {
+  const headerSelect = document.getElementById('headerBranchSelect');
+  const mobSelect = document.getElementById('mobileBranchSelect');
+  if (!headerSelect || !mobSelect) return;
+
+  mobSelect.innerHTML = headerSelect.innerHTML;
+  mobSelect.value = headerSelect.value || 'ALL';
+}
+
+function onMobileBranchChange(branchVal) {
+  const headerSelect = document.getElementById('headerBranchSelect');
+  if (headerSelect) {
+    headerSelect.value = branchVal;
+  }
+  renderAll();
+  showToast(`เลือกดูสต็อคสาขา: ${branchVal === 'ALL' ? 'ทุกสาขา' : branchVal}`, 'info');
+}
+
+function toggleMobileFilters(forceOpen) {
+  const panel = document.getElementById('mobileFilterCollapse');
+  const btn = document.getElementById('btnMobileFilterToggle');
+  if (!panel) return;
+
+  const shouldOpen = typeof forceOpen === 'boolean'
+    ? forceOpen
+    : !panel.classList.contains('is-open');
+
+  panel.classList.toggle('is-open', shouldOpen);
+  if (btn) {
+    btn.classList.toggle('is-open', shouldOpen);
+    btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  }
+}
+
+function updateMobileFilterBadge() {
+  const badge = document.getElementById('mobileFilterCountBadge');
+  const btn = document.getElementById('btnMobileFilterToggle');
+  if (!badge) return;
+
+  let activeCount = 0;
+  const modelVal = document.getElementById('filterModel')?.value;
+  const statusVal = document.getElementById('filterStatus')?.value;
+  const ccVal = document.getElementById('filterCc')?.value;
+  const sortVal = document.getElementById('sortBy')?.value;
+  const branchVal = document.getElementById('headerBranchSelect')?.value;
+
+  if (modelVal && modelVal !== 'ALL') activeCount++;
+  if (statusVal && statusVal !== 'ALL') activeCount++;
+  if (ccVal && ccVal !== 'ALL') activeCount++;
+  if (sortVal && sortVal !== 'date-desc') activeCount++;
+  if (branchVal && branchVal !== 'ALL') activeCount++;
+
+  if (activeCount > 0) {
+    badge.textContent = String(activeCount);
+    badge.style.display = 'inline-flex';
+    if (btn) btn.classList.add('has-active-filters');
+  } else {
+    badge.textContent = '0';
+    badge.style.display = 'none';
+    if (btn) btn.classList.remove('has-active-filters');
+  }
+}
+
+function setMobileGridCols(cols, persist = true) {
+  const normalized = Number(cols) === 2 ? 2 : 1;
+  const gridEl = document.getElementById('carGridContainer');
+  const btn1 = document.getElementById('btnMobCol1');
+  const btn2 = document.getElementById('btnMobCol2');
+
+  if (gridEl) {
+    gridEl.classList.toggle('mobile-cols-2', normalized === 2);
+  }
+  if (btn1) btn1.classList.toggle('active', normalized === 1);
+  if (btn2) btn2.classList.toggle('active', normalized === 2);
+
+  if (persist) {
+    try {
+      localStorage.setItem(MOBILE_GRID_COLS_STORAGE_KEY, String(normalized));
+    } catch (e) { /* ignore */ }
+  }
+}
+
+function closeAllNonLightboxModals() {
+  document.querySelectorAll('.modal-backdrop.active').forEach(m => {
+    if (m.id === 'imageLightboxModal') {
+      closeLightbox();
+    } else {
+      closeModal(m.id);
+    }
+  });
+}
+
+function setMobileBottomNavActive(tabKey) {
+  const nav = document.getElementById('mobileBottomNav');
+  if (!nav) return;
+  nav.querySelectorAll('.mob-nav-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-mob-tab') === tabKey);
+  });
+}
+
+function syncMobileBottomNavFromModals() {
+  const calcEl = document.getElementById('calcModal');
+  const contractEl = document.getElementById('contractPrintModal');
+  const fbEl = document.getElementById('firebaseModal');
+
+  if (calcEl && calcEl.classList.contains('active')) {
+    setMobileBottomNavActive('calc');
+  } else if (contractEl && contractEl.classList.contains('active')) {
+    setMobileBottomNavActive('contract');
+  } else if (fbEl && fbEl.classList.contains('active')) {
+    setMobileBottomNavActive('cloud');
+  } else {
+    setMobileBottomNavActive('stock');
+  }
+}
+
+function handleMobileBottomNav(tabKey) {
+  toggleMobileDrawer(false);
+
+  if (tabKey === 'stock') {
+    closeAllNonLightboxModals();
+    setMobileBottomNavActive('stock');
+    return;
+  }
+
+  if (tabKey === 'calc') {
+    const calcEl = document.getElementById('calcModal');
+    if (calcEl && calcEl.classList.contains('active')) {
+      closeModal('calcModal');
+      return;
+    }
+    closeAllNonLightboxModals();
+    openCalcModal();
+    return;
+  }
+
+  if (tabKey === 'contract') {
+    const contractEl = document.getElementById('contractPrintModal');
+    if (contractEl && contractEl.classList.contains('active')) {
+      closeModal('contractPrintModal');
+      return;
+    }
+    closeAllNonLightboxModals();
+    openContractModal();
+    return;
+  }
+
+  if (tabKey === 'cloud') {
+    const fbEl = document.getElementById('firebaseModal');
+    if (fbEl && fbEl.classList.contains('active')) {
+      closeModal('firebaseModal');
+      return;
+    }
+    closeAllNonLightboxModals();
+    openFirebaseModalSafe();
+  }
+}
+
+function syncMobileCloudStatusIndicators(state) {
+  const drawerText = document.getElementById('mobileDrawerSyncText');
+  const drawerDot = document.getElementById('mobileDrawerSyncDot');
+  const bottomDot = document.getElementById('mobNavCloudDot');
+
+  const status = state && state.status ? state.status : 'offline';
+  let dotClass = 'offline';
+  if (status === 'connected') dotClass = 'online';
+  else if (status === 'connecting' || status === 'syncing') dotClass = 'connecting';
+  else if (status === 'error') dotClass = 'error';
+
+  if (drawerDot) drawerDot.className = `drawer-sync-dot ${dotClass}`;
+  if (bottomDot) bottomDot.className = `mob-nav-cloud-dot ${dotClass}`;
+
+  if (drawerText) {
+    if (status === 'connected') {
+      drawerText.textContent = `ซิงค์สดเรียลไทม์ (${state.remoteFleetCount || 0} คัน)`;
+    } else if (status === 'connecting' || status === 'syncing') {
+      drawerText.textContent = 'กำลังซิงค์ข้อมูลคลาวด์...';
+    } else if (status === 'error') {
+      drawerText.textContent = 'พบข้อผิดพลาดในการซิงค์';
+    } else {
+      drawerText.textContent = 'คลิกเพื่อตั้งค่าซิงค์ Firebase';
+    }
+  }
+}
+
+function initMobileAppUI() {
+  let savedCols = 1;
+  try {
+    const raw = localStorage.getItem(MOBILE_GRID_COLS_STORAGE_KEY);
+    if (raw === '2') savedCols = 2;
+  } catch (e) { /* ignore */ }
+
+  setMobileGridCols(savedCols, false);
+  syncMobileBranchOptions();
+  updateMobileFilterBadge();
+  syncMobileBottomNavFromModals();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const drawer = document.getElementById('mobileNavDrawer');
+    if (drawer && drawer.classList.contains('is-open')) {
+      toggleMobileDrawer(false);
+    }
+  }
+});
+
+initMobileAppUI();
+document.addEventListener('DOMContentLoaded', initMobileAppUI);
+
+window.toggleMobileDrawer = toggleMobileDrawer;
+window.runMobileDrawerAction = runMobileDrawerAction;
+window.openFirebaseModalSafe = openFirebaseModalSafe;
+window.syncMobileBranchOptions = syncMobileBranchOptions;
+window.onMobileBranchChange = onMobileBranchChange;
+window.toggleMobileFilters = toggleMobileFilters;
+window.updateMobileFilterBadge = updateMobileFilterBadge;
+window.setMobileGridCols = setMobileGridCols;
+window.handleMobileBottomNav = handleMobileBottomNav;
+window.syncMobileBottomNavFromModals = syncMobileBottomNavFromModals;
+
 
 
 
